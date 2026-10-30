@@ -1,0 +1,86 @@
+# soldiers.yaml (v2)
+# Soldier types are generic content. A squad is a pairing of a hero and an eligible soldier type.
+# A squad is selected as one target, but each soldier has its own HP; single-target hits land on the lowest-HP living soldier, and row/column/all
+# hit every living soldier. It fills a whole 1x3 soldier row. Soldier skills are a separate
+# stacking category (source_category: soldier) and stack with equipment, active and passive effects.
+
+- id: soldier_001
+  name: Heavy Infantry
+  description: "Strong Powerful Footsoldiers strong at melee attack and physical defense"
+  role: "Strong at attack and defense."
+  class: infantry
+  default_soldier_row: front            # pre-fill only (melee and tanky front, ranged and frail back); the player can change it per squad
+  allowed_soldier_rows: [front, back]   # the first or last board row
+  count: 10
+  mounted: false
+  per_soldier_stats:
+    HP: 50
+    ATK: 30
+    INT: 10
+    DEF: 30
+    MDEF: 10
+    SPD: 30
+    HIT: 60
+    SKL: 30
+    CRIT: 15
+    GUARD: 0
+    EVA: 0
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects:                    # soldier skills (always-on unless stated)
+    - name: null                      # authored as "Attack + 30% Def +30%"; no name given
+      target: self_squad
+      effects:
+        - { type: modify_stat, stat: ATK, mode: percent, value: 30, source_category: soldier }
+        - { type: modify_stat, stat: DEF, mode: percent, value: 30, source_category: soldier }
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes:
+    strengths: "Generic but strong foot soldiers."
+    weaknesses: "Magic."
+    synergies: ""
+  meta:
+    unresolved:
+      - "Special survival rules and hero interactions were left blank in the source. The authored 'Front preferred' is the default row; the player can change it per squad."
+
+- id: soldier_002
+  name: Heavy Cavalry
+  description: "Mounted version of Heavy Infantry. Same skills."
+  role: "Strong at attack and defense, mounted."
+  class: cavalry
+  default_soldier_row: front
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: true
+  per_soldier_stats:
+    HP: 40
+    ATK: 30
+    INT: 10
+    DEF: 30
+    MDEF: 10
+    SPD: 50
+    HIT: 60                           # not given; kept at Heavy Infantry's value
+    SKL: 30                           # not given; kept at Heavy Infantry's value
+    CRIT: 15
+    GUARD: 0
+    EVA: 10
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects:
+    - name: null
+      target: self_squad
+      effects:
+        - { type: modify_stat, stat: ATK, mode: percent, value: 30, source_category: soldier }
+        - { type: modify_stat, stat: DEF, mode: percent, value: 30, source_category: soldier }
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "Pairs with Leon without his SPD penalty." }
+  meta:
+    unresolved:
+      - "HIT and SKL were not given for Heavy Cavalry; kept at Heavy Infantry's 60 and 30."

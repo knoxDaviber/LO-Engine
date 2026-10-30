@@ -1,0 +1,149 @@
+# characters.yaml
+# Authored statistics, text, skills and restrictions preserved. Leader auras come from the designer's latest message.
+# Aura names were not given (null). preferred_row values are DEFAULT-RULE results, not authored.
+
+- id: char_001
+  name: Leon
+  class: cavalry
+  factions: [faction_001]
+  role: "Damage dealer"
+  lore: "A loyal knight with dashing looks, blue eyes, blonde hair. As powerful as he is handsome. He serves the empire and it's emperor with unwavering spirit. Tales across the land sing of his heroics, and while his enemies fear him, they can't help but be awestruck by his very presence."
+  base_stats: { HP: 150, ATK: 70, INT: 30, DEF: 50, MDEF: 30, SPD: 50, HIT: 100, SKL: 95, CRIT: 30, GUARD: 30, EVA: 30 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_cav_active_001, skl_cav_active_002, skl_passive_001]
+  restrictions:
+    equipment_tags: [sword, spear, heavy_armor, light_armor]
+    soldier:
+      mounted_only: false
+      stat_penalties:
+        - { when: { type: soldier_mounted, value: false }, stat: SPD, mode: flat, value: -20 }
+  leader_aura:
+    name: "Loyalty to the Crown"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: { type: party_has_hero, side: ally, value: char_002 }
+    target:
+      side: ally
+      filter: { any: [{ type: hero_is, side: ally, value: char_001 }, { type: hero_is, side: ally, value: char_002 }] }
+      include_soldiers: false
+    description: "When in a party with The Emperor, 30% increase in ATK/DEF/SPD to both him and The Emperor."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 30 }
+      - { type: modify_stat, stat: DEF, mode: percent, value: 30 }
+      - { type: modify_stat, stat: SPD, mode: percent, value: 30 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes:
+    strengths: "Fast and strong physically with high ATK, DEF, SPD."
+    weaknesses: "Lancers and magic."
+    synergies: "Other Empire faction characters."
+    balance: ""
+  meta:
+    authored_notes: "Authored soldier restriction: 'Mounted Soldiers. Non-mounted Soldiers grant Leon -20 Speed.' CRIT confirmed as 30 and DEF raised from 30 to 50 by the designer (v2)."
+
+- id: char_002
+  name: "The Emperor"
+  class: infantry
+  factions: [faction_001, faction_002]
+  role: "Tank/Damage dealer"
+  lore: "The Emperor of the Empire who has been ruling for as long as it's people remember. He has greyed and aged but his skills have not. He rules his people with an Iron fist but is still respected and close to deified. He has conquered evil and has taken evil's power for himself. Evil submits to him."
+  base_stats: { HP: 200, ATK: 60, INT: 30, DEF: 50, MDEF: 20, SPD: 30, HIT: 95, SKL: 80, CRIT: 30, GUARD: 45, EVA: 10 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_inf_active_002, skl_passive_002, skl_inf_active_001]
+  restrictions:
+    equipment_tags: [sword, heavy_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Empire's Dominion"
+    type: faction_buff
+    faction_id: faction_001
+    trigger: always
+    trigger_event: null
+    condition: null
+    target: { side: ally, filter: null, include_soldiers: false }
+    description: "All Empire factions gain 20% ATK and DEF."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 20 }
+      - { type: modify_stat, stat: DEF, mode: percent, value: 20 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes:
+    strengths: "Powerful physical bruiser type"
+    weaknesses: ""
+    synergies: "Buffs Empire characters."
+    balance: ""
+  meta:
+    authored_notes: "Authored unique mechanic: 'Grants all Empire units in the party 20% ATK and DEF while alive.' Now his leader aura, so it applies only while he is leader."
+
+- id: char_003
+  name: Jasmine
+  class: holy
+  factions: [faction_003, faction_005]
+  role: "Heal/Support"
+  lore: "Childhood friend of Leon, secret child of The Emperor. Wishes for peace across the lands but born in a warring time. She retreats to the monastery to lead a life of piety, praying for peace and taking care of the vulnerable. But the monastery is attacked and now she wanders the continent trying to help those who need it the most."
+  base_stats: { HP: 100, ATK: 20, INT: 60, DEF: 20, MDEF: 40, SPD: 30, HIT: 100, SKL: 60, CRIT: 30, GUARD: 30, EVA: 20 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_passive_003, skl_passive_004, skl_passive_001, skl_heal_active_001]
+  restrictions:
+    equipment_tags: [staff, robe, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Prayer of Hope"
+    type: ally_buff
+    faction_id: null
+    trigger: on_event
+    trigger_event: self_action_completed
+    condition: null
+    trigger_includes_idle_action: true
+    cost_adjustment: 10               # placeholder: designer wants her cost raised slightly (she deals no damage)
+    target: { side: ally, filter: null, include_soldiers: true }
+    description: "After Jasmine acts (an idle action counts), all allies, including soldiers, recover 30% of Max HP."
+    effects:
+      - { type: heal, percent_max_hp: 30 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes:
+    strengths: "A holy character."
+    weaknesses: "Cannot deal damage."
+    synergies: ""
+    balance: ""
+  meta:
+    authored_notes: "Class was not authored. The class is now 'holy' (formerly 'healer'), inferred from her skills (Eligible users: Healers) and Queen's Scepter (Healer/Mage)."
+
+- id: char_004
+  name: Lief
+  class: lancer
+  factions: [faction_003, faction_004]
+  role: "Damage Dealer"
+  lore: "A young spearman from the forests to the south. He ventured out of his reclusive home in order to temper himself but finds himself in a continental conflict as he fights against the Empire's desire to conquer to continent."
+  base_stats: { HP: 150, ATK: 50, INT: 40, DEF: 50, MDEF: 30, SPD: 40, HIT: 100, SKL: 80, CRIT: 30, GUARD: 30, EVA: 30 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_lancer_active_001, skl_lancer_active_002, skl_passive_005]
+  restrictions:
+    equipment_tags: [spear, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Boon of the Spearmen"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: lancer }
+      include_soldiers: false
+    description: "Lancers + 20% ATK/DEF while Lief is alive."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 20 }
+      - { type: modify_stat, stat: DEF, mode: percent, value: 20 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes:
+    strengths: "A defensive but berserk damage dealer."
+    weaknesses: ""
+    synergies: ""
+    balance: ""
+  meta: {}

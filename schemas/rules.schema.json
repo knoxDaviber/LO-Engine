@@ -1,0 +1,527 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "damage": {
+      "type": "object",
+      "properties": {
+        "min_damage": {
+          "type": "number",
+          "minimum": 0
+        },
+        "crit_multiplier": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "min_damage",
+        "crit_multiplier"
+      ],
+      "additionalProperties": false
+    },
+    "guard": {
+      "type": "object",
+      "properties": {
+        "damage_reduction_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "total_reduction_cap_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "damage_reduction_percent",
+        "total_reduction_cap_percent"
+      ],
+      "additionalProperties": false
+    },
+    "matchup": {
+      "type": "object",
+      "properties": {
+        "advantage_damage_percent": {
+          "type": "number"
+        },
+        "advantage_hit": {
+          "type": "number"
+        },
+        "disadvantage_damage_percent": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "advantage_damage_percent",
+        "advantage_hit",
+        "disadvantage_damage_percent"
+      ],
+      "additionalProperties": false
+    },
+    "timeline": {
+      "type": "object",
+      "properties": {
+        "interval_constant": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "min_spd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "interval_constant",
+        "min_spd"
+      ],
+      "additionalProperties": false
+    },
+    "pp": {
+      "type": "object",
+      "properties": {
+        "base_active": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "base_passive": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "base_active",
+        "base_passive",
+        "max"
+      ],
+      "additionalProperties": false
+    },
+    "board": {
+      "type": "object",
+      "properties": {
+        "rows": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "columns": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "hero_rows": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "rows",
+        "columns",
+        "hero_rows"
+      ],
+      "additionalProperties": false
+    },
+    "class_advantage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "attacker": {
+            "type": "string",
+            "enum": [
+              "infantry",
+              "lancer",
+              "cavalry",
+              "archer",
+              "flyer",
+              "mage",
+              "assassin",
+              "holy",
+              "aquatic",
+              "monster"
+            ]
+          },
+          "defender": {
+            "type": "string",
+            "enum": [
+              "infantry",
+              "lancer",
+              "cavalry",
+              "archer",
+              "flyer",
+              "mage",
+              "assassin",
+              "holy",
+              "aquatic",
+              "monster"
+            ]
+          }
+        },
+        "required": [
+          "attacker",
+          "defender"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "stun_pushback_counts": {
+      "anyOf": [
+        {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rolls": {
+      "type": "object",
+      "properties": {
+        "hit_min": {
+          "type": "number"
+        },
+        "hit_max": {
+          "type": "number"
+        },
+        "crit_min": {
+          "type": "number"
+        },
+        "crit_max": {
+          "type": "number"
+        },
+        "guard_min": {
+          "type": "number"
+        },
+        "guard_max": {
+          "type": "number"
+        },
+        "skl_divisor": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "hit_min",
+        "hit_max",
+        "crit_min",
+        "crit_max",
+        "guard_min",
+        "guard_max",
+        "skl_divisor"
+      ],
+      "additionalProperties": false
+    },
+    "class_traits": {
+      "type": "object",
+      "properties": {
+        "flyer_melee_eva_bonus": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aquatic_water_spd_bonus": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "flyer_melee_eva_bonus",
+        "aquatic_water_spd_bonus"
+      ],
+      "additionalProperties": false
+    },
+    "phase": {
+      "type": "object",
+      "properties": {
+        "max_actions_per_phase": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "max_actions_per_phase"
+      ],
+      "additionalProperties": false
+    },
+    "draft": {
+      "type": "object",
+      "properties": {
+        "roster_size": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fielded": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "defender_anchor": {
+          "type": "boolean"
+        },
+        "steps": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actor": {
+                "type": "string",
+                "enum": [
+                  "challenger",
+                  "defender"
+                ]
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "ban",
+                  "protect"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "human",
+                  "rule_sheet"
+                ]
+              }
+            },
+            "required": [
+              "actor",
+              "action",
+              "source"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "roster_size",
+        "fielded",
+        "defender_anchor",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_tactics": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_effects_per_skill": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_skills_per_hero": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stat_ceiling": {
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "max_tactics",
+        "max_effects_per_skill",
+        "max_skills_per_hero",
+        "stat_ceiling"
+      ],
+      "additionalProperties": false
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "stat_weights": {
+          "type": "object",
+          "properties": {
+            "HP": {
+              "type": "number"
+            },
+            "ATK": {
+              "type": "number"
+            },
+            "INT": {
+              "type": "number"
+            },
+            "DEF": {
+              "type": "number"
+            },
+            "MDEF": {
+              "type": "number"
+            },
+            "SPD": {
+              "type": "number"
+            },
+            "HIT": {
+              "type": "number"
+            },
+            "SKL": {
+              "type": "number"
+            },
+            "CRIT": {
+              "type": "number"
+            },
+            "GUARD": {
+              "type": "number"
+            },
+            "EVA": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "HP",
+            "ATK",
+            "INT",
+            "DEF",
+            "MDEF",
+            "SPD",
+            "HIT",
+            "SKL",
+            "CRIT",
+            "GUARD",
+            "EVA"
+          ],
+          "additionalProperties": false
+        },
+        "skill_price": {
+          "type": "number",
+          "minimum": 0
+        },
+        "aura_price": {
+          "type": "number",
+          "minimum": 0
+        },
+        "squad_price": {
+          "type": "number",
+          "minimum": 0
+        },
+        "caps": {
+          "type": "object",
+          "properties": {
+            "per_hero": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "protected_or_anchor": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "roster": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "per_hero",
+            "protected_or_anchor",
+            "roster"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "stat_weights",
+        "skill_price",
+        "aura_price",
+        "squad_price",
+        "caps"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "damage",
+    "guard",
+    "matchup",
+    "timeline",
+    "pp",
+    "board",
+    "class_advantage",
+    "stun_pushback_counts",
+    "rolls",
+    "class_traits",
+    "phase",
+    "draft",
+    "limits",
+    "cost"
+  ],
+  "additionalProperties": false
+}

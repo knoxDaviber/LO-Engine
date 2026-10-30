@@ -1,0 +1,281 @@
+# skills.yaml (v2: designer answers applied)
+# "Turn" = one active skill use by the affected unit. A squad is selected as one target, but each soldier has its own HP; single-target hits land on the lowest-HP living soldier; row/column/all hit every living soldier.
+# Where the source is still ambiguous, the field is left null and listed in meta.unresolved.
+
+- id: skl_cav_active_001
+  name: Charging Assault
+  description: "Deals 1.2x damage and ignores GUARD stat."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: false }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [cavalry], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.2, ignores_guard: true, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: ignores, soldiers: standard }
+  designer_notes: "Basic attack skill for cavalry units."
+
+- id: skl_cav_active_002
+  name: Thousand Azure Hooves
+  description: "Deals 1.8x damage and stuns the target. Has a 20% Hit rate bonus. 15% SPD/Action bonus."
+  category: active
+  tags: [damage, stun, buff]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [cavalry], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 20 }
+    - { type: apply_status, status_id: status_001, chance_percent: 100, target: targets }
+    - { type: apply_status, status_id: buff_007, chance_percent: 100, target: self }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Signature skill of Cavalry type characters."
+  meta:
+    authored_notes: "'15% SPD/Action bonus' is implemented as SPD UP (+15% SPD) on the caster for 1 turn after the action, so the next action comes sooner. The 'cast faster' reading was dropped (designer, v3)."
+
+- id: skl_heal_active_001
+  name: Last Chance
+  description: "Grants a target a [Fairy's Grace]"
+  category: active
+  tags: [revive, buff]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [holy], characters: [] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_003, chance_percent: 100, target: targets }
+  targeting: { side: ally, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Grants the holy unit a powerful active skill so they aren't as useless"
+  meta:
+    authored_notes: "Skill file title is 'Last Chance'; the file is named Skill-Fairy_grace. Targeting inferred as one ally."
+
+- id: skl_passive_001
+  name: Quick Guard
+  description: "Automatically guards a physical attack targeting this unit."
+  category: passive
+  tags: [buff]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: self_targeted_by_physical_attack
+  trigger_timing: before_hit
+  cooldown: null
+  eligible: { classes: [], characters: [] }
+  default_activation: { type: self_targeted_by_physical_attack }
+  effects:
+    - { type: reduce_damage, percent: 50, applies_to: physical, duration: this_attack }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "A generic guard skill. Guard stacks multiplicatively with other guards, to a 75% total cap."
+
+- id: skl_passive_004
+  name: Preventative Care
+  description: "Casts healing magic over the party, granting them [Immunity] and [Regen] for 1 turn."
+  category: passive
+  tags: [buff, heal]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: pre_battle
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [holy], characters: [] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_002, chance_percent: 100, target: targets }
+    - { type: apply_status, status_id: buff_001, chance_percent: 100, target: targets }
+  targeting: { side: ally, shape: all, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: skip }
+  interactions: { guard: standard, soldiers: skip_soldiers }
+  designer_notes: "Granting the holy class an pre-battle skill. Intended to let the player cast a preemptive skill, increasing the value of holy classes."
+  meta:
+    authored_notes: "Original text said 'over a row'. Designer ruling: party-wide, soldiers excluded. Description text updated to match."
+
+- id: skl_lancer_active_002
+  name: Defensive Strike
+  description: "Gains [DEF UP] for 2 turns. Deals 1.2x (100% ATK + 50% DEF)."
+  category: active
+  tags: [damage, buff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [lancer], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }, { stat: DEF, coef: 0.5 }], multiplier: 1.2, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: apply_status, status_id: buff_004, chance_percent: 100, target: self }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Default attack for Lancers. Power = (100% ATK + 50% DEF), then x1.2 as the skill multiplier."
+
+- id: skl_passive_003
+  name: Quick Heal
+  description: "Heals a unit who get's attacked."
+  category: passive
+  tags: [heal]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: unit_hit_by_single_target_attack
+  trigger_timing: after_hit
+  cooldown: null
+  eligible: { classes: [holy], characters: [] }
+  default_activation: { type: hp_percent, side: target, op: "<", value: 100 }
+  effects:
+    - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 1.5 }
+  targeting: { side: ally, shape: event_unit, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Default basic healing skill. Triggers after a unit is hit by a single-target attack, on anyone's turn. Can heal soldiers."
+  meta:
+    authored_notes: "Power: 1.5x of INT. Activation: target HP < 100%."
+    resolved: "Heals on a squad add to its shared HP pool and can bring fallen soldiers back."
+
+- id: skl_inf_active_002
+  name: "Dark Dragon's Dirge"
+  description: "Deals 1.5x times damage to a row of enemies. Enemies hit by this gain debuff \"Dark Dragon's Ire\" and can not evade their next attack and Defense Down."
+  category: active
+  tags: [damage, debuff, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_002] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.5, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: apply_status, status_id: status_003, chance_percent: 100, target: targets }
+    - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: targets }
+  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Signature move of The Emperor. Which row is hit is set by the player's tactics. A soldier squad counts as one target."
+
+- id: skl_inf_active_001
+  name: Iron Fist
+  description: "Gains [ATTACK UP] and grants everyone in his row [GUARD UP] for 1 turn."
+  category: active
+  tags: [buff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_002] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_005, chance_percent: 100, target: self }
+    - { type: apply_status, status_id: buff_006, chance_percent: 100, target: caster_row, include_soldiers: false }
+  targeting: { side: self, shape: caster_row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: skip_soldiers }
+  designer_notes: "Basic guard skill modified for the emperor. Guard stacks multiplicatively with other guards, to a 75% total cap."
+  meta:
+    authored_notes: "Replaces the earlier 'when ally is attacked' reading. It is an own-turn active the Emperor casts on himself."
+    resolved: "The row excludes the soldier squad unless the Emperor is leader (a squad shares its leader's buffs). ATTACK UP lasts 1 turn."
+
+- id: skl_passive_005
+  name: Berserk
+  description: "When below 50% HP. Gain [Berserk] --> [Increase ATK, INT, SPD by 50%. Lower DEF, MDEF, EVA by 50%]"
+  category: passive
+  tags: [buff, debuff]
+  pp_pool: passive
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: while_condition
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [lancer], characters: [] }
+  default_activation: { type: hp_percent, side: self, op: "<", value: 50 }
+  effects:
+    - { type: apply_status, status_id: status_002, chance_percent: 100, target: self }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Berserk passive skill. Authored: lowers evasion. Berserk is a unique status, so it stacks."
+  meta:
+    authored_notes: "This content was authored inside Skill-template.md (the file is the template, filled in)."
+
+- id: skl_passive_002
+  name: Hegemony
+  description: "When attacked, remove all of the attacker's buffs before the attack resolves. The attacker suffers -20% defense debuff for 2 turns."
+  category: passive
+  tags: [debuff]
+  pp_pool: passive
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: self_attacked
+  trigger_timing: before_hit
+  cooldown: null
+  eligible: { classes: [], characters: [char_002] }
+  default_activation: { type: self_attacked }
+  effects:
+    - { type: remove_buffs, target: attacker }
+    - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: attacker }
+  targeting: { side: enemy, shape: attacker, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Signature passive of The Emperor. Resolves before the attack's combat resolution."
+  meta:
+    authored_notes: "Original text said 'all enemy buffs ... before battle'. Designer ruling: triggers when attacked, resolves before the combat action, affects only the attacker."
+
+- id: skl_lancer_active_001
+  name: Vine Stab
+  description: "Deals 1.5x (100%ATK + 50%INT) damage to a column. Thrusts, supported by magic, extends the spear to hit the back. 30% Extra damage to Cavalry."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_004] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }, { stat: INT, coef: 0.5 }], multiplier: 1.5, ignores_guard: false, bonus_vs_class: [{ class: cavalry, modifier_percent: 30 }], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: column, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Cav bonus attack for Lief. Power = (100% ATK + 50% INT), then x1.5 as the skill multiplier."
+  meta:
+    resolved: "Physical, so DEF applies even though it scales with INT. The +30% vs Cavalry multiplies with the class advantage."

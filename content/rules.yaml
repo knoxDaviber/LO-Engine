@@ -1,0 +1,49 @@
+# rules.yaml: every tunable constant in one place. The engine and validator read this; nothing is hard-coded elsewhere.
+# Values marked "placeholder" are expected to change after batch-simulator testing.
+
+damage:   { min_damage: 1, crit_multiplier: 1.5 }                                  # formula: max(1, power * multiplier * matchup - defense); no variance
+guard:    { damage_reduction_percent: 50, total_reduction_cap_percent: 75 }
+matchup:  { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -15 }
+timeline: { interval_constant: 1000, min_spd: 5 }                                  # interval = round(constant / max(SPD, min_spd))
+pp:       { base_active: 2, base_passive: 2, max: 4 }
+board:    { rows: 4, columns: 3, hero_rows: 2 }
+stun_pushback_counts: null          # TBD: timeline counts a stunned unit's pending action is pushed back (statuses with delays_pending_action)
+
+# hit%   = clamp(HIT + hit_bonus - EVA + (aSKL - dSKL) / skl_divisor, hit_min, hit_max)
+# crit%  = clamp(CRIT - defender GUARD + (aSKL - dSKL) / skl_divisor, crit_min, crit_max)
+# guard% = clamp(GUARD + dSKL / skl_divisor, guard_min, guard_max)
+rolls:    { hit_min: 70, hit_max: 100, crit_min: 0, crit_max: 100, guard_min: 0, guard_max: 75, skl_divisor: 4 }
+
+class_traits: { flyer_melee_eva_bonus: null, aquatic_water_spd_bonus: null }   # TBD
+phase:    { max_actions_per_phase: null }                                          # TBD
+
+class_advantage:                    # attacker has the advantage over defender
+  - { attacker: infantry, defender: lancer }
+  - { attacker: lancer,   defender: cavalry }
+  - { attacker: cavalry,  defender: infantry }
+  - { attacker: archer,   defender: flyer }
+  - { attacker: holy,     defender: monster }
+
+draft:
+  roster_size: 6
+  fielded: 4
+  defender_anchor: true
+  steps:
+    - { actor: challenger, action: ban,     source: human }
+    - { actor: defender,   action: ban,     source: rule_sheet }
+    - { actor: challenger, action: protect, source: human }
+    - { actor: challenger, action: ban,     source: human }
+    - { actor: defender,   action: ban,     source: rule_sheet }
+
+limits:                             # hard caps. null = not enforced yet
+  max_tactics: 10
+  max_effects_per_skill: 8
+  max_skills_per_hero: null
+  stat_ceiling: null
+
+cost:                               # computed, never authored. All placeholders until the gauntlet calibrates them.
+  stat_weights: { HP: 0.1, ATK: 1.0, INT: 1.0, DEF: 0.8, MDEF: 0.8, SPD: 1.2, HIT: 0.5, SKL: 0.5, CRIT: 0.5, GUARD: 0.5, EVA: 0.5 }
+  skill_price: 10
+  aura_price: 10
+  squad_price: 15
+  caps: { per_hero: null, protected_or_anchor: null, roster: null }

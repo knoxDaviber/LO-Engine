@@ -1,0 +1,185 @@
+# statuses.yaml  (v2: designer answers applied)
+# "Turn" = one active skill use by the affected unit. Idle actions and passives do not count.
+# source_category: inherit = takes the category of whatever applied it (passive / active / equipment / soldier).
+# stacking.unique: unique statuses are exempt from same-category strongest-wins and multiply with everything.
+# status_001..003 keep their provisional IDs; they were created because skills referenced statuses with no file.
+
+- id: buff_001
+  name: Regen
+  description: "Regenerates 30% of Max HP when attacked."
+  category: buff
+  source_category: inherit
+  modifiers: []
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 30 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: true, unique: false, on_reapply: extend, max_stacks: null, suppress_weaker: false }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Heals per hit taken. Lasts until the target uses an active skill. No max stacks; naturally capped by PP. Reapplication extends by 1 turn." }
+
+- id: buff_002
+  name: Immunity
+  description: "Grants complete Immunity to all debuffs"
+  category: buff
+  source_category: inherit
+  modifiers: []
+  flags: { blocks_debuffs: true, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Affected statistics: ALL." }
+
+- id: buff_003
+  name: "Fairy's Grace"
+  description: "If the character is about to die, revive them at 20% HP"
+  category: buff
+  source_category: inherit
+  modifiers: []
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: true, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: until_used, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: false }
+  meta: { authored_notes: "Lasts until used. A revived unit keeps its pending action." }
+
+- id: buff_004
+  name: "DEF UP"
+  description: "Increases DEF by 20%"
+  category: buff
+  source_category: inherit
+  modifiers:
+    - { stat: DEF, mode: percent, value: 20 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 2, counts_actions_of: affected, applying_action_counts: true, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Defensive Strike: the attack that applies it counts as 1 turn, so it effectively lasts 1 further turn." }
+
+- id: buff_005
+  name: "ATTACK UP"
+  description: "Increases ATK by 20%"
+  category: buff
+  source_category: inherit
+  modifiers:
+    - { stat: ATK, mode: percent, value: 20 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Named by the designer for Iron Fist; lasts 1 turn." }
+
+- id: buff_006
+  name: "GUARD UP"
+  description: "Adds 50 to GUARD. When a guard activates, it reduces damage by 50%."
+  category: buff
+  source_category: inherit
+  modifiers:
+    - { stat: GUARD, mode: flat, value: 50 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Adds 50 to the GUARD stat. A guard that activates reduces damage by 50% (designer, v3)." }
+
+- id: buff_007
+  name: "SPD UP"
+  description: "Increases SPD by 15%"
+  category: buff
+  source_category: inherit
+  modifiers:
+    - { stat: SPD, mode: percent, value: 15 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Applied to the caster by Thousand Azure Hooves after its action. Lasts until the unit's next active skill, so the next action is scheduled sooner." }
+
+- id: debuff_001
+  name: "Defense Down"
+  description: "Lower's defense by 20%"
+  category: debuff
+  source_category: inherit          # Hegemony applies it as passive, Dark Dragon's Dirge as active
+  modifiers:
+    - { stat: DEF, mode: percent, value: -20 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 2, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "One debuff identity. Applications from different source categories multiply." }
+
+- id: debuff_002
+  name: Confusion
+  description: "Units confused don't follow tactics. And may attack allies."
+  category: debuff
+  source_category: inherit
+  modifiers: []
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: random_any,
+           ignores_tactics: true, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Lasts until the unit's first active attack. Affected statistic: targeting." }
+
+- id: status_001
+  name: Stun
+  description: "Delays the target's pending action."
+  category: control
+  source_category: inherit
+  modifiers: []
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: true,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: instant, count: null, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: false, removed_on_death: true }
+  meta: { authored_notes: "Pushes the target's pending action back by rules.stun_pushback_counts timeline counts; no action or PP lost." }
+
+- id: status_002
+  name: Berserk
+  description: "Increase ATK, INT, SPD by 50%. Lower DEF, MDEF, EVA by 50%"
+  category: other
+  source_category: inherit
+  modifiers:
+    - { stat: ATK,  mode: percent, value: 50 }
+    - { stat: INT,  mode: percent, value: 50 }
+    - { stat: SPD,  mode: percent, value: 50 }
+    - { stat: DEF,  mode: percent, value: -50 }
+    - { stat: MDEF, mode: percent, value: -50 }
+    - { stat: EVA,  mode: percent, value: -50 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: while_condition, count: null, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: true, unique: true, on_reapply: refresh, max_stacks: 1, suppress_weaker: false }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Unique status: multiplies with passive buffs instead of competing with them. Lasts while HP is below 50%." }
+
+- id: status_003
+  name: "Dark Dragon's Ire"
+  description: "The next hit is guaranteed to land (cannot be evaded). 20% DEF Down."
+  category: debuff
+  source_category: inherit
+  modifiers:
+    - { stat: DEF, mode: percent, value: -20 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: true, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: until_next_hit, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: true, unique: true, on_reapply: refresh, max_stacks: 1, suppress_weaker: false }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Both the guaranteed hit and the 20% DEF Down end after the next hit (designer, v3)." }

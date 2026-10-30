@@ -1,0 +1,692 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lore": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "damage"
+              },
+              "damage_type": {
+                "type": "string",
+                "enum": [
+                  "physical",
+                  "magical",
+                  "hybrid"
+                ]
+              },
+              "range": {
+                "type": "string",
+                "enum": [
+                  "melee",
+                  "ranged"
+                ]
+              },
+              "scaling": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "stat": {
+                      "type": "string",
+                      "enum": [
+                        "HP",
+                        "ATK",
+                        "INT",
+                        "DEF",
+                        "MDEF",
+                        "SPD",
+                        "HIT",
+                        "SKL",
+                        "CRIT",
+                        "GUARD",
+                        "EVA"
+                      ]
+                    },
+                    "coef": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "stat",
+                    "coef"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "multiplier": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "ignores_guard": {
+                "type": "boolean"
+              },
+              "bonus_vs_class": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "enum": [
+                        "infantry",
+                        "lancer",
+                        "cavalry",
+                        "archer",
+                        "flyer",
+                        "mage",
+                        "assassin",
+                        "holy",
+                        "aquatic",
+                        "monster"
+                      ]
+                    },
+                    "modifier_percent": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "class",
+                    "modifier_percent"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "hit_bonus_percent": {
+                "type": "number"
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "damage_type",
+              "range",
+              "scaling",
+              "multiplier",
+              "ignores_guard",
+              "bonus_vs_class",
+              "hit_bonus_percent"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "heal"
+              },
+              "scaling": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "stat": {
+                      "type": "string",
+                      "enum": [
+                        "HP",
+                        "ATK",
+                        "INT",
+                        "DEF",
+                        "MDEF",
+                        "SPD",
+                        "HIT",
+                        "SKL",
+                        "CRIT",
+                        "GUARD",
+                        "EVA"
+                      ]
+                    },
+                    "coef": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "stat",
+                    "coef"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "multiplier": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "percent_max_hp": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "apply_status"
+              },
+              "status_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "chance_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "target": {
+                "type": "string",
+                "enum": [
+                  "self",
+                  "targets",
+                  "field",
+                  "attacker",
+                  "caster_row",
+                  "hit_unit"
+                ]
+              },
+              "include_soldiers": {
+                "default": false,
+                "type": "boolean"
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "status_id",
+              "chance_percent",
+              "target",
+              "include_soldiers"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "remove_buffs"
+              },
+              "target": {
+                "type": "string",
+                "enum": [
+                  "self",
+                  "targets",
+                  "field",
+                  "attacker",
+                  "caster_row",
+                  "hit_unit"
+                ]
+              },
+              "side": {
+                "type": "string",
+                "enum": [
+                  "enemy",
+                  "ally"
+                ]
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "modify_stat"
+              },
+              "stat": {
+                "type": "string",
+                "enum": [
+                  "HP",
+                  "ATK",
+                  "INT",
+                  "DEF",
+                  "MDEF",
+                  "SPD",
+                  "HIT",
+                  "SKL",
+                  "CRIT",
+                  "GUARD",
+                  "EVA"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "flat",
+                  "percent"
+                ]
+              },
+              "value": {
+                "type": "number"
+              },
+              "source_category": {
+                "type": "string",
+                "enum": [
+                  "passive",
+                  "active",
+                  "equipment",
+                  "soldier",
+                  "prayer"
+                ]
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "stat",
+              "mode",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "modify_pp"
+              },
+              "pool": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "passive"
+                ]
+              },
+              "amount": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "target": {
+                "type": "string",
+                "enum": [
+                  "self",
+                  "targets",
+                  "field",
+                  "attacker",
+                  "caster_row",
+                  "hit_unit"
+                ]
+              },
+              "once_per_attack": {
+                "type": "boolean"
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "pool",
+              "amount",
+              "target"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "reduce_damage"
+              },
+              "percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "applies_to": {
+                "type": "string",
+                "enum": [
+                  "physical",
+                  "magical",
+                  "all"
+                ]
+              },
+              "duration": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "percent",
+              "applies_to",
+              "duration"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "delay_action"
+              },
+              "counts": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "counts"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "advance_action"
+              },
+              "counts": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "pre_battle",
+                  "on_event",
+                  "on_hit",
+                  "on_attack"
+                ]
+              },
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "counts"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "meta": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "lore",
+    "effects"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": {}
+        }
+      ]
+    }
+  }
+}

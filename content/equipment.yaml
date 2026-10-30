@@ -1,0 +1,116 @@
+# equipment.yaml
+# Flat stat lines preserved as authored. Blank source fields became 0 (stats) or empty. Flags refer to conversion_report.md.
+
+- id: equip_001
+  name: "Prayer's Guardian"
+  description: "A powerful thatt increases your attack and survivability"
+  slot: weapon
+  tags: [sword]
+  stat_modifiers: { HP: 80, ATK: 60, INT: 30, DEF: 30, MDEF: 0, SPD: 0, HIT: 15, SKL: 10, CRIT: 0, GUARD: 20, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [infantry, cavalry], characters: [char_002, char_001], required_tags: [sword] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: ""
+  meta: { authored_notes: "ID corrected from equip_01 to equip_001 (designer). Description has a typo ('thatt') and no noun; kept verbatim." }
+
+- id: equip_002
+  name: "Dragon Scale"
+  description: "Said to be forged from the scale of a Dark Dragon."
+  slot: armor
+  tags: [heavy_armor]
+  stat_modifiers: { HP: 200, ATK: 15, INT: 15, DEF: 50, MDEF: 30, SPD: -20, HIT: -10, SKL: 20, CRIT: -20, GUARD: 30, EVA: -20 }
+  pp_modifiers: { active: 1, passive: 0 }
+  effects: []
+  eligible: { classes: [infantry, cavalry], characters: [char_002, char_001], required_tags: [heavy_armor] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Powerful armor that also grants the user +1 Active PP (not a true extra attack)."
+  meta:
+    authored_notes: "Stat block listed Active PP: 0 while the effect says 'Grants +1 Active PP'; converted as pp_modifiers.active: 1."
+
+- id: equip_003
+  name: "Queen's Scepter"
+  description: "Said to be a royal scepter. But it's sold at all magic shops."
+  slot: weapon
+  tags: [staff]
+  stat_modifiers: { HP: 40, ATK: 20, INT: 60, DEF: 10, MDEF: 10, SPD: 0, HIT: 0, SKL: 20, CRIT: 0, GUARD: 10, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects:
+    - { type: modify_stat, stat: INT, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+  eligible: { classes: [holy, mage], characters: [char_003], required_tags: [staff] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: ""
+  meta: {}
+
+- id: equip_004
+  name: "Longinus"
+  description: "The spear of legend that seals you"
+  slot: weapon
+  tags: [spear]
+  stat_modifiers: { HP: 60, ATK: 40, INT: 35, DEF: 20, MDEF: 20, SPD: 0, HIT: 10, SKL: 10, CRIT: 0, GUARD: 10, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects:
+    - { type: modify_pp, pool: passive, amount: -1, target: hit_unit, trigger: on_attack, once_per_attack: true }
+  eligible: { classes: [lancer, cavalry], characters: [], required_tags: [spear] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: ""
+  meta:
+    authored_notes: "Source effect: '-1 Passive AP to hit units.' Converted AP -> PP, pool passive."
+    unresolved:
+      - "Reduces current Passive PP by 1 once per attack, even if the attack hits twice (designer). Assumed it cannot go below 0."
+
+- id: equip_005
+  name: "Chainmail"
+  description: "A proud piece of work from your local Blacksmith. Visit him today!"
+  slot: armor
+  tags: [light_armor]
+  stat_modifiers: { HP: 120, ATK: 0, INT: 0, DEF: 25, MDEF: 15, SPD: 5, HIT: 0, SKL: 10, CRIT: 0, GUARD: 30, EVA: 10 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [light_armor] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "A generically good piece of armor that isn't too strong."
+  meta: {}
+
+- id: equip_006
+  name: "Speed Ring"
+  description: "A rare ring sought after by many"
+  slot: accessory
+  tags: [none]
+  stat_modifiers: { HP: 0, ATK: 0, INT: 0, DEF: 0, MDEF: 0, SPD: 20, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "Basic ring that increases SPD by 20."
+  meta:
+    authored_notes: "SPD +20 appeared in both the stat block and the effect text ('Increases SPD by 20'); kept once, as flat SPD +20. Duplicate accessories are allowed; flat stats add (two rings = SPD +40)."
+
+- id: equip_007
+  name: "Strange box"
+  description: "A strange box that makes strange sounds and voices. Heretical."
+  slot: accessory
+  tags: [none]
+  stat_modifiers: { HP: -20, ATK: 10, INT: 80, DEF: -20, MDEF: 10, SPD: -10, HIT: 50, SKL: 50, CRIT: 10, GUARD: 5, EVA: -20 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects:
+    - { type: apply_status, status_id: debuff_002, chance_percent: 100, target: field, trigger: pre_battle }
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: ""
+  meta:
+    authored_notes: "Source effect: 'Puts [Field] effect into [Confusion].' Designer ruling: the field includes the wearer and Confusion lasts 1 turn (until each unit's first active attack). Two boxes do not stack."
+
+- id: equip_008
+  name: "Spiky Glove"
+  description: ""
+  slot: accessory
+  tags: [none]
+  stat_modifiers: { HP: 20, ATK: 20, INT: 0, DEF: 10, MDEF: 10, SPD: 0, HIT: 0, SKL: 10, CRIT: 0, GUARD: 10, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "Basic accessory to increase ATK."
+  meta:
+    authored_notes: "Came from Equipment-template.md. Designer confirmed it is real content."

@@ -1,0 +1,28 @@
+# factions.yaml
+# Faction IDs were assigned by the converter and accepted by the designer.
+# Factions carry no effects for now: they are a category other effects can target, plus lore.
+- id: faction_001
+  name: Empire
+  lore: null
+  effects: []
+  meta: {}
+- id: faction_002
+  name: Evil
+  lore: null
+  effects: []
+  meta: {}
+- id: faction_003
+  name: Light
+  lore: null
+  effects: []
+  meta: {}
+- id: faction_004
+  name: Forest-folk
+  lore: null
+  effects: []
+  meta: {}
+- id: faction_005
+  name: Princess
+  lore: null
+  effects: []
+  meta: {}

@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "buff",
+        "debuff",
+        "dot",
+        "hot",
+        "control",
+        "immunity",
+        "revival",
+        "other"
+      ]
+    },
+    "source_category": {
+      "type": "string",
+      "enum": [
+        "inherit",
+        "passive",
+        "active",
+        "equipment",
+        "soldier",
+        "prayer"
+      ]
+    },
+    "modifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stat": {
+            "type": "string",
+            "enum": [
+              "HP",
+              "ATK",
+              "INT",
+              "DEF",
+              "MDEF",
+              "SPD",
+              "HIT",
+              "SKL",
+              "CRIT",
+              "GUARD",
+              "EVA"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "flat",
+              "percent"
+            ]
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "stat",
+          "mode",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "flags": {
+      "type": "object",
+      "properties": {
+        "blocks_debuffs": {
+          "type": "boolean"
+        },
+        "intercepts_death": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "revive_hp_percent": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "enabled",
+            "revive_hp_percent"
+          ],
+          "additionalProperties": false
+        },
+        "overrides_targeting": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ignores_tactics": {
+          "type": "boolean"
+        },
+        "prevents_action": {
+          "type": "boolean"
+        },
+        "delays_pending_action": {
+          "type": "boolean"
+        },
+        "removes_on_hit": {
+          "type": "boolean"
+        },
+        "prevents_evasion": {
+          "type": "boolean"
+        },
+        "heals_on_hit_percent_max_hp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "blocks_debuffs",
+        "intercepts_death",
+        "overrides_targeting",
+        "ignores_tactics",
+        "prevents_action",
+        "delays_pending_action",
+        "removes_on_hit",
+        "prevents_evasion",
+        "heals_on_hit_percent_max_hp"
+      ],
+      "additionalProperties": false
+    },
+    "duration": {
+      "type": "object",
+      "properties": {
+        "unit": {
+          "type": "string",
+          "enum": [
+            "affected_unit_actions",
+            "source_unit_actions",
+            "until_next_hit",
+            "timeline_counts",
+            "while_condition",
+            "until_used",
+            "battle",
+            "instant"
+          ]
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counts_actions_of": {
+          "type": "string",
+          "enum": [
+            "affected",
+            "source"
+          ]
+        },
+        "applying_action_counts": {
+          "type": "boolean"
+        },
+        "expires": {
+          "type": "string",
+          "enum": [
+            "before_action",
+            "after_action"
+          ]
+        }
+      },
+      "required": [
+        "unit",
+        "count",
+        "counts_actions_of",
+        "applying_action_counts",
+        "expires"
+      ],
+      "additionalProperties": false
+    },
+    "stacking": {
+      "type": "object",
+      "properties": {
+        "stackable": {
+          "type": "boolean"
+        },
+        "unique": {
+          "type": "boolean"
+        },
+        "on_reapply": {
+          "type": "string",
+          "enum": [
+            "refresh",
+            "extend",
+            "replace_if_stronger"
+          ]
+        },
+        "max_stacks": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "suppress_weaker": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "stackable",
+        "unique",
+        "on_reapply",
+        "max_stacks",
+        "suppress_weaker"
+      ],
+      "additionalProperties": false
+    },
+    "removal": {
+      "type": "object",
+      "properties": {
+        "removable_by_dispel": {
+          "type": "boolean"
+        },
+        "removed_on_death": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "removable_by_dispel",
+        "removed_on_death"
+      ],
+      "additionalProperties": false
+    },
+    "meta": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "description",
+    "category",
+    "source_category",
+    "modifiers",
+    "flags",
+    "duration",
+    "stacking",
+    "removal"
+  ],
+  "additionalProperties": false
+}
