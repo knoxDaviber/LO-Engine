@@ -21,7 +21,7 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 ## 2. Party Structure
 
 - A team is a **roster of 6 heroes** (players save several teams, Decision 108); the draft (Section 2A) cuts it to **4 fielded heroes** per battle [DECIDED]. The combat engine only ever sees the 4.
-- Each hero: base stats, class, factions, equipment (Weapon, Armor, Accessory 1, Accessory 2), up to 10 tactics, Active PP pool, Passive PP pool.
+- Each hero: base stats, class, factions, Active PP pool, Passive PP pool. Each team entry for that hero adds equipment (Weapon, Armor, Accessory 1, Accessory 2), up to 10 tactics, squad and row (Decision 110).
 - **Party leader:** the leader is the highest-ranked fielded hero in the player's ranked leader line, resolved after the draft (Section 2A) [DECIDED].
   - **Every hero is assigned their own squad by the player** [DECIDED]. Only the leader's squad is deployed (10 soldiers). If the leader is banned, their squad is banned with them and the next hero in the leader line leads and brings their own squad and aura.
   - **Leader must be in the front row** [DECIDED]. This puts the leader in reach of default front-row targeting, so defenders can counter-build for a leader-focus challenger, and challengers can focus the leader to remove the squad and the aura. Current leader rules are kept [DECIDED]. Two candidates to revisit after the batch sim (Section 14), not decided: (a) the squad guards the leader (single-target attacks on the leader are partly intercepted by soldiers while the squad lives); (b) allowing back-row leaders.
@@ -89,7 +89,7 @@ Result: each side loses exactly 2 and fields exactly 4. There is no self-cut.
 **After the draft** [DEFAULT]: formation is resolved from each hero's preferred row, leader forced to front, with row overflow resolved by leader-line rank. Both sides use the same rule. The challenger may still adjust formation between phases (Section 5.5).
 
 ### Cost [DEFAULT, to be calibrated]
-Each hero has a **cost** that counts their stats, skills, aura, equipment, squad and devotion blessings. By default it is computed by a basic algorithm over raw stats, PP, skill multipliers, effect types and so on [DECIDED]; the algorithm and weights are placeholders replaced by gauntlet results once available. Any hero, skill or item may carry an authored `cost_override` that replaces its computed price [DECIDED] (official content only). Cost does three jobs: caps, the fallback-ban ordering, and tiebreaks.
+Each hero's team entry has a **cost** that counts the hero's stats, skills and aura plus the entry's equipment, squad and devotion blessings. By default it is computed by a basic algorithm over raw stats, PP, skill multipliers, effect types and so on [DECIDED]; the algorithm and weights are placeholders replaced by gauntlet results once available. Any hero, skill or item may carry an authored `cost_override` that replaces its computed price [DECIDED] (official content only). Cost does three jobs: caps, the fallback-ban ordering, and tiebreaks.
 - Per-hero cost cap, with a stricter cap on the **protected hero and the anchor** (they cannot be banned, so they get the tightest balance gate).
 - Roster cost cap across all six.
 
@@ -315,7 +315,7 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 ## 11. The Tower (long-term) [DECIDED concept]
 
 - Players climb a tower of floors, each floor a **defender snapshot** (a saved player party).
-- **Heroes and teams** [DECIDED concept, Decisions 103-108]: players acquire named heroes by rolling, with unlimited rerolls and locks (keep some heroes, reroll the rest); a reroll can be previewed before it replaces the current heroes. Each owned copy has its own stat variance and 15 allocation points (Section 2A, Hero instances). Players save **several teams** (each a 6-hero roster, drafted to 4 per fight, Section 2A) built from their owned heroes, and mix and match between runs; teams may share heroes. Teams can be planned with any hero, but only owned heroes can be fielded that season. At a season reset the player keeps their heroes and teams, or resets and rolls again. OPEN: roll size and owned-hero limit per season (leaning 10 so teams overlap; free pick also considered), and which saved team defends a floor.
+- **Heroes and teams** [DECIDED concept, Decisions 103-108, 110]: players acquire named heroes by rolling, with unlimited rerolls and locks (keep some heroes, reroll the rest); a reroll can be previewed before it replaces the current heroes. Each owned hero has its own stat variance and 15 allocation points (Section 2A, Hero instances). Players save **several teams** (each a 6-hero roster, drafted to 4 per fight, Section 2A) built from their owned heroes, and mix and match between runs; teams may share heroes. Teams can be planned with any hero, but only owned heroes can be fielded that season. At a season reset the player keeps their heroes and teams, or resets and rolls again. **Owned pool** [DECIDED, Decision 110]: each roll shows 12 heroes and the player keeps 10; once confirmed, the pool is frozen for the season. With 10 heroes and 6-hero teams, any two teams share at least 2 heroes, so teams are variations on one core rather than separate armies. **Loadouts** [DECIDED]: gear, tactics, squad and row are per team entry; the 15 allocated points belong to the hero copy and are the same in every team. Saved teams are unlimited [DEFAULT] (the pool is the constraint). OPEN: which saved team defends a floor, and whether a player may own two copies of the same named hero.
   - HP/death persistence between floors: DEFERRED to implementation step 6. Working default: full restore at the start of each floor fight. Attempt limits per day are DEFERRED (see below).
 - The player who reaches the top becomes a floor. A season resets weekly or monthly; the top 10 become the new bottom floors [DECIDED].
 - **Defender snapshot:** the full party, gear, formation, leader, tactic sheets, **chosen battlefield** (Section 10A), anchor and ban sheet, frozen at submission, with the content/rules version.
@@ -495,9 +495,10 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 104 | Stat variance and allocation | DECIDED concept | Zero-sum per-copy variance at equal score (via `cost.stat_weights`), no two copies identical; plus 15 allocation points, auto-assigned by default, reassignable after confirming a roll. Values TBD after the batch sim |
 | 105 | Generic heroes | DECIDED | One generic, hand-authored hero per class: base for player-made heroes, test fixture now |
 | 106 | Generic soldiers | DECIDED | One generic soldier type per class; eligibility OPEN |
-| 107 | Rolling | DECIDED | Unlimited rerolls with locks; rerolls can be previewed; at season reset keep heroes and teams or reset. Roll size and owned-hero limit OPEN (leaning 10; free pick considered) |
+| 107 | Rolling | DECIDED | Unlimited rerolls with locks; rerolls can be previewed; at season reset keep heroes and teams or reset. Roll size and pool: see 110 |
 | 108 | Saved teams | DECIDED | Several saved teams (6-hero rosters) from owned heroes, mix and match per run, heroes may be shared; any hero can be planned but only owned heroes fielded. Supersedes "one roster per player". Which team defends a floor: OPEN |
 | 109 | Races | OPEN | 7 races tied to the 7 gods. Working list: Humans, Werebeasts, Rabbit-folk, Demons, High-Elf, Dark-Elf, Dragons. Under lore review: overlap with factions (Evil, Light, Forest-folk) and the Monster class; no aquatic race |
+| 110 | Owned pool and loadouts | DECIDED | Roll 12, keep 10, unlimited rerolls with locks; pool frozen for the season once confirmed. Gear, tactics, squad and row per team entry; 15 allocated points per hero copy (same in every team). Saved teams unlimited [DEFAULT]. Duplicate copies of a named hero: OPEN |
 
 ---
 
@@ -561,7 +562,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
 - Devotion god names and blessings, battlefield terrain list, class values (Flyer melee EVA, Aquatic water SPD), stun pushback counts: TBD in `rules.yaml` / content.
 - **Races** (Decision 109): final list, lore, the race-god link, and race bonuses (to brainstorm). Also decide what class, race and faction each mean, so they do not overlap.
-- Owned-hero limit and roll size per season, which saved team defends a floor, generic soldier eligibility (Decisions 106-108).
+- Which saved team defends a floor, duplicate copies of a named hero, generic soldier eligibility (Decisions 106, 108, 110).
 
 
 ## Implementation note: schema is the source of truth
