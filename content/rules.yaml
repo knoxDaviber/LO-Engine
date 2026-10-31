@@ -15,7 +15,7 @@ stun_pushback_counts: null          # TBD: timeline counts a stunned unit's pend
 rolls:    { hit_min: 70, hit_max: 100, crit_min: 0, crit_max: 100, guard_min: 0, guard_max: 75, skl_divisor: 4 }
 
 class_traits: { flyer_melee_eva_bonus: null, aquatic_water_spd_bonus: null }   # TBD
-phase:    { max_actions_per_phase: null }                                          # TBD
+phase:    { max_actions_per_phase: 200 }                                           # [DEFAULT] hard action cap per phase
 
 class_advantage:                    # attacker has the advantage over defender
   - { attacker: infantry, defender: lancer }

@@ -6,6 +6,7 @@
   "description": "Content schema and validator for the tactics auto-battler",
   "scripts": {
     "validate": "tsx src/cli.ts",
+    "sim": "tsx src/sim.ts",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "schema:export": "tsx src/exportSchemas.ts"

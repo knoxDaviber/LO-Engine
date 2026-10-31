@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Content schema and validator for a tactics auto-battler (no battle engine yet). Game content lives as YAML in `content/`; TypeScript (zod v4) defines the schema and a layered validator checks it. Design intent is in `docs/design_doc_v2.md` (tags: **[DECIDED]** / **[DEFAULT]** tunable / **[OPEN]**) and authoring templates in `docs/templates_v2.md`. When docs and `src/schema/` disagree, **the schema wins**. `docs/conversion_report.md` tracks designer decisions applied and questions still open.
+Content schema, validator and a deterministic battle engine (Step 1 vertical slice) for a tactics auto-battler. Game content lives as YAML in `content/`; TypeScript (zod v4) defines the schema and a layered validator checks it. Design intent is in `docs/design_doc_v2.md` (tags: **[DECIDED]** / **[DEFAULT]** tunable / **[OPEN]**) and authoring templates in `docs/templates_v2.md`. When docs and `src/schema/` disagree, **the schema wins**. `docs/conversion_report.md` tracks designer decisions applied and questions still open.
 
 ## Commands
 
@@ -16,6 +16,7 @@ npm test                                           # node:test suite via tsx
 node --import tsx --test --test-name-pattern="duplicate id" test/*.test.ts   # single test
 npm run typecheck
 npm run schema:export                              # regenerate schemas/*.schema.json from zod
+npm run sim -- content/battles/sample.yaml [--json]  # validate a battle input, run up to 3 phases, print the log (or JSON events)
 ```
 
 CLI exit codes: 0 ok, 1 errors (or warnings with `--strict`), 2 load failure (missing file / bad YAML). There is no build step (`noEmit`; everything runs through `tsx`). `schemas/` is generated output — regenerate with `schema:export` after schema changes rather than editing it.
@@ -38,6 +39,22 @@ Issues go through a `Collector` (`src/types.ts`) with stable codes (`E_*` error,
 **Tiers**: `official` vs `community`. Community packs may only use `communitySafe` leaves/effects/status flags (design rule: anything that revives, delays/denies actions, strips buffs, changes PP, or hits the whole field is official-only).
 
 Enums are in `src/schema/enums.ts`; tunable numeric constants (stun pushback, roll clamps, cost weights, etc.) belong in `content/rules.yaml`, not code. Cost is always computed, never authored.
+
+## Engine
+
+`src/engine/` runs a validated battle (`runBattle` in `phase.ts`); `src/formation.ts` holds row/column placement shared with the validator.
+- `state.ts` builds units (stats, PP, rows, formation order) and throws on a full row; `stats.ts` effective stats (Section 9.1 stacking) plus `applyStatus` / `completeAction` (status ticks); `timeline.ts` the scheduler and tie order; `conditions.ts` and `tactics.ts` the condition evaluator and `decideTactic`; `damage.ts` damage, heal and effect execution; `phase.ts` the phase loop, end conditions and `runBattle`; `rng.ts` seeded streams; `log.ts` typed events and the text renderer.
+- Per-action call order: `nextAction` -> `decideTactic` -> spend PP -> resolve effects -> `completeAction` -> `rescheduleOnSpdChange` -> `scheduleNext`.
+- Determinism: every random roll goes through the phase rng (`phaseRng`, one stream per phase from `battle.seeds`). No `Date` or `Math.random` in the engine.
+- Squads (2.0-2.2): `formation.ts` resolves hero rows (entry `preferred_row`, else the character's, else the class default; leader forced front) and the leader's `squad_row`. `createBattleState` adds ONE squad `Unit` (`kind: "squad"`, id `squad_<leader>`) per side, with per-soldier HP in `soldiers[]` (hp/maxHp are sums); `squad.ts` runs its 10-hit action on its own SPD schedule. Heroes-only helpers (`livingOf`, `alliesOf`) drive wipe/exhaustion/idle checks; `targetsOf` includes the squad. Soldier skills are `Unit.innate` modifiers (category `soldier`) read by `statBreakdown`.
+- Events (2.3): `events.ts` is a synchronous bus (`state.bus`, one per phase): before_hit, after_hit (landed hits only), after_action, on_death (hero or squad wipe), phase_start. Handlers have an owner (null = engine) and an `order`; dispatch is by (order, registration). The bus enforces per-hit-once centrally: a handler fires once per attacking action (`bus.beginAction()`) per affected unit, and every fire is logged as a `trigger` event. Reactions never trigger reactions. `reactions.ts` holds the until_next_hit expiry (once per action per defender) and event-triggered soldier skills (`on_hit` = after_hit when the squad hit; `on_attack` = after_action of the squad), whose effects run through `runEffect` in `damage.ts`.
+- Leader rules (2.4): `leader.ts`. `state.leaders[side]` = `{leaderId, auraActive}`. Leader death (`killUnit`) removes the squad and its leader/party soldier skills, sets auraActive false and logs `leader_down`; `applySuccession` (phase start) names the first living hero of the battle input's hero order (stand-in for the leader line, 3e) and restores the flag only (`leader_succession`), never the squad. `Unit.leaderUnit` makes a squad read its leader's status stat modifiers (`statBreakdown`). The leader's `stat_penalties` (Leon SPD -20) become innate modifiers when its paired soldier type matches; only the leader has a deployed squad, so only it is penalised. Soldier skills targeting `leader`/`party` (always-on `modify_stat`) become innate modifiers on those heroes. Aura content is in `prebattle.ts` (below).
+- Pre-battle and auras (2.5): `prebattle.ts` holds `PREBATTLE_STEPS`, an ordered list of named steps (equipment, buff_grants, immunity, buff_removal, debuffs, event_auras, spd_finalization; equipment/immunity/buff_removal are no-ops until 3a/3b) that `beginPhase` runs after succession and before `scheduleInitial` (also for the phase-1 setup stats). Only a side's current leader with `leaders[side].auraActive` has an aura. Always-on `modify_stat` aura effects become `passive`-category `StatusInstance`s with `inline` modifiers (`aura:<leader>:<n>`, never ticked) on the targets chosen by aura side, faction and `filter` (hero_is / faction_is / party_has_hero leaves exist in the engine evaluator); `removeAuras` ends them on leader death. Event auras (Jasmine, `self_action_completed`) subscribe on the bus (order 50) and run their effects through `runEffect`. Logged as `aura_applied` / `aura_removed` / `trigger`; unsupported aura effects as `not implemented: aura ...`. Only hero actions count toward `max_actions_per_phase`; squad actions have a separate bound (10x). Battles: `sample.yaml` (2v2) and `full4v4.yaml` (2v2 with all four heroes; a true 4v4 is built from clones in `test/engine.fullbattle.test.ts`, content has only 4 heroes). Tests default to auras off (`loadReal({ auras: true })` keeps them).
+- Slice scope: active own-turn skills of heroes with damage, heal and stat-modifier `apply_status` effects, up to 3 phases. Everything else (passives, non-stat/non-heal auras, stun pushback, instant statuses, unsupported conditions/selectors/effects, `while_condition` removal) is **not implemented**: it is logged as `not implemented: ...` and never silently dropped. Tunables stay in `content/rules.yaml`.
+
+## Battle input
+
+`content/battles/*.yaml` (schema `src/schema/battle.ts`, validated by `src/validate/battle.ts`): two fielded sides (heroes reuse roster entries, plus a `leader`) and three seeds (integers in [0, 2^32)). Stable codes: `E_BATTLE_SIZE`, `E_BATTLE_LEADER`, `E_BATTLE_DUP`, `E_BATTLE_SEEDS`, `E_BATTLE_ROW_FULL` (a row holds more heroes than `rules.board.columns`, after the leader is forced front and preferred rows are applied). Hero-level problems use the roster codes.
 
 ## Tests
 

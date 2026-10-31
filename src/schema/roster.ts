@@ -35,24 +35,26 @@ export const banSheetSchema = z.strictObject({
 });
 export type BanSheet = z.infer<typeof banSheetSchema>;
 
+/** One hero entry: shared by rosters and battle sides. */
+export const rosterHeroSchema = z.strictObject({
+  char_id: id,
+  squad_id: id,
+  squad_row: z.enum(ROWS).optional(), // optional: falls back to the soldier type's default_soldier_row
+  equipment: z.strictObject({
+    weapon: id.nullable(),
+    armor: id.nullable(),
+    accessory_1: id.nullable(),
+    accessory_2: id.nullable(),
+  }),
+  tactic_sheet: z.array(tacticSchema),
+  preferred_row: z.enum(ROWS).optional(), // optional: falls back to the character's preferred_row
+});
+export type RosterHero = z.infer<typeof rosterHeroSchema>;
+
 export const rosterSchema = z.strictObject({
   roster_id: z.string().min(1),
   version: z.string().min(1),
-  heroes: z.array(
-    z.strictObject({
-      char_id: id,
-      squad_id: id,
-      squad_row: z.enum(ROWS).optional(), // optional: falls back to the soldier type's default_soldier_row
-      equipment: z.strictObject({
-        weapon: id.nullable(),
-        armor: id.nullable(),
-        accessory_1: id.nullable(),
-        accessory_2: id.nullable(),
-      }),
-      tactic_sheet: z.array(tacticSchema),
-      preferred_row: z.enum(ROWS).optional(), // optional: falls back to the character's preferred_row
-    }),
-  ),
+  heroes: z.array(rosterHeroSchema),
   leader_line: z.array(id),
   anchor: id.nullable(),
   ban_sheet: banSheetSchema.nullable(),

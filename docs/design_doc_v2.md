@@ -465,6 +465,24 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 82 | Regen reapply | DECIDED | Authored exception to the default refresh rule: reapplication extends |
 | 83 | GUARD dual role | DECIDED (re-check) | GUARD opposes crit (CRIT - GUARD) and keeps its own guard roll; both kept for now, to be re-checked in the batch simulator. Crit cap 100, CRIT default 30, hit 70..100, no damage variance |
 | 84 | Holy and Monster classes | DECIDED | Healer renamed Holy; new Monster class (generally higher base stats, priced by the cost algorithm); Holy > Monster. Default row: Holy back, Monster front (high-HP rule) [DEFAULT] |
+| 85 | Phase action cap | DEFAULT | `max_actions_per_phase` = 200 (engine fallback when the rules constant is null) [DEFAULT] |
+| 86 | Battle seeds | DEFAULT | One seed per phase in the battle input; seeds are integers in [0, 2^32) (`E_BATTLE_SEEDS`) [DEFAULT] |
+| 87 | Hybrid defense | DEFAULT | Hybrid damage is reduced by the average of DEF and MDEF [DEFAULT] |
+| 88 | Crit order | DEFAULT | Crit multiplier applies to the already floored post-defense damage, then floors again [DEFAULT] |
+| 89 | Guard stacking | DEFAULT | Guard reductions stack as max(1 - cap/100, product of (1 - reduction/100)) [DEFAULT] |
+| 90 | Roll order | DEFAULT | Rolls draw in the order hit, crit, guard; a miss draws no further rolls [DEFAULT] |
+| 91 | Status count ticks | DEFAULT | Status counts tick only on an active skill use. A status the unit applies to itself skips that action's tick unless `applying_action_counts`; a status applied to another unit ticks on that unit's next own action [DEFAULT] |
+| 92 | Exhaustion | DEFAULT | Exhaustion counts only tactics whose skills the slice can run, so unrunnable skills cannot keep a phase alive [DEFAULT] |
+| 93 | Action cap counts heroes only | DEFAULT | Only hero actions count toward `max_actions_per_phase`; squad actions are still logged (`squad_actions`) but never end a phase while heroes have PP. Squads have their own safety bound of 10x the cap against endless loops [DEFAULT] |
+| 94 | Succession pick | DEFAULT | Until the leader line exists (3e), the successor is the first living hero in the battle input's hero order; it keeps its row; the aura returns, the squad does not |
+| 95 | Leon's pairing penalty | DEFAULT | Stat penalties (SPD -20 with non-mounted soldiers) apply only when the hero is the leader, because only the leader's squad is deployed |
+| 96 | Squads and leader statuses | DEFAULT | A squad reads its leader's status stat modifiers only (design 53/54), so a leader's aura buff (a passive status) reaches the squad too; innate soldier skills do not propagate to heroes except through `leader`/`party` targets |
+| 97 | Soldier skill triggers | DEFAULT | Effects carry a trigger but no event name: `on_hit` fires on after_hit when the squad landed a hit (target: the unit hit), `on_attack` fires on after_action of the squad (targets: every unit it hit); anything else is logged as not implemented |
+| 98 | Aura statuses | DEFAULT | Always-on aura modifiers are status instances in the `passive` category (`aura:<leader>:<n>`, no duration). Never ticked or cleared mid-phase; they end only with the leader's death (`aura_removed`); the next phase re-applies the aura of the current leader in the pre-battle step |
+| 99 | Aura conditions | DEFAULT | An always aura's `condition` is checked at phase start, an event aura's when its event fires. "Fielded" (`party_has_hero`) means a living hero of the side at that moment, so Leon's aura is off in a phase where The Emperor is dead |
+| 100 | Pre-battle step order | DEFAULT | `src/engine/prebattle.ts`: equipment (no-op until 3b), buff_grants, immunity (no-op until 3a), buff_removal (no-op until 3a), debuffs, event_auras, spd_finalization; a modify_stat with a negative value, or any effect of an enemy_debuff aura, is a debuff |
+| 101 | Aura effects supported | DEFAULT | Always auras: `modify_stat`; event auras: `heal` (trigger event `self_action_completed` only, idle counts per `trigger_includes_idle_action`), run through the event bus at order 50 and logged as `trigger`; everything else is logged `not implemented: aura ...` |
+| 102 | Full battle input | DEFAULT | Content has 4 heroes and a hero cannot be on both sides, so `content/battles/full4v4.yaml` is 2v2 (all heroes, all squads); the 4v4 test builds four clone heroes in memory. A real 4v4 file waits for roadmap 4.1 |
 
 ---
 
@@ -523,6 +541,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 
 
 ## 18. Known gaps [DEFERRED]
+- **Known gap for 3a:** state-passive statuses with a `while_condition` duration (Berserk) are not removed when the condition ends; the engine only applies them.
 - **Meta loop:** hero and gear acquisition, progression, rewards, defender rewards for holding a floor, and new-player onboarding are not designed yet [DEFERRED].
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
 - Devotion god names and blessings, battlefield terrain list, class values (Flyer melee EVA, Aquatic water SPD), stun pushback counts: TBD in `rules.yaml` / content.

@@ -21,6 +21,7 @@ export interface RawPack {
   factions: unknown[];
   rules: unknown;
   rosters: { name: string; data: unknown }[];
+  battles?: { name: string; data: unknown }[];
 }
 
 function readYaml(path: string): unknown {
@@ -43,7 +44,7 @@ function listOf(value: unknown, file: string): unknown[] {
   return value;
 }
 
-/** Reads a content directory. Rosters (optional) are read from <dir>/rosters/*.yaml. */
+/** Reads a content directory. Rosters and battles (optional) are read from <dir>/rosters/*.yaml and <dir>/battles/*.yaml. */
 export function loadPack(dir: string): RawPack {
   const list = (key: keyof typeof FILES) => listOf(readYaml(join(dir, FILES[key])), FILES[key]);
   const rosters: { name: string; data: unknown }[] = [];
@@ -51,6 +52,13 @@ export function loadPack(dir: string): RawPack {
   if (existsSync(rosterDir)) {
     for (const f of readdirSync(rosterDir).filter((n) => n.endsWith(".yaml")).sort()) {
       rosters.push({ name: f, data: readYaml(join(rosterDir, f)) });
+    }
+  }
+  const battles: { name: string; data: unknown }[] = [];
+  const battleDir = join(dir, "battles");
+  if (existsSync(battleDir)) {
+    for (const f of readdirSync(battleDir).filter((n) => n.endsWith(".yaml")).sort()) {
+      battles.push({ name: f, data: readYaml(join(battleDir, f)) });
     }
   }
   return {
@@ -62,5 +70,6 @@ export function loadPack(dir: string): RawPack {
     factions: list("factions"),
     rules: readYaml(join(dir, FILES.rules)),
     rosters,
+    battles,
   };
 }

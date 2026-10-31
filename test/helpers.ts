@@ -2,7 +2,8 @@ import { loadPack, type RawPack } from "../src/load";
 import { validateRaw } from "../src/validate";
 import type { Tier } from "../src/types";
 
-export const fresh = (): RawPack => structuredClone(loadPack("content"));
+/** Content pack without sample battles, so roster tests are not affected by them (battle tests add their own). */
+export const fresh = (): RawPack => ({ ...structuredClone(loadPack("content")), battles: [] });
 export const codes = (raw: RawPack, tier: Tier = "official") => validateRaw(raw, { tier }).report.issues.filter((i) => i.severity === "error").map((i) => i.code);
 export const find = <T extends { id: string }>(xs: unknown[], id: string) => (xs as T[]).find((x) => x.id === id) as any;
 

@@ -1,5 +1,5 @@
-import { rosterSchema } from "../schema";
-import type { Collector, Tier } from "../types";
+import { rosterSchema, type RosterHero } from "../schema";
+import type { Collector, Location, Tier } from "../types";
 import { heroCost } from "./cost";
 import { canEquip, squadEligible } from "./eligibility";
 import type { Pack } from "./pack";
@@ -29,40 +29,10 @@ export function validateRoster(raw: unknown, pack: Pack, c: Collector, opts: { r
   let rosterCost = 0;
   const costs = new Map<string, number>();
   r.heroes.forEach((h, i) => {
-    const loc = { file, id: h.char_id, path: `heroes[${i}]` };
-    const hero = pack.byId.characters.get(h.char_id);
-    if (!hero) return void c.error("E_REF_MISSING", `unknown hero '${h.char_id}'`, loc);
-
-    const squad = pack.byId.soldiers.get(h.squad_id);
-    if (!squad) c.error("E_REF_MISSING", `unknown squad '${h.squad_id}'`, { ...loc, path: `${loc.path}.squad_id` });
-    else {
-      if (!squadEligible(hero, squad)) c.error("E_SQUAD_INELIGIBLE", `${hero.id} cannot lead squad '${squad.id}'`, { ...loc, path: `${loc.path}.squad_id` });
-      const row = h.squad_row ?? squad.default_soldier_row;
-      if (!squad.allowed_soldier_rows.includes(row)) c.error("E_SQUAD_ROW", `squad row '${row}' is not allowed for '${squad.id}'`, { ...loc, path: `${loc.path}.squad_row` });
-      if (hero.restrictions.soldier.mounted_only && !squad.mounted) c.error("E_SQUAD_INELIGIBLE", `${hero.id} requires a mounted squad`, { ...loc, path: `${loc.path}.squad_id` });
-    }
-
-    const items = [];
-    for (const [key, slot] of Object.entries(SLOTS) as [keyof typeof SLOTS, string][]) {
-      const eid = h.equipment[key];
-      if (!eid) continue;
-      const item = pack.byId.equipment.get(eid);
-      const p = { ...loc, path: `${loc.path}.equipment.${key}` };
-      if (!item) { c.error("E_REF_MISSING", `unknown equipment '${eid}'`, p); continue; }
-      if (item.slot !== slot) c.error("E_EQUIP_SLOT", `'${eid}' is a ${item.slot}, not a ${slot}`, p);
-      if (!canEquip(hero, item)) c.error("E_EQUIP_INELIGIBLE", `${hero.id} cannot equip '${eid}'`, p);
-      if (key === "accessory_2" && eid === h.equipment.accessory_1 && !item.rules.duplicate_allowed_in_both_accessory_slots) {
-        c.error("E_EQUIP_DUPLICATE", `'${eid}' cannot be equipped in both accessory slots`, p);
-      }
-      items.push(item);
-    }
-
-    checkTacticSheet(h.tactic_sheet, hero.skills, { ...loc, path: `${loc.path}.tactic_sheet` }, c, pack, opts.tier);
-
-    const total = heroCost(hero, pack.rules, { squad: squad ?? null, equipment: items, skills: hero.skills.map((id) => pack.byId.skills.get(id)).filter((s) => s !== undefined) });
-    costs.set(hero.id, total);
+    const total = checkRosterHero(h, { file, id: h.char_id, path: `heroes[${i}]` }, pack, c, opts.tier);
+    if (total === null) return;
+    costs.set(h.char_id, total);
     rosterCost += total;
-    if (cost.caps.per_hero !== null && total > cost.caps.per_hero) c.error("E_COST_CAP", `hero cost ${total} exceeds the per-hero cap of ${cost.caps.per_hero}`, loc);
   });
   if (cost.caps.roster !== null && rosterCost > cost.caps.roster) c.error("E_COST_CAP", `roster cost ${rosterCost} exceeds the cap of ${cost.caps.roster}`, { file, path: "heroes" });
 
@@ -77,4 +47,41 @@ export function validateRoster(raw: unknown, pack: Pack, c: Collector, opts: { r
     if (!r.ban_sheet) c.error("E_BAN_SHEET", "a defender roster needs a ban_sheet", { file, path: "ban_sheet" });
   }
   if (r.ban_sheet) checkBanSheet(r.ban_sheet, { file, path: "ban_sheet" }, c, pack, opts.tier);
+}
+
+/** Per-hero checks shared by rosters and battle sides: known hero, squad, equipment, tactic sheet, per-hero cost cap. Returns the hero's cost, or null if the hero is unknown. */
+export function checkRosterHero(h: RosterHero, loc: Location, pack: Pack, c: Collector, tier: Tier): number | null {
+  const { cost } = pack.rules;
+  const hero = pack.byId.characters.get(h.char_id);
+  if (!hero) { c.error("E_REF_MISSING", `unknown hero '${h.char_id}'`, loc); return null; }
+
+  const squad = pack.byId.soldiers.get(h.squad_id);
+  if (!squad) c.error("E_REF_MISSING", `unknown squad '${h.squad_id}'`, { ...loc, path: `${loc.path}.squad_id` });
+  else {
+    if (!squadEligible(hero, squad)) c.error("E_SQUAD_INELIGIBLE", `${hero.id} cannot lead squad '${squad.id}'`, { ...loc, path: `${loc.path}.squad_id` });
+    const row = h.squad_row ?? squad.default_soldier_row;
+    if (!squad.allowed_soldier_rows.includes(row)) c.error("E_SQUAD_ROW", `squad row '${row}' is not allowed for '${squad.id}'`, { ...loc, path: `${loc.path}.squad_row` });
+    if (hero.restrictions.soldier.mounted_only && !squad.mounted) c.error("E_SQUAD_INELIGIBLE", `${hero.id} requires a mounted squad`, { ...loc, path: `${loc.path}.squad_id` });
+  }
+
+  const items = [];
+  for (const [key, slot] of Object.entries(SLOTS) as [keyof typeof SLOTS, string][]) {
+    const eid = h.equipment[key];
+    if (!eid) continue;
+    const item = pack.byId.equipment.get(eid);
+    const p = { ...loc, path: `${loc.path}.equipment.${key}` };
+    if (!item) { c.error("E_REF_MISSING", `unknown equipment '${eid}'`, p); continue; }
+    if (item.slot !== slot) c.error("E_EQUIP_SLOT", `'${eid}' is a ${item.slot}, not a ${slot}`, p);
+    if (!canEquip(hero, item)) c.error("E_EQUIP_INELIGIBLE", `${hero.id} cannot equip '${eid}'`, p);
+    if (key === "accessory_2" && eid === h.equipment.accessory_1 && !item.rules.duplicate_allowed_in_both_accessory_slots) {
+      c.error("E_EQUIP_DUPLICATE", `'${eid}' cannot be equipped in both accessory slots`, p);
+    }
+    items.push(item);
+  }
+
+  checkTacticSheet(h.tactic_sheet, hero.skills, { ...loc, path: `${loc.path}.tactic_sheet` }, c, pack, tier);
+
+  const total = heroCost(hero, pack.rules, { squad: squad ?? null, equipment: items, skills: hero.skills.map((id) => pack.byId.skills.get(id)).filter((s) => s !== undefined) });
+  if (cost.caps.per_hero !== null && total > cost.caps.per_hero) c.error("E_COST_CAP", `hero cost ${total} exceeds the per-hero cap of ${cost.caps.per_hero}`, loc);
+  return total;
 }

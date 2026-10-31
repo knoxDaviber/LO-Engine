@@ -1,0 +1,184 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { battleSchema, type Battle, type Tactic } from "../src/schema";
+import { beginPhase, EventLog, isExhausted, runBattle, runPhase, type BattleEvent } from "../src/engine";
+import type { Pack } from "../src/validate/pack";
+import { EMPEROR, JASMINE, LEON, LIEF, loadReal, tactic } from "./engineHelpers";
+
+/** Real pack and sample battle; `tank` gives everyone huge HP so nobody dies. */
+function setup(tank = true): { pack: Pack; battle: Battle } {
+  const { pack, battle } = loadReal();
+  if (tank) for (const id of [LEON, LIEF, EMPEROR, JASMINE]) (pack.byId.characters.get(id) as any).base_stats.HP = 100000;
+  return { pack, battle: structuredClone(battle) };
+}
+const sheetOf = (b: Battle, id: string) => [...b.challenger.heroes, ...b.defender.heroes].find((h) => h.char_id === id)!;
+const evals = (events: BattleEvent[], unit: string, phase: number) =>
+  events.filter((e): e is Extract<BattleEvent, { type: "tactic_evaluation" }> => e.type === "tactic_evaluation" && e.unit === unit && e.phase === phase);
+
+test("phase ends by exhaustion when every living hero is out of PP for its skills", () => {
+  const { pack, battle } = setup();
+  const log = new EventLog();
+  const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  const res = runPhase(state, rng, log);
+  assert.equal(res.reason, "exhausted");
+  assert.equal(res.skills, 4); // Leon Hooves, Lief 2x Defensive Strike, Emperor Dirge
+  assert.ok(state.units.every((u) => isExhausted(state, u)));
+  assert.equal(state.units.find((u) => u.id === LEON)!.pp.active.cur, 0);
+  assert.equal(state.units.find((u) => u.id === JASMINE)!.pp.active.cur, 2); // unusable skill (not implemented) does not keep the phase alive
+});
+
+test("a hero with no usable active skill is exhausted", () => {
+  const { pack, battle } = setup();
+  sheetOf(battle, LEON).tactic_sheet = [];
+  const { state } = beginPhase(pack, battle, 1, null, new EventLog());
+  assert.equal(isExhausted(state, state.units.find((u) => u.id === LEON)!), true);
+  assert.equal(isExhausted(state, state.units.find((u) => u.id === LIEF)!), false);
+});
+
+const never: Tactic["activation"] = { type: "phase", op: "=", value: 9 };
+
+test("idle safety ends a stalled phase after one full cycle without a skill", () => {
+  const { pack, battle } = setup();
+  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) for (const t of h.tactic_sheet) t.activation = never;
+  const log = new EventLog();
+  const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  const res = runPhase(state, rng, log);
+  assert.equal(res.reason, "idle_cycle");
+  assert.equal(res.skills, 0);
+  assert.equal(res.actions, 4); // each of the 4 units acted once, all idle
+  assert.ok(state.units.every((u) => u.pp.active.cur === u.pp.active.max));
+});
+
+test("idle cycle restarts when a skill is executed", () => {
+  const { pack, battle } = setup();
+  // Leon can act exactly once (PP 2, Hooves cost 2); everyone else stalls. Leon acts at 20, 37, 54...
+  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) if (h.char_id !== LEON) for (const t of h.tactic_sheet) t.activation = never;
+  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_002")];
+  const log = new EventLog();
+  const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  const res = runPhase(state, rng, log);
+  assert.equal(res.skills, 1);
+  assert.equal(res.reason, "idle_cycle"); // the skill at t=20 restarts the cycle; it completes when all four have idled since
+  assert.equal(res.actions, 5);
+});
+
+test("hard action cap is the last resort", () => {
+  const { pack, battle } = setup();
+  pack.rules.phase.max_actions_per_phase = 2;
+  const log = new EventLog();
+  const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  const res = runPhase(state, rng, log);
+  assert.equal(res.reason, "action_cap");
+  assert.equal(res.actions, 2);
+});
+
+test("only hero actions count toward the action cap: a very fast squad cannot end the phase while heroes still have PP", () => {
+  const { pack, battle } = loadReal({ squads: true });
+  for (const id of [LEON, LIEF, EMPEROR, JASMINE]) (pack.byId.characters.get(id) as any).base_stats.HP = 1e7;
+  pack.byId.soldiers.get("soldier_001")!.per_soldier_stats.SPD = 500; // interval 2: dozens of squad actions before a hero acts
+  pack.byId.soldiers.get("soldier_001")!.per_soldier_stats.ATK = 0;
+  pack.rules.phase.max_actions_per_phase = 10;
+  const log = new EventLog();
+  const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  const res = runPhase(state, rng, log);
+  assert.ok(res.squadActions > 10, `squad acted ${res.squadActions} times, more than the cap`);
+  assert.notEqual(res.reason, "action_cap");
+  assert.equal(res.reason, "exhausted");
+  assert.equal(res.skills, 4); // every hero still got to spend its PP
+});
+
+test("squad actions have their own safety bound (10x the cap) so an endless squad cannot loop forever", () => {
+  const { pack, battle } = loadReal({ squads: true });
+  for (const id of [LEON, LIEF, EMPEROR, JASMINE]) (pack.byId.characters.get(id) as any).base_stats.HP = 1e7;
+  pack.byId.soldiers.get("soldier_001")!.per_soldier_stats.SPD = 1000;
+  pack.rules.phase.max_actions_per_phase = 2;
+  const log = new EventLog();
+  const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  const res = runPhase(state, rng, log);
+  assert.equal(res.reason, "action_cap");
+  assert.ok(res.squadActions >= 20 && res.actions <= 2);
+});
+
+test("phase 3 ending with both sides alive is a challenger loss; every phase runs", () => {
+  const { pack, battle } = setup();
+  const r = runBattle(pack, battle);
+  assert.equal(r.winner, "defender");
+  assert.equal(r.reason, "phase3_timeout");
+  assert.equal(r.phases.length, 3);
+  assert.ok(r.phases.every((p) => p.reason === "exhausted"));
+  assert.ok(r.units.every((u) => u.alive));
+});
+
+test("a wipe ends the battle at once and the other side wins", () => {
+  const { pack, battle } = setup(false);
+  const r = runBattle(pack, battle);
+  assert.equal(r.reason, "wipe");
+  assert.equal(r.phases.at(-1)!.reason, "wipe");
+  const dead = r.units.filter((u) => !u.alive).map((u) => u.side);
+  assert.ok(dead.length > 0 && new Set(dead).size === 1);
+  assert.equal(r.winner, dead[0] === "defender" ? "challenger" : "defender");
+});
+
+test("HP and deaths persist into the next phase; PP refreshes, statuses clear, timeline resets", () => {
+  const { pack, battle } = setup();
+  const log = new EventLog();
+  const p1 = beginPhase(pack, battle, 1, null, log);
+  runPhase(p1.state, p1.rng, log);
+  const lief = p1.state.units.find((u) => u.id === LIEF)!;
+  const jas = p1.state.units.find((u) => u.id === JASMINE)!;
+  assert.ok(lief.hp < lief.maxHp || p1.state.units.some((u) => u.hp < u.maxHp));
+  assert.ok(lief.pp.active.cur < lief.pp.active.max);
+  assert.ok(p1.state.units.some((u) => u.statuses.length > 0));
+  jas.alive = false; jas.hp = 0;
+  const p2 = beginPhase(pack, battle, 2, p1.state, log);
+  for (const u of p2.state.units) {
+    const before = p1.state.units.find((x) => x.id === u.id)!;
+    assert.equal(u.hp, before.hp);
+    assert.equal(u.alive, before.alive);
+    assert.equal(u.pp.active.cur, u.pp.active.max);
+    assert.deepEqual(u.statuses, []);
+  }
+  assert.equal(p2.state.timeline.now, 0);
+  assert.equal(p2.state.timeline.pending.size, 3); // the dead stay unscheduled
+  assert.equal(p2.state.timeline.pending.has(JASMINE), false);
+});
+
+test("`phase` condition works in activation", () => {
+  const { pack, battle } = setup();
+  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_001", { activation: { type: "phase", op: ">=", value: 2 } })];
+  const r = runBattle(pack, battle);
+  const first = (p: number) => evals(r.events, LEON, p)[0]!;
+  assert.equal(first(1).chosen, null);
+  assert.match(first(1).evaluations[0]!.reason, /activation condition false/);
+  assert.equal(first(2).chosen, "skl_cav_active_001");
+  assert.equal(first(3).chosen, "skl_cav_active_001");
+});
+
+test("`phase` condition works in targeting", () => {
+  const { pack, battle } = setup();
+  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_001", { targeting: { main: { type: "phase", op: "=", value: 2 }, sub: null } })];
+  const r = runBattle(pack, battle);
+  const first = (p: number) => evals(r.events, LEON, p)[0]!;
+  assert.equal(first(1).chosen, null);
+  assert.match(first(1).evaluations[0]!.reason, /no valid target/);
+  assert.equal(first(2).chosen, "skl_cav_active_001");
+  assert.equal(first(3).chosen, null);
+});
+
+test("kill race: a unit killed before it acts never spends its PP", () => {
+  const { pack, battle } = setup(false);
+  (pack.byId.characters.get(EMPEROR) as any).base_stats.HP = 1;
+  const r = runBattle(pack, battle);
+  const p1 = (e: BattleEvent) => "phase" in e && e.phase === 1;
+  assert.ok(!r.events.some((e) => p1(e) && e.type === "tactic_evaluation" && e.unit === EMPEROR));
+  assert.ok(!r.events.some((e) => p1(e) && e.type === "pp_spend" && e.unit === EMPEROR));
+  const death = r.events.find((e) => p1(e) && e.type === "death" && e.unit === EMPEROR);
+  assert.ok(death, "Emperor dies in phase 1");
+  const p2 = r.events.find((e) => e.type === "phase_start" && e.phase === 2) as Extract<BattleEvent, { type: "phase_start" }> | undefined;
+  if (p2) assert.equal(p2.units.find((u) => u.id === EMPEROR)!.alive, false); // stays dead
+});
+
+test("same seed reproduces the same battle", () => {
+  const a = setup(false), b = setup(false);
+  assert.equal(JSON.stringify(runBattle(a.pack, a.battle)), JSON.stringify(runBattle(b.pack, b.battle)));
+});

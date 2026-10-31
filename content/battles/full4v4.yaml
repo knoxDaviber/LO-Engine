@@ -1,0 +1,43 @@
+# "Full" battle: every hero the content has (4), 2v2, all squads deployed. The content holds only 4 heroes and a hero cannot stand on both
+# sides (E_BATTLE_DUP), so a real 4v4 is not possible from content yet (roadmap 4.1 adds heroes). test/engine.fullbattle.test.ts runs a true 4v4
+# from cloned heroes. This file exercises what sample.yaml does not: Leon leads with Heavy Cavalry (no SPD penalty) and his aura needs The
+# Emperor (fielded beside him); Jasmine leads the other side (event aura, her squad is deployed); Lief and the Emperor are non-leaders.
+battle_id: full_2v2
+version: "1"
+seeds: [7, 77, 777]
+
+challenger:
+  leader: char_001
+  heroes:
+    - char_id: char_001   # Leon, leader
+      squad_id: soldier_002
+      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_cav_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+        - { priority: 2, skill_id: skl_cav_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+    - char_id: char_002   # The Emperor
+      squad_id: soldier_001
+      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_inf_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+        - { priority: 2, skill_id: skl_inf_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+
+defender:
+  leader: char_003
+  heroes:
+    - char_id: char_003   # Jasmine, leader
+      squad_id: soldier_001
+      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_heal_active_001
+          enabled: true
+          activation: null
+          targeting: { main: null, sub: { select: lowest, metric: hp_percent, side: ally } }
+          fallback: skip
+    - char_id: char_004   # Lief
+      squad_id: soldier_001
+      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+        - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
