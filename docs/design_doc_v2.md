@@ -102,6 +102,7 @@ Skills carry authored `tags` (e.g. `revive`, `stun`, `aoe`, `heal`, `debuff`). B
 - **Allocation** [DECIDED]: after confirming a roll, each copy has **15 stat points**, auto-assigned by default and reassignable by the player. Whether players can re-spec later is TBD.
 - **Generic heroes** [DECIDED]: one generic, hand-authored hero per class; the base for player-made heroes later, and a test fixture now.
 - **Generic soldiers** [DECIDED]: one generic soldier type per class. Any hero may use a generic soldier type [DECIDED, Decision 111]; special soldier types (Heavy Infantry, Heavy Cavalry) keep their hero/class eligibility. A Mage soldier needs a damage type on soldier basic attacks (schema change pending).
+- **Class branches** [DECIDED, optional, Decision 117]: a hero may have up to 2 branches (a different class plus at most one swapped skill), chosen per team entry; the active branch's class counts for all class checks. Built in roadmap 4.1 only if the pool feels narrow (details in Decision 117).
 - Schema change pending: roster entries need per-copy variance and allocation; rolls are server-seeded and frozen into snapshots.
 
 ---
@@ -505,6 +506,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 114 | Hero progression | DECIDED (none for now) | Endgame first: no levels, class change or progression grind before the sim; may come later |
 | 115 | Timeout tiebreak | CANDIDATE | If the batch sim shows a high timeout rate, replace "survivors after phase 3 = challenger loss" with a tiebreak: higher remaining HP %, or most total damage dealt (inspired by Unicorn Overlord) |
 | 116 | Cover | DECIDED concept | Cover (a unit intercepts single-target attacks aimed at allies) will exist; needs a new effect type. Iron Fist was meant as a cover skill and is currently a row GUARD UP buff |
+| 117 | Class branches | DECIDED (optional, roadmap 4.1) | A hero may have 0-2 branches; each branch = a different class plus at most one swapped skill, optionally a different stat lean; name, aura and core kit unchanged (e.g. Leon: Cavalry, or Flyer "Dragoon" swapping Charging Assault for a dive attack). Chosen per team entry like gear; bans target the hero; priced by the cost algorithm. Schema: optional `branches` on characters, `branch` on roster entries. Built in 4.1 only if the 10-hero pool feels narrow (revisited after the batch sim). The active branch's class is the hero's class for every class check: matchups, conditions, ban filters, class-filtered auras, default row |
 
 ---
 
