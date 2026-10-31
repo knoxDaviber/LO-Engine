@@ -66,14 +66,14 @@ Split into independent tracks; 3a first, the rest in any order. Section 15 does 
 **Blocking decisions:**
 - [NEEDS DECISION] `stun_pushback_counts` value (before 3a).
 - [NEEDS DECISION] Flyer melee EVA bonus and Aquatic water SPD bonus values (before 3d).
-- [NEEDS DECISION] 7 god names and their 2-piece / 4-piece blessings (before 3c).
+- [NEEDS DECISION] Base god names (virtues, Decision 113) and their 2-piece / 4-piece blessings (before 3c).
 - [NEEDS DECISION] Terrain list, per-class modifiers, and terrain's stacking category (before 3d).
 
 | # | Milestone | Done when |
 |---|---|---|
-| 3a | **Full condition library, passives and statuses**: all registry leaves; per-hit-once tests for Regen, on-hit reactives and Longinus; passives spend Passive PP on trigger with "used" semantics (one-event vs state passives) and log when PP is short; Stun pushback, Confusion, Regen (extend on reapply), Fairy's Grace, Immunity, buff removal; pre-battle priority order (equipment, buff grants, buff removal, debuffs, SPD finalization); Hegemony before the triggering attack, Quick Heal after | Section 17 status, passive and pre-battle tests. |
+| 3a | **Full condition library, passives and statuses**: all registry leaves; cover effect (intercept single-target attacks on allies, Decision 116); per-hit-once tests for Regen, on-hit reactives and Longinus; passives spend Passive PP on trigger with "used" semantics (one-event vs state passives) and log when PP is short; Stun pushback, Confusion, Regen (extend on reapply), Fairy's Grace, Immunity, buff removal; pre-battle priority order (equipment, buff grants, buff removal, debuffs, SPD finalization); Hegemony before the triggering attack, Quick Heal after | Section 17 status, passive and pre-battle tests; cover intercepts a single-target attack aimed at an ally. |
 | 3b | **Equipment in the engine**: flat lines into base, conditional/percentage effects as Equipment category (fills the equipment step of the pre-battle order), PP bonuses (Dragon Scale), duplicate accessories | Dragon Scale example: 5 and 57; with Empire's Dominion: 1 and 37; equipment vs equipment does not stack; two Speed Rings = SPD +40. |
-| 3c | **Devotion**: sigil field on equipment, blessing content type (god, 2-piece, 4-piece), `prayer` category in the engine, blessings priced by the cost algorithm | 2 and 4 same-god sigils unlock the tiers; prayer multiplies with other categories. |
+| 3c | **Devotion**: sigil field on equipment (god list open-ended, Decision 113), blessing content type (god, 2-piece, 4-piece), `prayer` category in the engine, blessings priced by the cost algorithm | 2 and 4 same-god sigils unlock the tiers; prayer multiplies with other categories. |
 | 3d | **Battlefield and class traits**: terrain content type, defender's battlefield in the snapshot/battle input, terrain class modifiers, Flyer melee EVA and Aquatic water SPD | Flyer EVA higher vs melee only; Aquatic SPD up on water only. |
 | 3e | **Draft and between-phase edits**: battle input grows from two fielded sides to two 6-hero rosters (challenger, and defender with anchor, ban sheet and battlefield), validated by the existing roster layer (which already enforces cost caps); draft sequence (variant C) with anchor/protected/ban sheet/fallback ban, leader line resolution, formation overflow by leader-line rank; challenger edits between phases (allowed vs locked fields, Section 5.5) | Draft tests (4 heroes each, anchor never banned, deterministic, fallback rule); locked-field edits rejected. |
 
@@ -83,9 +83,9 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 
 | # | Milestone | Done when |
 |---|---|---|
-| 4.1 | **Content expansion** (designer-led): heroes for the classes with none yet (archer, flyer, mage, assassin, aquatic, monster), enough for several distinct 6-hero rosters; one generic hero and one generic soldier type per class (Decisions 105-106; generic heroes can be authored earlier as test fixtures); damage type on soldier basic attacks for Mage soldiers | Validator clean; at least ~12 heroes covering every class. |
+| 4.1 | **Content expansion** (designer-led): heroes for the classes with none yet (archer, flyer, mage, assassin, aquatic, monster), enough for several distinct 6-hero rosters; race stat leans and racial soldier types (Decision 112); one generic hero and one generic soldier type per class (Decisions 105-106; generic heroes can be authored earlier as test fixtures); damage type on soldier basic attacks for Mage soldiers | Validator clean; at least ~12 heroes covering every class. |
 | 4.2 | **Batch simulator** `npm run batch`: N seeded battles per matchup (including the draft), reports challenger win rate, timeout rate, average phases, per-hero damage/healing | Report includes challenger win rate and timeout rate. |
-| 4.3 | **Balance pass**: calibrate cost weights, Jasmine's aura `cost_adjustment` (+10 proposed in the conversion report, deferred to calibration), roll constants; re-check GUARD dual role, turtling/timeout rate, and the leader-focus candidates (squad guards leader, back-row leaders) | Decisions recorded in the decision log; constants updated in `rules.yaml`. |
+| 4.3 | **Balance pass**: calibrate cost weights, Jasmine's aura `cost_adjustment` (+10 proposed in the conversion report, deferred to calibration), roll constants; re-check GUARD dual role, turtling/timeout rate (timeout tiebreak candidate, Decision 115), and the leader-focus candidates (squad guards leader, back-row leaders) | Decisions recorded in the decision log; constants updated in `rules.yaml`. |
 
 ## Step 5: Editor (Section 15, step 5)
 
@@ -95,7 +95,7 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 
 ## Step 6: Tower service (Section 15, step 6)
 
-- **Blocking design work:** the rest of the meta loop (gear acquisition, progression, rewards, defender rewards, onboarding) is an undesigned known gap and must be designed before this step. Also: tower attempt limits, HP persistence between floors, anti-degenerate measures.
+- **Blocking design work:** the rest of the meta loop (gear acquisition, rewards, defender rewards, onboarding; hero progression is out for now, Decision 114) is an undesigned known gap and must be designed before this step. Also: tower attempt limits, HP persistence between floors, anti-degenerate measures.
 - Hero acquisition (Decisions 103-108, 110-111): hero-instance layer in the roster schema (per-copy variance and allocation), server-seeded rolls (12 shown, keep 10) with locks and preview, owned pool frozen per season, unlimited saved teams with per-team loadouts (gear, tactics, squad, row), 10 distinct heroes (no duplicates), defender team picked on reaching the top and frozen for the season.
 - Snapshots (party, gear, formation, leader, tactics, battlefield, anchor, ban sheet, content/rules version), server re-simulation with hidden per-phase seeds, seasons with pinned content versions, top-10 rollover.
 
@@ -108,7 +108,7 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 | Before 1.1 | `max_actions_per_phase` | 200 |
 | Before 1.1 | Per-phase seed handling | One seed per phase in the battle input |
 | Before 3a | `stun_pushback_counts` | none proposed |
-| Before 3c | 7 gods and blessings | none |
+| Before 3c | Base gods (virtues) and blessings | none |
 | Before 3d | Flyer melee EVA, Aquatic water SPD, terrain list and stacking category | none |
 | Before 4.1 | Which new heroes and soldier types | designer content |
 | Step 4.3 | Cost weights, GUARD dual role, leader focus | from batch sim data |

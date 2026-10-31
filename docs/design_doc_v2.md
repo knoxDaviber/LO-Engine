@@ -199,7 +199,7 @@ A battle is up to **3 phases**.
 
 ### 5.4 Result
 Survivors after phase 3 with no side wiped: **the challenger loses** [DECIDED]. In PvE the player is always the challenger.
-- **Known risk: turtling** [DECIDED to keep the rule and rely on bans]. Defenders can build walls that run out the clock. The anchor is unbannable, so defenders will make their best wall the anchor. The batch simulator must report the timeout rate (Section 14).
+- **Known risk: turtling** [DECIDED to keep the rule and rely on bans]. Defenders can build walls that run out the clock. The anchor is unbannable, so defenders will make their best wall the anchor. The batch simulator must report the timeout rate (Section 14). Candidate fix: a timeout tiebreak by remaining HP % or total damage dealt (Decision 115).
 
 ### 5.5 Challenger edits between phases [DECIDED]
 The challenger may adjust between phases. [DEFAULT scope]:
@@ -285,7 +285,7 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 
 ## 9A. Devotion (prayer) [DECIDED concept, details TBD]
 
-- **Lore:** the world is governed by **7 gods** and everyone prays to them.
+- **Lore:** the world is governed by **7 base gods**, each embodying a virtue (with a shadow vice for story), and everyone prays to them [DECIDED concept, Decision 113]. More gods (ascended heroes, man-made or false gods) may be added later as new sigil sets, so the sigil and blessing schema must not assume exactly 7 gods. God-race links are lore only: any hero may choose any patron, and gods give no racial bonus.
 - Each **gear piece carries one god's sigil**, fixed on the item (no random substats) [DECIDED].
 - **2 and 4 sigils of the same god** on one hero unlock that god's **blessing**, in two tiers (2-piece and 4-piece) [DECIDED]. Examples: Thorns = reflect part of the damage taken; Breeze = SPD up after acting. (Inspired by Langrisser Mobile enchant sets.)
 - Blessings are a new stacking category **`prayer`**, the fifth multiplier alongside passive, active, equipment and soldier (Section 9.1) [DECIDED].
@@ -462,7 +462,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 71 | Player tactic and ban rows | DECIDED | One activation condition and one targeting condition, each optionally with a second ANDed; no nesting, OR or NOT in player sheets. Ban rules: one filter, optional second ANDed, plus selector. Authored content keeps full trees (enforced) |
 | 72 | Cost override | DECIDED | `cost_override` on a hero, skill or item replaces the computed cost (official only) |
 | 73 | Squad healing | DECIDED | Always treated as AoE; see 43 |
-| 74 | Devotion (prayer) | DECIDED concept | 7 gods; each gear piece carries one fixed sigil; 2 and 4 same-god sigils unlock that god's blessing; new stacking category `prayer`; priced by cost; built in step 3; god names and blessings TBD (Section 9A) |
+| 74 | Devotion (prayer) | DECIDED concept | 7 base gods (open-ended, 113); each gear piece carries one fixed sigil; 2 and 4 same-god sigils unlock that god's blessing; new stacking category `prayer`; priced by cost; built in step 3; god names and blessings TBD (Section 9A) |
 | 75 | Meta loop | DEFERRED | Gear acquisition, progression, rewards, defender rewards, onboarding: known gap (Section 18). Hero acquisition is now 103-108 |
 | 76 | Classes | DECIDED | Mage, Assassin neutral for now; Holy > Monster; Flyer much higher EVA vs melee (value TBD); new class Aquatic (SPD bonus on water); more classes will come |
 | 77 | Melee / ranged | DECIDED | Damage skills declare `range: melee \| ranged`; soldier types declare their basic attack's range; subsumes `ground_based` |
@@ -497,9 +497,14 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 106 | Generic soldiers | DECIDED | One generic soldier type per class; usable by any hero (see 111) |
 | 107 | Rolling | DECIDED | Unlimited rerolls with locks; rerolls can be previewed; at season reset keep heroes and teams or reset. Roll size and pool: see 110 |
 | 108 | Saved teams | DECIDED | Several saved teams (6-hero rosters) from owned heroes, mix and match per run, heroes may be shared; any hero can be planned but only owned heroes fielded. Supersedes "one roster per player". Which team defends a floor: see 111 |
-| 109 | Races | OPEN | 7 races tied to the 7 gods. Working list: Humans, Werebeasts, Rabbit-folk, Demons, High-Elf, Dark-Elf, Dragons. Under lore review: overlap with factions (Evil, Light, Forest-folk) and the Monster class; no aquatic race |
+| 109 | Races | OPEN (list) | Working list: Humans, Werebeasts, Rabbit-folk, Demons, High-Elf, Dark-Elf, Dragons (inspired by Etrian Odyssey V). Final list and lore still open; design rules are in 112 |
 | 110 | Owned pool and loadouts | DECIDED | Roll 12, keep 10, unlimited rerolls with locks; pool frozen for the season once confirmed. Gear, tactics, squad and row per team entry; 15 allocated points per hero copy (same in every team). Saved teams unlimited [DEFAULT]. Duplicate copies: none (see 111) |
 | 111 | Defender, duplicates, generic soldier use | DECIDED | On reaching the top the player picks one saved team (default: the clearing team), adds anchor, ban sheet and battlefield; frozen as their floor for the season. Owned pool holds 10 distinct named heroes (no duplicates). Generic soldier types are usable by any hero; special types keep their eligibility |
+| 112 | Race design | DECIDED | Race shapes a hero, not their total: race sets where stat variance and the default 15-point allocation lean (equal score kept). Each race has a racial soldier type and/or a racial class (an extra option only that race can take; all base classes stay open to every race). A short racial passive list (pick one per hero) is a later option; no racial traits before the batch sim. Race-god link is lore only. Any race can be any class, including Monster (a fallen or uncontrollable form) and Aquatic (sailors) |
+| 113 | Pantheon | DECIDED concept | 7 base gods based on the virtues (shadow vices for story); more gods (ascended, man-made) may be added later as new sigil sets; schema must not assume 7 |
+| 114 | Hero progression | DECIDED (none for now) | Endgame first: no levels, class change or progression grind before the sim; may come later |
+| 115 | Timeout tiebreak | CANDIDATE | If the batch sim shows a high timeout rate, replace "survivors after phase 3 = challenger loss" with a tiebreak: higher remaining HP %, or most total damage dealt (inspired by Unicorn Overlord) |
+| 116 | Cover | DECIDED concept | Cover (a unit intercepts single-target attacks aimed at allies) will exist; needs a new effect type. Iron Fist was meant as a cover skill and is currently a row GUARD UP buff |
 
 ---
 
@@ -559,12 +564,12 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 
 ## 18. Known gaps [DEFERRED]
 - **Known gap for 3a:** state-passive statuses with a `while_condition` duration (Berserk) are not removed when the condition ends; the engine only applies them.
-- **Meta loop:** gear acquisition (hero acquisition is Decisions 103-108, 110-111), progression, rewards, defender rewards for holding a floor, and new-player onboarding are not designed yet [DEFERRED].
+- **Meta loop:** gear acquisition (hero acquisition is Decisions 103-108, 110-111), progression, rewards, defender rewards for holding a floor, and new-player onboarding are not designed yet [DEFERRED]. Hero progression is deliberately out for now (Decision 114).
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
 - Devotion god names and blessings, battlefield terrain list, class values (Flyer melee EVA, Aquatic water SPD), stun pushback counts: TBD in `rules.yaml` / content.
-- **Races** (Decision 109): final list, lore, the race-god link, and race bonuses (to brainstorm). Also decide what class, race and faction each mean, so they do not overlap.
+- **Races** (Decisions 109, 112): final race list and lore; each race's stat lean and racial soldier type or class option; whether to add a racial passive list after the batch sim. Factions (Evil, Light, Forest-folk) may need recasting as political allegiances so they do not overlap races.
 
 
 ## Implementation note: schema is the source of truth
 
-The machine-readable definition of every template lives in `src/schema/` (Zod) and `src/registry/` (condition leaves and effect types, each flagged with the contexts they are allowed in and whether they are community-safe). `npm run schema:export` writes JSON Schemas to `schemas/`; `npm run validate` checks a content folder. Global tunables (damage floor, guard caps, class advantage, stun pushback, draft steps, limits, cost weights) live in `content/rules.yaml`, not in code. Structured conditions are used wherever a rule is checked by machine, for example Leon's soldier penalty is `stat_penalties: [{ when: { type: soldier_mounted, value: false }, stat: SPD, mode: flat, value: -20 }]`. Status durations accept the unit `instant` (consumed immediately, no count), used by Stun. Stun is a fixed pushback in timeline counts (Section 6): `delays_pending_action` is a boolean and `rules.stun_pushback_counts` (null, TBD) holds the count. Also implemented: `aquatic` class, `prayer` source category, required `range` on damage effects and soldier basic attacks, `overflow_to_next_soldier` removed, `apply_status.include_soldiers` defaulting to false, `cost_override` (official only), two-condition player-slot limits, and the `rolls`, `class_traits` and `phase` rules constants. Still pending: gear sigils and god content, battlefield content, and the Flyer and Aquatic trait mechanics beyond their rules constants.
+The machine-readable definition of every template lives in `src/schema/` (Zod) and `src/registry/` (condition leaves and effect types, each flagged with the contexts they are allowed in and whether they are community-safe). `npm run schema:export` writes JSON Schemas to `schemas/`; `npm run validate` checks a content folder. Global tunables (damage floor, guard caps, class advantage, stun pushback, draft steps, limits, cost weights) live in `content/rules.yaml`, not in code. Structured conditions are used wherever a rule is checked by machine, for example Leon's soldier penalty is `stat_penalties: [{ when: { type: soldier_mounted, value: false }, stat: SPD, mode: flat, value: -20 }]`. Status durations accept the unit `instant` (consumed immediately, no count), used by Stun. Stun is a fixed pushback in timeline counts (Section 6): `delays_pending_action` is a boolean and `rules.stun_pushback_counts` (null, TBD) holds the count. Also implemented: `aquatic` class, `prayer` source category, required `range` on damage effects and soldier basic attacks, `overflow_to_next_soldier` removed, `apply_status.include_soldiers` defaulting to false, `cost_override` (official only), two-condition player-slot limits, and the `rolls`, `class_traits` and `phase` rules constants. Still pending: gear sigils and god content, battlefield content, the Flyer and Aquatic trait mechanics beyond their rules constants, and the cover effect type (Decision 116).
