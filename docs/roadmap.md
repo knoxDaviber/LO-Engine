@@ -96,7 +96,7 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 ## Step 6: Tower service (Section 15, step 6)
 
 - **Blocking design work:** the rest of the meta loop (gear acquisition, progression, rewards, defender rewards, onboarding) is an undesigned known gap and must be designed before this step. Also: tower attempt limits, HP persistence between floors, anti-degenerate measures.
-- Hero acquisition (Decisions 103-108, 110): hero-instance layer in the roster schema (per-copy variance and allocation), server-seeded rolls (12 shown, keep 10) with locks and preview, owned pool frozen per season, unlimited saved teams with per-team loadouts (gear, tactics, squad, row).
+- Hero acquisition (Decisions 103-108, 110-111): hero-instance layer in the roster schema (per-copy variance and allocation), server-seeded rolls (12 shown, keep 10) with locks and preview, owned pool frozen per season, unlimited saved teams with per-team loadouts (gear, tactics, squad, row), 10 distinct heroes (no duplicates), defender team picked on reaching the top and frozen for the season.
 - Snapshots (party, gear, formation, leader, tactics, battlefield, anchor, ban sheet, content/rules version), server re-simulation with hidden per-phase seeds, seasons with pinned content versions, top-10 rollover.
 
 ---
