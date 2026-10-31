@@ -20,7 +20,7 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 
 ## 2. Party Structure
 
-- A player registers a **roster of 6 heroes**; the draft (Section 2A) cuts it to **4 fielded heroes** per battle [DECIDED]. The combat engine only ever sees the 4.
+- A team is a **roster of 6 heroes** (players save several teams, Decision 108); the draft (Section 2A) cuts it to **4 fielded heroes** per battle [DECIDED]. The combat engine only ever sees the 4.
 - Each hero: base stats, class, factions, equipment (Weapon, Armor, Accessory 1, Accessory 2), up to 10 tactics, Active PP pool, Passive PP pool.
 - **Party leader:** the leader is the highest-ranked fielded hero in the player's ranked leader line, resolved after the draft (Section 2A) [DECIDED].
   - **Every hero is assigned their own squad by the player** [DECIDED]. Only the leader's squad is deployed (10 soldiers). If the leader is banned, their squad is banned with them and the next hero in the leader line leads and brings their own squad and aura.
@@ -61,7 +61,7 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 ## 2A. Roster, Draft and Cost
 
 ### Roster [DECIDED]
-- One roster of **6 heroes** per player (the tower's earlier "1-3 teams" idea is deferred). Each roster hero carries their own equipment, tactic sheet, squad and preferred row.
+- A team is one roster of **6 heroes**; players save several teams from their owned heroes (Section 11, Decision 108). Each roster hero carries their own equipment, tactic sheet, squad and preferred row.
 - The roster stores a **leader line**: a ranked list. After the draft, the highest-ranked fielded hero is leader. Leaders are not automatically protected.
 - **Tactics cannot reference specific heroes.** Conditions may use class, faction, status, position and so on, but never a hero ID, and the validator rejects any that do. A condition that depends on a class or faction that isn't present simply fails and the tactic is skipped (a player skill issue, not an engine problem).
 - **Authored content may reference specific heroes** (leader auras, faction and equipment effects, e.g. Leon's aura requires The Emperor in the party). Only player-written tactic sheets and ban sheets may not [DEFAULT].
@@ -95,6 +95,14 @@ Each hero has a **cost** that counts their stats, skills, aura, equipment, squad
 
 ### Skill tags
 Skills carry authored `tags` (e.g. `revive`, `stun`, `aoe`, `heal`, `debuff`). Ban rules and the gauntlet match on them.
+
+### Hero instances [DECIDED concept, values TBD]
+- Heroes are **named templates** (base stats, class, factions, kit, aura) [DECIDED]. A player owns **copies**; each copy has its own stats.
+- **Stat variance** [DECIDED concept]: each copy's base stats are the template's, shifted by a zero-sum variance. Points move between stats so every copy has the same score (computed with `cost.stat_weights`) but no two copies are identical (e.g. ATK 100 / SPD 8 vs ATK 90 / SPD 10). Variance size and per-stat point values are TBD after the batch simulator calibrates the stat weights.
+- **Allocation** [DECIDED]: after confirming a roll, each copy has **15 stat points**, auto-assigned by default and reassignable by the player. Whether players can re-spec later is TBD.
+- **Generic heroes** [DECIDED]: one generic, hand-authored hero per class; the base for player-made heroes later, and a test fixture now.
+- **Generic soldiers** [DECIDED]: one generic soldier type per class. Eligibility (any hero, or matching class only) is OPEN. A Mage soldier needs a damage type on soldier basic attacks (schema change pending).
+- Schema change pending: roster entries need per-copy variance and allocation; rolls are server-seeded and frozen into snapshots.
 
 ---
 
@@ -307,7 +315,7 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 ## 11. The Tower (long-term) [DECIDED concept]
 
 - Players climb a tower of floors, each floor a **defender snapshot** (a saved player party).
-- **Roster:** one 6-hero roster per player, drafted down to 4 per fight (Section 2A). The earlier "1-3 teams" idea is deferred.
+- **Heroes and teams** [DECIDED concept, Decisions 103-108]: players acquire named heroes by rolling, with unlimited rerolls and locks (keep some heroes, reroll the rest); a reroll can be previewed before it replaces the current heroes. Each owned copy has its own stat variance and 15 allocation points (Section 2A, Hero instances). Players save **several teams** (each a 6-hero roster, drafted to 4 per fight, Section 2A) built from their owned heroes, and mix and match between runs; teams may share heroes. Teams can be planned with any hero, but only owned heroes can be fielded that season. At a season reset the player keeps their heroes and teams, or resets and rolls again. OPEN: roll size and owned-hero limit per season (leaning 10 so teams overlap; free pick also considered), and which saved team defends a floor.
   - HP/death persistence between floors: DEFERRED to implementation step 6. Working default: full restore at the start of each floor fight. Attempt limits per day are DEFERRED (see below).
 - The player who reaches the top becomes a floor. A season resets weekly or monthly; the top 10 become the new bottom floors [DECIDED].
 - **Defender snapshot:** the full party, gear, formation, leader, tactic sheets, **chosen battlefield** (Section 10A), anchor and ban sheet, frozen at submission, with the content/rules version.
@@ -386,7 +394,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 3 | Leader death | DECIDED | Soft: squad and aura lost |
 | 4 | Leader position | DECIDED | Front row only |
 | 5 | Free hero action | DECIDED | None |
-| 6 | Teams per player (tower) | DEFERRED | Single 6-hero roster for now (see 27) |
+| 6 | Teams per player (tower) | SUPERSEDED | Was: single 6-hero roster. Superseded by 108 (several saved teams) |
 | 7 | Soldier tactics | DECIDED | None, basic attack only |
 | 8 | Phase end rule | DECIDED | All heroes exhausted, or idle cycle (a full cycle = every living unit has had a scheduled action since the last skill was executed); hard cap `max_actions_per_phase` in rules.yaml, value TBD. Squads never keep a phase alive |
 | 9 | SPD interval | DEFAULT | round(1000 / max(SPD,5)); sets action order (see 67) |
@@ -455,7 +463,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 72 | Cost override | DECIDED | `cost_override` on a hero, skill or item replaces the computed cost (official only) |
 | 73 | Squad healing | DECIDED | Always treated as AoE; see 43 |
 | 74 | Devotion (prayer) | DECIDED concept | 7 gods; each gear piece carries one fixed sigil; 2 and 4 same-god sigils unlock that god's blessing; new stacking category `prayer`; priced by cost; built in step 3; god names and blessings TBD (Section 9A) |
-| 75 | Meta loop | DEFERRED | Hero/gear acquisition, progression, rewards, defender rewards, onboarding: known gap (Section 18) |
+| 75 | Meta loop | DEFERRED | Gear acquisition, progression, rewards, defender rewards, onboarding: known gap (Section 18). Hero acquisition is now 103-108 |
 | 76 | Classes | DECIDED | Mage, Assassin neutral for now; Holy > Monster; Flyer much higher EVA vs melee (value TBD); new class Aquatic (SPD bonus on water); more classes will come |
 | 77 | Melee / ranged | DECIDED | Damage skills declare `range: melee \| ranged`; soldier types declare their basic attack's range; subsumes `ground_based` |
 | 78 | Battlefield | DECIDED concept | Terrain category buffing/debuffing classes; chosen by the defender in the snapshot; visible at reveal (Section 10A) |
@@ -483,6 +491,13 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 100 | Pre-battle step order | DEFAULT | `src/engine/prebattle.ts`: equipment (no-op until 3b), buff_grants, immunity (no-op until 3a), buff_removal (no-op until 3a), debuffs, event_auras, spd_finalization; a modify_stat with a negative value, or any effect of an enemy_debuff aura, is a debuff |
 | 101 | Aura effects supported | DEFAULT | Always auras: `modify_stat`; event auras: `heal` (trigger event `self_action_completed` only, idle counts per `trigger_includes_idle_action`), run through the event bus at order 50 and logged as `trigger`; everything else is logged `not implemented: aura ...` |
 | 102 | Full battle input | DEFAULT | Content has 4 heroes and a hero cannot be on both sides, so `content/battles/full4v4.yaml` is 2v2 (all heroes, all squads); the 4v4 test builds four clone heroes in memory. A real 4v4 file waits for roadmap 4.1 |
+| 103 | Hero model | DECIDED | Rolled heroes are named templates with their own kit and aura; each owned copy has per-copy stats. Player-made heroes come later |
+| 104 | Stat variance and allocation | DECIDED concept | Zero-sum per-copy variance at equal score (via `cost.stat_weights`), no two copies identical; plus 15 allocation points, auto-assigned by default, reassignable after confirming a roll. Values TBD after the batch sim |
+| 105 | Generic heroes | DECIDED | One generic, hand-authored hero per class: base for player-made heroes, test fixture now |
+| 106 | Generic soldiers | DECIDED | One generic soldier type per class; eligibility OPEN |
+| 107 | Rolling | DECIDED | Unlimited rerolls with locks; rerolls can be previewed; at season reset keep heroes and teams or reset. Roll size and owned-hero limit OPEN (leaning 10; free pick considered) |
+| 108 | Saved teams | DECIDED | Several saved teams (6-hero rosters) from owned heroes, mix and match per run, heroes may be shared; any hero can be planned but only owned heroes fielded. Supersedes "one roster per player". Which team defends a floor: OPEN |
+| 109 | Races | OPEN | 7 races tied to the 7 gods. Working list: Humans, Werebeasts, Rabbit-folk, Demons, High-Elf, Dark-Elf, Dragons. Under lore review: overlap with factions (Evil, Light, Forest-folk) and the Monster class; no aquatic race |
 
 ---
 
@@ -542,9 +557,11 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 
 ## 18. Known gaps [DEFERRED]
 - **Known gap for 3a:** state-passive statuses with a `while_condition` duration (Berserk) are not removed when the condition ends; the engine only applies them.
-- **Meta loop:** hero and gear acquisition, progression, rewards, defender rewards for holding a floor, and new-player onboarding are not designed yet [DEFERRED].
+- **Meta loop:** gear acquisition (hero acquisition is Decisions 103-108), progression, rewards, defender rewards for holding a floor, and new-player onboarding are not designed yet [DEFERRED].
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
 - Devotion god names and blessings, battlefield terrain list, class values (Flyer melee EVA, Aquatic water SPD), stun pushback counts: TBD in `rules.yaml` / content.
+- **Races** (Decision 109): final list, lore, the race-god link, and race bonuses (to brainstorm). Also decide what class, race and faction each mean, so they do not overlap.
+- Owned-hero limit and roll size per season, which saved team defends a floor, generic soldier eligibility (Decisions 106-108).
 
 
 ## Implementation note: schema is the source of truth

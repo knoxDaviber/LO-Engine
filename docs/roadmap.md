@@ -83,7 +83,7 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 
 | # | Milestone | Done when |
 |---|---|---|
-| 4.1 | **Content expansion** (designer-led): heroes for the classes with none yet (archer, flyer, mage, assassin, aquatic, monster), enough for several distinct 6-hero rosters; more soldier types | Validator clean; at least ~12 heroes covering every class. |
+| 4.1 | **Content expansion** (designer-led): heroes for the classes with none yet (archer, flyer, mage, assassin, aquatic, monster), enough for several distinct 6-hero rosters; one generic hero and one generic soldier type per class (Decisions 105-106; generic heroes can be authored earlier as test fixtures); damage type on soldier basic attacks for Mage soldiers | Validator clean; at least ~12 heroes covering every class. |
 | 4.2 | **Batch simulator** `npm run batch`: N seeded battles per matchup (including the draft), reports challenger win rate, timeout rate, average phases, per-hero damage/healing | Report includes challenger win rate and timeout rate. |
 | 4.3 | **Balance pass**: calibrate cost weights, Jasmine's aura `cost_adjustment` (+10 proposed in the conversion report, deferred to calibration), roll constants; re-check GUARD dual role, turtling/timeout rate, and the leader-focus candidates (squad guards leader, back-row leaders) | Decisions recorded in the decision log; constants updated in `rules.yaml`. |
 
@@ -95,7 +95,8 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 
 ## Step 6: Tower service (Section 15, step 6)
 
-- **Blocking design work:** the meta loop (acquisition, progression, rewards, defender rewards, onboarding) is an undesigned known gap and must be designed before this step. Also: tower attempt limits, HP persistence between floors, anti-degenerate measures.
+- **Blocking design work:** the rest of the meta loop (gear acquisition, progression, rewards, defender rewards, onboarding) is an undesigned known gap and must be designed before this step. Also: tower attempt limits, HP persistence between floors, anti-degenerate measures.
+- Hero acquisition (Decisions 103-108): hero-instance layer in the roster schema (per-copy variance and allocation), server-seeded rolls with locks and preview, owned heroes per season, several saved teams.
 - Snapshots (party, gear, formation, leader, tactics, battlefield, anchor, ban sheet, content/rules version), server re-simulation with hidden per-phase seeds, seasons with pinned content versions, top-10 rollover.
 
 ---
