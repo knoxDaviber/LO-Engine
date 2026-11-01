@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Sprite check: every class sheet (editor/public/sprites, written by `npm run sprites`) animated with steps(4)
+     on a light and a dark background, at the 128 px board size. Open this file directly in a browser. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sprite preview</title>
+<style>
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; display: flex; flex-wrap: wrap; }
+  section { flex: 1 1 50%; min-width: 320px; padding: 16px; box-sizing: border-box; display: grid; grid-template-columns: repeat(auto-fill, 140px); gap: 8px; align-content: start; }
+  .light { background: #ece9e2; color: #222; }
+  .dark { background: #1d1f26; color: #ddd; }
+  figure { margin: 0; text-align: center; }
+  .s { width: 128px; height: 128px; margin: 0 auto; background-size: 512px 128px; animation: idle .8s steps(4) infinite; }
+  @keyframes idle { from { background-position: 0 0; } to { background-position: -512px 0; } }
+</style>
+</head>
+<body>
+<section class="light"></section>
+<section class="dark"></section>
+<script>
+  const classes = ['infantry', 'lancer', 'cavalry', 'archer', 'flyer', 'mage', 'assassin', 'holy', 'aquatic', 'monster'];
+  for (const sec of document.querySelectorAll('section'))
+    sec.innerHTML = classes.map(c => `<figure><div class="s" style="background-image:url(../editor/public/sprites/${c}.png)"></div><figcaption>${c}</figcaption></figure>`).join('');
+</script>
+</body>
+</html>

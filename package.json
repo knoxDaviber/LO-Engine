@@ -11,7 +11,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p editor",
     "schema:export": "tsx src/exportSchemas.ts",
-    "editor": "vite --config editor/vite.config.ts"
+    "editor": "vite --config editor/vite.config.ts",
+    "sprites": "node tools/sprites.mjs"
   },
   "dependencies": {
     "yaml": "^2.9.0",
@@ -22,6 +23,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
+    "pngjs": "^7.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsx": "^4.23.0",

@@ -70,7 +70,13 @@ a new read-only endpoint is genuinely needed; the server stays authoritative.
 4. **Hover explanations.** Every effect, skill, equipment item, status, blessing, aura and condition leaf shows what it does
    on hover (tooltip in plain words generated from the structured data: e.g. "Deals 1.2x ATK physical damage to one enemy;
    +25% vs cavalry"). One shared formatter, used everywhere, so wording stays consistent.
-5. **Modernise the GUI.** Clean, elegant, consistent: design tokens (colors, spacing, type) in CSS variables, light/dark
+5. **Placeholder class sprites (art done).** Art direction: cute, slightly pixelated anime chibis in the spirit of classic
+   tactics RPGs. All 10 sheets exist at `editor/public/sprites/<class>.png`: a horizontal strip of 4 idle frames, each cell
+   256x256 (sheet 1024x256), transparent, facing right, feet anchored at the bottom centre. Rebuilt from the originals in
+   `art/raw/` (gitignored) with `npm run sprites` (`tools/sprites.mjs` + `tools/clean-art.mjs`); `art/preview.html` shows
+   them animated. Known source quirks: flyer bobs slightly (no shadow), holy's glow flickers, lancer reads a bit small. Animate with CSS `steps(4)` on the formation board and unit cards; mirror for the
+   defender side; fall back to initials when a sheet is missing.
+6. **Modernise the GUI.** Clean, elegant, consistent: design tokens (colors, spacing, type) in CSS variables, light/dark
    theme, side navigation between Battle / Units / Log pages, readable log (colour by side, collapsible per action),
    keyboard friendly. Plain CSS (no UI framework) unless the designer agrees otherwise; keep it a solid prototype.
 
