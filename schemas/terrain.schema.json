@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "modifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "classes": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "infantry",
+                "lancer",
+                "cavalry",
+                "archer",
+                "flyer",
+                "mage",
+                "assassin",
+                "holy",
+                "aquatic",
+                "monster"
+              ]
+            }
+          },
+          "stat": {
+            "type": "string",
+            "enum": [
+              "HP",
+              "ATK",
+              "INT",
+              "DEF",
+              "MDEF",
+              "SPD",
+              "HIT",
+              "SKL",
+              "CRIT",
+              "GUARD",
+              "EVA"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "flat",
+              "percent"
+            ]
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "classes",
+          "stat",
+          "mode",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "meta": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "description",
+    "modifiers"
+  ],
+  "additionalProperties": false
+}

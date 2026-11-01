@@ -1,0 +1,38 @@
+# terrains.yaml: battlefields. Each modifier applies for the whole phase to every hero and squad of the listed classes, both sides.
+
+- id: terrain_001
+  name: Plains
+  description: "An open field. No modifiers."
+  modifiers: []
+
+- id: terrain_002
+  name: Forest
+  description: "Dense woods slow riders and flyers; archers and assassins hide among the trees."
+  modifiers:
+    - { classes: [cavalry], stat: SPD, mode: percent, value: -15 }
+    - { classes: [flyer], stat: SPD, mode: percent, value: -10 }
+    - { classes: [archer, assassin], stat: EVA, mode: flat, value: 10 }
+
+- id: terrain_003
+  name: Mountains
+  description: "Steep slopes slow cavalry; flyers ride the updrafts and infantry dig in."
+  modifiers:
+    - { classes: [cavalry], stat: SPD, mode: percent, value: -20 }
+    - { classes: [flyer], stat: SPD, mode: percent, value: 10 }
+    - { classes: [infantry], stat: DEF, mode: percent, value: 10 }
+
+- id: terrain_004
+  name: Swamp
+  description: "Deep mud slows walking units and badly bogs down cavalry; aquatic units move faster, and flyers are unaffected."
+  modifiers:
+    - { classes: [infantry, lancer, archer, mage, assassin, holy, monster], stat: SPD, mode: percent, value: -10 }
+    - { classes: [cavalry], stat: SPD, mode: percent, value: -20 }
+    - { classes: [aquatic], stat: SPD, mode: percent, value: 15 }
+
+- id: terrain_005
+  name: City
+  description: "Narrow streets slow cavalry, alleys favour assassins, walls and barricades shelter infantry."
+  modifiers:
+    - { classes: [cavalry], stat: SPD, mode: percent, value: -10 }
+    - { classes: [assassin], stat: CRIT, mode: flat, value: 10 }
+    - { classes: [infantry], stat: GUARD, mode: flat, value: 10 }

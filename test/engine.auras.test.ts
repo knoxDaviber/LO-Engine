@@ -36,7 +36,7 @@ const mod = (stat: string, value: number) => ({ type: "modify_stat", stat, mode:
 // ------------------------------------------------------------------ the step list
 
 test("pre-battle steps run in the Section 9 priority order; 3a/3b slots are named no-ops", () => {
-  assert.deepEqual(PREBATTLE_STEPS.map((s) => s.name), ["equipment", "buff_grants", "immunity", "buff_removal", "debuffs", "event_auras", "spd_finalization"]);
+  assert.deepEqual(PREBATTLE_STEPS.map((s) => s.name), ["equipment", "terrain", "buff_grants", "immunity", "buff_removal", "debuffs", "event_auras", "spd_finalization"]);
 });
 
 test("buff grants resolve before debuffs, whichever side the aura belongs to", () => {

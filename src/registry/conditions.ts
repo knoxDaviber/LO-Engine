@@ -95,6 +95,9 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   self_targeted_by_physical_attack: event("This unit was targeted by a physical attack"),
   self_action_completed: event("This unit's action completed"),
   unit_hit_by_single_target_attack: event("A unit was hit by a single-target attack"),
+  self_landed_single_target_hit: event("This unit landed a single-target hit"),
+  ally_landed_single_target_hit: event("An ally landed a single-target hit"),
+  self_hit_by_melee: event("This unit was hit by a melee attack"),
   // Battle
   phase: { fields: z.strictObject({ op, value: z.number().int().min(1).max(3) }), contexts: PLAYER, communitySafe: true, description: "Current phase" },
   action_count: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Actions taken" },

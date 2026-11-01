@@ -22,7 +22,7 @@ class_advantage:                    # attacker has the advantage over defender
   - { attacker: lancer,   defender: cavalry }
   - { attacker: cavalry,  defender: infantry }
   - { attacker: archer,   defender: flyer }
-  - { attacker: holy,     defender: monster }
+  - { attacker: holy,     defender: monster, damage_percent: 50 }   # per-pair override of advantage_damage_percent
 
 draft:
   roster_size: 6

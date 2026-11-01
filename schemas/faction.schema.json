@@ -117,6 +117,27 @@
                   "additionalProperties": false
                 }
               },
+              "bonus_on_terrain": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "terrain": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]*$"
+                    },
+                    "modifier_percent": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "terrain",
+                    "modifier_percent"
+                  ],
+                  "additionalProperties": false
+                }
+              },
               "hit_bonus_percent": {
                 "type": "number"
               },
@@ -149,6 +170,7 @@
               "multiplier",
               "ignores_guard",
               "bonus_vs_class",
+              "bonus_on_terrain",
               "hit_bonus_percent"
             ],
             "additionalProperties": false
@@ -380,7 +402,8 @@
                   "active",
                   "equipment",
                   "soldier",
-                  "prayer"
+                  "prayer",
+                  "terrain"
                 ]
               },
               "trigger": {

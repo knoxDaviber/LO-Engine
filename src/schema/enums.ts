@@ -10,14 +10,14 @@ export type UnitClass = (typeof CLASSES)[number];
 export const EQUIPMENT_SLOTS = ["weapon", "armor", "accessory"] as const;
 export type EquipmentSlot = (typeof EQUIPMENT_SLOTS)[number];
 
-export const EQUIPMENT_TAGS = ["sword", "spear", "staff", "bow", "light_armor", "heavy_armor", "robe", "none"] as const;
+export const EQUIPMENT_TAGS = ["sword", "spear", "staff", "bow", "dagger", "tome", "hammer", "axe", "light_armor", "heavy_armor", "robe", "none", "shield"] as const;
 export type EquipmentTag = (typeof EQUIPMENT_TAGS)[number];
 
 /** Which tags may appear on an item of each slot. Catches an armor tagged "sword" and similar slips. */
 export const SLOT_TAGS: Record<EquipmentSlot, readonly EquipmentTag[]> = {
-  weapon: ["sword", "spear", "staff", "bow"],
+  weapon: ["sword", "spear", "staff", "bow", "dagger", "tome", "hammer", "axe"],
   armor: ["light_armor", "heavy_armor", "robe"],
-  accessory: ["none"],
+  accessory: ["none", "shield"],
 };
 
 export const SKILL_CATEGORIES = ["active", "passive"] as const;
@@ -34,7 +34,7 @@ export const GUARD_MODES = ["standard", "ignores", "guaranteed"] as const;
 export const SOLDIER_MODES = ["standard", "skip_soldiers", "soldiers_only"] as const;
 
 export const MODIFIER_MODES = ["flat", "percent"] as const;
-export const SOURCE_CATEGORIES = ["passive", "active", "equipment", "soldier", "prayer"] as const; // stacking categories
+export const SOURCE_CATEGORIES = ["passive", "active", "equipment", "soldier", "prayer", "terrain"] as const; // stacking categories
 export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
 export const STATUS_SOURCE = ["inherit", ...SOURCE_CATEGORIES] as const;
 
@@ -74,6 +74,9 @@ export const EVENT_NAMES = [
   "ally_attacked",
   "just_healed",
   "self_action_completed",
+  "self_landed_single_target_hit",
+  "ally_landed_single_target_hit",
+  "self_hit_by_melee",
 ] as const;
 
 export const EFFECT_TARGETS = ["self", "targets", "field", "attacker", "caster_row", "hit_unit"] as const;
@@ -91,4 +94,4 @@ export const BAN_SELECTS = ["highest", "lowest", "nearest"] as const;
 
 export const ID_PATTERN = /^[a-z][a-z0-9_]*$/;
 /** Canonical new-content id: type prefix + three digits. Older authored ids are kept and only noted. */
-export const CANONICAL_ID = /^(char|skl|equip|status|soldier|faction)_\d{3}$/;
+export const CANONICAL_ID = /^(char|skl|equip|status|soldier|faction|terrain)_\d{3}$/;

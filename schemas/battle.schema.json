@@ -10,6 +10,17 @@
       "type": "string",
       "minLength": 1
     },
+    "battlefield": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "seeds": {
       "minItems": 3,
       "maxItems": 3,

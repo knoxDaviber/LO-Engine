@@ -41,7 +41,8 @@
         "active",
         "equipment",
         "soldier",
-        "prayer"
+        "prayer",
+        "terrain"
       ]
     },
     "modifiers": {

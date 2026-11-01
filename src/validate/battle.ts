@@ -22,6 +22,10 @@ export function validateBattle(raw: unknown, pack: Pack, c: Collector, opts: { f
   const b = parsed.data;
   const { fielded } = pack.rules.draft;
 
+  if (b.battlefield != null && !pack.byId.terrains.has(b.battlefield)) {
+    c.error("E_BATTLE_TERRAIN", `battlefield '${b.battlefield}' is not a known terrain`, { file, path: "battlefield" });
+  }
+
   const seen = new Map<string, string>(); // char_id -> side it was first seen on
   for (const side of ["challenger", "defender"] as const) {
     const s = b[side];

@@ -15,6 +15,7 @@ export type BattleSide = z.infer<typeof battleSideSchema>;
 export const battleSchema = z.strictObject({
   battle_id: z.string().min(1),
   version: z.string().min(1),
+  battlefield: id.nullable().optional(), // terrain id; absent/null = no terrain. E_BATTLE_TERRAIN if unknown
   seeds: z.array(z.number().int().min(0).max(2 ** 32 - 1)).length(3), // one per phase; E_BATTLE_SEEDS if wrong
   challenger: battleSideSchema,
   defender: battleSideSchema,

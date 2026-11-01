@@ -105,6 +105,8 @@ export interface Timeline {
 export interface BattleState {
   pack: Pack;
   battleId: string;
+  /** Terrain id of the battle (`battle.battlefield`), or null for none. Read by the terrain pre-battle step and bonus_on_terrain. */
+  battlefield: string | null;
   phase: number; // 1-based
   units: Unit[]; // challenger heroes then defender heroes, each in formation order
   timeline: Timeline;
@@ -144,6 +146,11 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     // The leader's squad is the only deployed one, so only the leader carries pairing penalties (Leon's SPD -20 with non-mounted soldiers).
     const pairedType = h.char_id === s.leader ? pack.byId.soldiers.get(h.squad_id) : undefined;
     const innate = pairedType ? pairingPenalties(ch, pairedType, notes) : [];
+    // Hero passive skills do not run yet (roadmap 3a); note each one so it is never silently dropped.
+    for (const skId of ch.skills) {
+      const sk = pack.byId.skills.get(skId);
+      if (sk?.category === "passive") notes.push({ unit: ch.id, what: `not implemented: passive ${sk.name}` });
+    }
     const unit: Unit = {
       id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
@@ -241,7 +248,7 @@ export function createBattleState(pack: Pack, battle: Battle, phase = 1): Battle
     }
   }
   const state: BattleState = {
-    pack, battleId: battle.battle_id, phase, units,
+    pack, battleId: battle.battle_id, battlefield: battle.battlefield ?? null, phase, units,
     timeline: { now: 0, pending: new Map(), seqCounter: 0 },
     actionCount: 0, statusSeq: 0, buildNotes,
     bus: new EventBus(),

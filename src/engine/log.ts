@@ -80,6 +80,7 @@ export type BattleEvent =
   | ({ type: "leader_down"; unit: string; side: Side; squad_removed: boolean; aura_active: boolean } & Stamp)
   | ({ type: "leader_succession"; side: Side; previous: string; leader: string; aura_active: boolean; squad: boolean } & Stamp)
   | ({ type: "aura_applied"; leader: string; aura: string; unit: string; status: string; category: "passive"; effect: string } & Stamp)
+  | ({ type: "terrain_applied"; terrain: string; name: string; unit: string; status: string; category: "terrain"; effect: string } & Stamp)
   | ({ type: "aura_removed"; leader: string; aura: string; unit: string; status: string; reason: "leader_down" } & Stamp)
   | ({ type: "not_implemented"; unit: string | null; what: string } & Stamp)
   | ({ type: "phase_end"; reason: string; actions: number; skills: number; squad_actions: number; survivors: { challenger: number; defender: number } } & Stamp)
@@ -195,6 +196,9 @@ export function renderLog(events: BattleEvent[]): string {
         break;
       case "aura_applied":
         out.push(`${tag(e)}   AURA ${e.aura} (${U(e.leader)}): ${U(e.unit)} gets ${e.effect} (${e.category})`);
+        break;
+      case "terrain_applied":
+        out.push(`${tag(e)}   TERRAIN ${e.name}: ${U(e.unit)} gets ${e.effect} (${e.category})`);
         break;
       case "aura_removed":
         out.push(`${tag(e)}   AURA ${e.aura} (${U(e.leader)}) ends on ${U(e.unit)} (${e.reason})`);

@@ -147,3 +147,308 @@
     synergies: ""
     balance: ""
   meta: {}
+
+# ---------------------------------------------------------------- generic kit: one hero per class, named after the class
+
+- id: char_005
+  name: Infantry
+  class: infantry
+  factions: []
+  role: "Tank"
+  lore: "A sturdy foot soldier who holds the line."
+  base_stats: { HP: 225, ATK: 63, INT: 20, DEF: 62, MDEF: 26, SPD: 38, HIT: 95, SKL: 62, CRIT: 30, GUARD: 40, EVA: 10 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_004, skl_014, skl_020]
+  restrictions:
+    equipment_tags: [sword, dagger, hammer, heavy_armor, light_armor, shield]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Infantry Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: infantry }
+      include_soldiers: false
+    description: "Allied infantry heroes gain 10% DEF."
+    effects:
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_006
+  name: Lancer
+  class: lancer
+  factions: []
+  role: "Damage dealer"
+  lore: "A spear fighter trained to break cavalry charges."
+  base_stats: { HP: 163, ATK: 60, INT: 30, DEF: 52, MDEF: 32, SPD: 40, HIT: 95, SKL: 70, CRIT: 30, GUARD: 22, EVA: 20 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_005, skl_014, skl_019]
+  restrictions:
+    equipment_tags: [spear, axe, heavy_armor, light_armor, shield]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Lancer Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: lancer }
+      include_soldiers: false
+    description: "Allied lancer heroes gain 10% DEF."
+    effects:
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_007
+  name: Cavalry
+  class: cavalry
+  factions: []
+  role: "Damage dealer"
+  lore: "A mounted knight who strikes fast and hard."
+  base_stats: { HP: 160, ATK: 65, INT: 20, DEF: 45, MDEF: 20, SPD: 55, HIT: 95, SKL: 70, CRIT: 30, GUARD: 27, EVA: 20 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_006, skl_017, skl_018]
+  restrictions:
+    equipment_tags: [spear, sword, heavy_armor, light_armor, shield]
+    soldier:
+      mounted_only: false
+      stat_penalties:
+        - { when: { type: soldier_mounted, value: false }, stat: SPD, mode: flat, value: -20 }
+  leader_aura:
+    name: "Cavalry Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: cavalry }
+      include_soldiers: false
+    description: "Allied cavalry heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_008
+  name: Archer
+  class: archer
+  factions: []
+  role: "Ranged damage dealer"
+  lore: "A marksman who fights from the back line."
+  base_stats: { HP: 116, ATK: 75, INT: 25, DEF: 32, MDEF: 32, SPD: 41, HIT: 100, SKL: 80, CRIT: 30, GUARD: 15, EVA: 31 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_002, skl_007, skl_passive_001, skl_019]
+  restrictions:
+    equipment_tags: [bow, dagger, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Archer Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: archer }
+      include_soldiers: false
+    description: "Allied archer heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_009
+  name: Flyer
+  class: flyer
+  factions: []
+  role: "Skirmisher"
+  lore: "A rider of winged beasts who dives on the enemy."
+  base_stats: { HP: 130, ATK: 60, INT: 25, DEF: 30, MDEF: 35, SPD: 55, HIT: 95, SKL: 70, CRIT: 30, GUARD: 15, EVA: 38 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_008, skl_passive_001, skl_019]
+  restrictions:
+    equipment_tags: [spear, sword, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Flyer Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: flyer }
+      include_soldiers: false
+    description: "Allied flyer heroes gain 10% SPD."
+    effects:
+      - { type: modify_stat, stat: SPD, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_010
+  name: Mage
+  class: mage
+  factions: []
+  role: "Magic damage dealer"
+  lore: "A scholar of the arcane who wields destructive spells."
+  base_stats: { HP: 115, ATK: 15, INT: 80, DEF: 26, MDEF: 58, SPD: 39, HIT: 95, SKL: 74, CRIT: 30, GUARD: 20, EVA: 20 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_003, skl_010, skl_011, skl_passive_001]
+  restrictions:
+    equipment_tags: [tome, staff, robe]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Mage Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: mage }
+      include_soldiers: false
+    description: "Allied mage heroes gain 10% INT."
+    effects:
+      - { type: modify_stat, stat: INT, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_011
+  name: Assassin
+  class: assassin
+  factions: []
+  role: "Damage dealer"
+  lore: "A killer who strikes from the shadows."
+  base_stats: { HP: 114, ATK: 75, INT: 20, DEF: 28, MDEF: 26, SPD: 42, HIT: 95, SKL: 90, CRIT: 45, GUARD: 10, EVA: 40 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_009, skl_passive_001, skl_018]
+  restrictions:
+    equipment_tags: [dagger, sword, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Assassin Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: assassin }
+      include_soldiers: false
+    description: "Allied assassin heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_012
+  name: Holy
+  class: holy
+  factions: []
+  role: "Heal/Support"
+  lore: "A devout healer who mends allies with prayer."
+  base_stats: { HP: 119, ATK: 20, INT: 75, DEF: 32, MDEF: 53, SPD: 38, HIT: 95, SKL: 64, CRIT: 30, GUARD: 30, EVA: 20 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_003, skl_012, skl_013, skl_passive_003]
+  restrictions:
+    equipment_tags: [staff, tome, hammer, robe, light_armor, shield]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Holy Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: holy }
+      include_soldiers: false
+    description: "Allied holy heroes gain 10% MDEF."
+    effects:
+      - { type: modify_stat, stat: MDEF, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_013
+  name: Aquatic
+  class: aquatic
+  factions: []
+  role: "Bruiser"
+  lore: "A warrior of the seas and rivers."
+  base_stats: { HP: 170, ATK: 60, INT: 30, DEF: 43, MDEF: 42, SPD: 40, HIT: 95, SKL: 70, CRIT: 30, GUARD: 19, EVA: 20 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_015, skl_014, skl_020]
+  restrictions:
+    equipment_tags: [spear, dagger, axe, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Aquatic Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: aquatic }
+      include_soldiers: false
+    description: "Allied aquatic heroes gain 10% DEF."
+    effects:
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_014
+  name: Monster
+  class: monster
+  factions: []
+  role: "Bruiser"
+  lore: "A hero who gave in to madness or took evil into their heart, trading control for power."
+  base_stats: { HP: 269, ATK: 80, INT: 30, DEF: 64, MDEF: 30, SPD: 47, HIT: 95, SKL: 70, CRIT: 30, GUARD: 40, EVA: 10 }
+  pp: { active: 2, passive: 2 }
+  skills: [skl_001, skl_004, skl_016, skl_021]
+  restrictions:
+    equipment_tags: [hammer, sword, heavy_armor, light_armor, shield]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Monster Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: monster }
+      include_soldiers: false
+    description: "Allied monster heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }

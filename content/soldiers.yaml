@@ -84,3 +84,210 @@
   meta:
     unresolved:
       - "HIT and SKL were not given for Heavy Cavalry; kept at Heavy Infantry's 60 and 30."
+
+# ---------------------------------------------------------------- generic kit (one soldier type per class, open to every hero)
+
+- id: soldier_003
+  name: Footmen
+  description: "Basic foot soldiers with shields."
+  role: "Generic infantry soldiers."
+  class: infantry
+  default_soldier_row: front
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 45, ATK: 25, INT: 10, DEF: 25, MDEF: 10, SPD: 30, HIT: 60, SKL: 30, CRIT: 10, GUARD: 10, EVA: 0 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_004
+  name: Pikemen
+  description: "Spear-armed foot soldiers."
+  role: "Generic lancer soldiers."
+  class: lancer
+  default_soldier_row: front
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 40, ATK: 28, INT: 10, DEF: 22, MDEF: 12, SPD: 32, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_005
+  name: Riders
+  description: "Light mounted soldiers."
+  role: "Generic cavalry soldiers."
+  class: cavalry
+  default_soldier_row: front
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: true
+  per_soldier_stats: { HP: 35, ATK: 28, INT: 10, DEF: 20, MDEF: 10, SPD: 50, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_006
+  name: Bowmen
+  description: "Archers who fire from range."
+  role: "Generic archer soldiers."
+  class: archer
+  default_soldier_row: back
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 30, ATK: 28, INT: 10, DEF: 12, MDEF: 12, SPD: 33, HIT: 70, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: physical
+    range: ranged
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_007
+  name: Skyriders
+  description: "Soldiers on flying mounts."
+  role: "Generic flyer soldiers."
+  class: flyer
+  default_soldier_row: back
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: true
+  per_soldier_stats: { HP: 30, ATK: 25, INT: 10, DEF: 15, MDEF: 15, SPD: 50, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 25 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_008
+  name: Apprentices
+  description: "Student mages casting basic spells."
+  role: "Generic mage soldiers."
+  class: mage
+  default_soldier_row: back
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 25, ATK: 5, INT: 28, DEF: 8, MDEF: 25, SPD: 32, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: magical
+    range: ranged
+    scaling: [{ stat: INT, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_009
+  name: Acolytes
+  description: "Junior clergy whose prayers ward the party."
+  role: "Generic holy soldiers."
+  class: holy
+  default_soldier_row: back
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 30, ATK: 10, INT: 22, DEF: 12, MDEF: 25, SPD: 30, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: magical
+    range: ranged
+    scaling: [{ stat: INT, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects:
+    - name: null
+      target: party
+      effects:
+        - { type: modify_stat, stat: MDEF, mode: percent, value: 10, source_category: soldier }
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_010
+  name: Cutthroats
+  description: "Knife fighters who strike from the shadows."
+  role: "Generic assassin soldiers."
+  class: assassin
+  default_soldier_row: back
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 25, ATK: 30, INT: 10, DEF: 10, MDEF: 10, SPD: 35, HIT: 60, SKL: 30, CRIT: 25, GUARD: 0, EVA: 20 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_011
+  name: Marines
+  description: "Soldiers trained to fight on water and shore."
+  role: "Generic aquatic soldiers."
+  class: aquatic
+  default_soldier_row: front
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 40, ATK: 25, INT: 10, DEF: 22, MDEF: 18, SPD: 32, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+
+- id: soldier_012
+  name: Risen
+  description: "Undead soldiers raised from the battlefield."
+  role: "Generic monster soldiers."
+  class: monster
+  default_soldier_row: front
+  allowed_soldier_rows: [front, back]
+  count: 10
+  mounted: false
+  per_soldier_stats: { HP: 50, ATK: 30, INT: 5, DEF: 22, MDEF: 5, SPD: 40, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  basic_attack:
+    damage_type: physical
+    range: melee
+    scaling: [{ stat: ATK, coef: 1.0 }]
+    targeting: nearest_front_first
+  passive_effects: []
+  eligible_heroes: []
+  eligible_classes: []
+  designer_notes: {}
+  meta: { authored_notes: "Undead. No engine rule reads undead yet; kept as flavour." }

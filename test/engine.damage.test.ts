@@ -61,7 +61,7 @@ test("bonus_vs_class multiplies with the class matchup; hybrid defense is the av
   const { ctx, leon, emp } = setup();
   const e: DamageEffect = {
     type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 1 }], multiplier: 1, ignores_guard: false,
-    bonus_vs_class: [{ class: "infantry", modifier_percent: 20 }], hit_bonus_percent: 0,
+    bonus_vs_class: [{ class: "infantry", modifier_percent: 20 }], bonus_on_terrain: [], hit_bonus_percent: 0,
   };
   assert.equal(computeDamage(leon, emp, e, ctx, HIT).power, 70 * 1.25 * 1.2);
   const hybrid = computeDamage(leon, emp, { ...e, bonus_vs_class: [], damage_type: "hybrid" }, ctx, HIT);

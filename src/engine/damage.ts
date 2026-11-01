@@ -3,6 +3,8 @@
 // Pipeline for one hit (all constants from rules.yaml):
 //   power   = sum(coef * effective stat of attacker) * skill multiplier * matchup
 //   matchup = class factor (1 + advantage/disadvantage percent) * product of the skill's bonus_vs_class factors for the defender's class
+//             * product of its bonus_on_terrain factors for the battle's battlefield. A class_advantage pair's own damage_percent, when set,
+//             replaces advantage_damage_percent for that pair (the disadvantage side keeps the global percent).
 //   base    = floor(max(min_damage, power - defense))       defense = DEF (physical), MDEF (magical), average of both (hybrid)
 //   crit    = floor(base * crit_multiplier)                 applied after defense, to the already floored damage
 //   guard   = floor(crit_result * factor)                   factor = max(1 - cap/100, product of (1 - reduction/100)); only guard in the slice
@@ -39,12 +41,13 @@ export interface HitOutcome {
 export interface DamageCtx {
   pack: Pick<Pack, "rules" | "byId">;
   guardMode?: GuardMode;
+  battlefield?: string | null; // terrain id, for bonus_on_terrain
 }
 
 export interface DamageBreakdown {
   landed: boolean;
   scaled: number; // sum of coef * stat
-  matchup: number; // class factor * bonus_vs_class factors
+  matchup: number; // class factor * bonus_vs_class factors * bonus_on_terrain factors
   power: number;
   defense: number;
   base: number; // after defense, floored, min damage
@@ -69,8 +72,10 @@ export function classMatchup(pack: Pick<Pack, "rules">, a: Unit, d: Unit): 1 | 0
 export function matchupFactor(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx): number {
   const { matchup } = ctx.pack.rules;
   const m = classMatchup(ctx.pack, attacker, defender);
-  let f = m === 1 ? 1 + matchup.advantage_damage_percent / 100 : m === -1 ? 1 + matchup.disadvantage_damage_percent / 100 : 1;
+  const pair = m === 1 ? ctx.pack.rules.class_advantage.find((p) => p.attacker === attacker.class && p.defender === defender.class) : undefined;
+  let f = m === 1 ? 1 + (pair?.damage_percent ?? matchup.advantage_damage_percent) / 100 : m === -1 ? 1 + matchup.disadvantage_damage_percent / 100 : 1;
   for (const b of effect.bonus_vs_class) if (b.class === defender.class) f *= 1 + b.modifier_percent / 100;
+  for (const b of effect.bonus_on_terrain ?? []) if (ctx.battlefield != null && b.terrain === ctx.battlefield) f *= 1 + b.modifier_percent / 100;
   return f;
 }
 
@@ -154,7 +159,7 @@ const refs = (who: SoldierRef): SoldierRef => ({ ...(who.soldier !== undefined ?
 /** Rolls hit, crit, guard in that order and logs each. */
 export function rollOutcome(x: ExecCtx, attacker: Unit, defender: Unit, skill: SkillRef, effect: DamageEffect, who: SoldierRef = {}): HitOutcome {
   const { state, rng, log } = x;
-  const ctx: DamageCtx = { pack: state.pack, guardMode: skill.interactions.guard };
+  const ctx: DamageCtx = { pack: state.pack, guardMode: skill.interactions.guard, battlefield: state.battlefield };
   state.bus.emit(x, "before_hit", { attacker, defender, skillId: skill.id, ...refs(who) });
   const base = { unit: attacker.id, target: defender.id, skill: skill.id };
   const emit = (kind: "hit" | "crit" | "guard", chance: number, roll: number | null, result: boolean, note?: string) =>
@@ -253,7 +258,7 @@ export function applySoldierDamage(x: ExecCtx, attacker: Unit, squad: Unit, sold
  * rolls. Otherwise one hit on the lowest-HP living soldier. `by` is the attacking soldier's index when the attacker is a squad.
  */
 export function hitSquad(x: ExecCtx, attacker: Unit, squad: Unit, skill: SkillRef, effect: DamageEffect, area: boolean, by?: number): void {
-  const ctx: DamageCtx = { pack: x.state.pack, guardMode: skill.interactions.guard };
+  const ctx: DamageCtx = { pack: x.state.pack, guardMode: skill.interactions.guard, battlefield: x.state.battlefield };
   const victims = area ? squad.soldiers.filter((s) => s.alive) : [lowestHpSoldier(squad)];
   for (const s of victims) {
     if (!s || !s.alive) continue;
@@ -344,7 +349,7 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
         if (!t.alive) continue;
         if (t.kind === "squad") { hitSquad(x, actor, t, skill, effect, skill.shape !== "single"); continue; }
         const outcome = rollOutcome(x, actor, t, skill, effect);
-        const d = computeDamage(actor, t, effect, { pack: state.pack, guardMode: skill.interactions.guard }, outcome);
+        const d = computeDamage(actor, t, effect, { pack: state.pack, guardMode: skill.interactions.guard, battlefield: state.battlefield }, outcome);
         if (!d.landed) continue;
         applyDamage(x, actor, t, skill, d);
       }

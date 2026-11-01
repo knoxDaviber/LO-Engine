@@ -114,3 +114,173 @@
   designer_notes: "Basic accessory to increase ATK."
   meta:
     authored_notes: "Came from Equipment-template.md. Designer confirmed it is real content."
+
+# ---------------------------------------------------------------- generic kit (flat stats, gated by tags)
+
+- id: equip_009
+  name: "Iron Sword"
+  description: "Generic sword. ATK +20."
+  slot: weapon
+  tags: [sword]
+  stat_modifiers: { HP: 0, ATK: 20, INT: 0, DEF: 0, MDEF: 0, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_010
+  name: "Iron Spear"
+  description: "Generic spear. ATK +15, DEF +5."
+  slot: weapon
+  tags: [spear]
+  stat_modifiers: { HP: 0, ATK: 15, INT: 0, DEF: 5, MDEF: 0, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_011
+  name: "Oak Staff"
+  description: "Generic staff. INT +20."
+  slot: weapon
+  tags: [staff]
+  stat_modifiers: { HP: 0, ATK: 0, INT: 20, DEF: 0, MDEF: 0, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_012
+  name: "Short Bow"
+  description: "Generic bow. ATK +15, HIT +10."
+  slot: weapon
+  tags: [bow]
+  stat_modifiers: { HP: 0, ATK: 15, INT: 0, DEF: 0, MDEF: 0, SPD: 0, HIT: 10, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_013
+  name: "Iron Dagger"
+  description: "Generic dagger. ATK +12, CRIT +10, SKL +5."
+  slot: weapon
+  tags: [dagger]
+  stat_modifiers: { HP: 0, ATK: 12, INT: 0, DEF: 0, MDEF: 0, SPD: 0, HIT: 0, SKL: 5, CRIT: 10, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_014
+  name: "Apprentice Tome"
+  description: "Generic tome. INT +15, HIT +10."
+  slot: weapon
+  tags: [tome]
+  stat_modifiers: { HP: 0, ATK: 0, INT: 15, DEF: 0, MDEF: 0, SPD: 0, HIT: 10, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_015
+  name: "Iron Hammer"
+  description: "Generic hammer. ATK +28, HIT -10."
+  slot: weapon
+  tags: [hammer]
+  stat_modifiers: { HP: 0, ATK: 28, INT: 0, DEF: 0, MDEF: 0, SPD: 0, HIT: -10, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_016
+  name: "Iron Axe"
+  description: "Generic axe. ATK +22, CRIT +5, HIT -5."
+  slot: weapon
+  tags: [axe]
+  stat_modifiers: { HP: 0, ATK: 22, INT: 0, DEF: 0, MDEF: 0, SPD: 0, HIT: -5, SKL: 0, CRIT: 5, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_017
+  name: "Leather Armor"
+  description: "Generic light armor. HP +60, DEF +10, EVA +5."
+  slot: armor
+  tags: [light_armor]
+  stat_modifiers: { HP: 60, ATK: 0, INT: 0, DEF: 10, MDEF: 0, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 5 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_018
+  name: "Plate Armor"
+  description: "Generic heavy armor. HP +100, DEF +20, SPD -5."
+  slot: armor
+  tags: [heavy_armor]
+  stat_modifiers: { HP: 100, ATK: 0, INT: 0, DEF: 20, MDEF: 0, SPD: -5, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_019
+  name: "Cloth Robe"
+  description: "Generic robe. HP +40, MDEF +15."
+  slot: armor
+  tags: [robe]
+  stat_modifiers: { HP: 40, ATK: 0, INT: 0, DEF: 0, MDEF: 15, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_020
+  name: "Wooden Shield"
+  description: "Generic shield. DEF +10, GUARD +15."
+  slot: accessory
+  tags: [shield]
+  stat_modifiers: { HP: 0, ATK: 0, INT: 0, DEF: 10, MDEF: 0, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 15, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: false }
+  designer_notes: "Generic kit."
+
+- id: equip_021
+  name: "Amulet"
+  description: "Generic accessory. HP +20, MDEF +15."
+  slot: accessory
+  tags: [none]
+  stat_modifiers: { HP: 20, ATK: 0, INT: 0, DEF: 0, MDEF: 15, SPD: 0, HIT: 0, SKL: 0, CRIT: 0, GUARD: 0, EVA: 0 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "Generic kit."
+
+- id: equip_022
+  name: "Charm"
+  description: "Generic accessory. CRIT +5, EVA +10."
+  slot: accessory
+  tags: [none]
+  stat_modifiers: { HP: 0, ATK: 0, INT: 0, DEF: 0, MDEF: 0, SPD: 0, HIT: 0, SKL: 0, CRIT: 5, GUARD: 0, EVA: 10 }
+  pp_modifiers: { active: 0, passive: 0 }
+  effects: []
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "Generic kit."

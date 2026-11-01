@@ -46,6 +46,24 @@ test("roster hero checks apply to battle heroes", () => {
   assert.ok(run((b) => { b.challenger.heroes[0].char_id = "char_999"; }).includes("E_REF_MISSING"));
 });
 
+test("E_BATTLE_TERRAIN: battlefield must name a known terrain; null/absent means none; bonus_on_terrain refs are checked", () => {
+  const withTerrain = (battlefield: unknown, mutate: (raw: ReturnType<typeof fresh>) => void = () => {}) => {
+    const raw = fresh();
+    raw.terrains = [...(raw.terrains ?? []), { id: "terrain_901", name: "Test Field", description: "", modifiers: [{ classes: ["cavalry"], stat: "SPD", mode: "percent", value: -10 }] }]; // keep the real terrains: content skills reference them
+    mutate(raw);
+    raw.battles = [{ name: "t.yaml", data: { ...sampleBattle(), battlefield } }];
+    return validateRaw(raw).report.issues.filter((i) => i.severity === "error").map((i) => i.code);
+  };
+  assert.ok(withTerrain("terrain_999").includes("E_BATTLE_TERRAIN"));
+  assert.deepEqual(withTerrain("terrain_901"), []);
+  assert.deepEqual(withTerrain(null), []);
+  const ref = withTerrain(null, (raw) => {
+    const dmg = (raw.skills as any[]).flatMap((s) => s.effects).find((e: any) => e.type === "damage");
+    dmg.bonus_on_terrain = [{ terrain: "terrain_999", modifier_percent: 20 }];
+  });
+  assert.ok(ref.includes("E_REF_MISSING"));
+});
+
 test("strict objects: unknown field rejected", () => {
   assert.ok(run((b) => { b.extra = 1; }).length > 0);
 });

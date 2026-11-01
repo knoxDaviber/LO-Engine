@@ -32,6 +32,7 @@ function checkIds(c: Collector, pack: Pack): void {
     [FILES.statuses, pack.statuses],
     [FILES.soldiers, pack.soldiers],
     [FILES.factions, pack.factions],
+    [FILES.terrains, pack.terrains],
   ];
   for (const [file, entries] of groups) {
     for (const e of entries) {
@@ -54,6 +55,11 @@ function checkEffects(c: Collector, pack: Pack, tier: Tier): void {
   forEachEffect(pack, (e: Effect, where) => {
     if (e.type === "apply_status" && !pack.byId.statuses.has(e.status_id)) {
       c.error("E_REF_MISSING", `effect applies unknown status '${e.status_id}'`, where);
+    }
+    if (e.type === "damage") {
+      e.bonus_on_terrain.forEach((b, i) => {
+        if (!pack.byId.terrains.has(b.terrain)) c.error("E_REF_MISSING", `bonus_on_terrain names unknown terrain '${b.terrain}'`, { ...where, path: `${where.path}.bonus_on_terrain[${i}]` });
+      });
     }
     if (tier === "community") {
       if (!EFFECT_REGISTRY[e.type]?.communitySafe) c.error("E_NOT_COMMUNITY_SAFE", `effect type '${e.type}' is official-only`, where);

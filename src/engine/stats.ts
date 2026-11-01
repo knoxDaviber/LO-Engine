@@ -44,8 +44,9 @@ export function statBreakdown(unit: Unit, stat: Stat, pack: Pick<Pack, "byId">):
   }
   // A squad shares its leader's buffs and debuffs (design 2.1): the leader's status modifiers count for the squad too, stat modifiers only
   // (nothing else of a status exists in this function). A status the squad already carries in the same category is not counted twice.
+  // Terrain is per class, not a buff: the squad gets its own terrain instances (by its soldier class), never its leader's.
   const lead = unit.leaderUnit && unit.leaderUnit.alive ? unit.leaderUnit : null;
-  const shared = lead ? lead.statuses.filter((l) => !unit.statuses.some((s) => s.statusId === l.statusId && s.category === l.category)) : [];
+  const shared = lead ? lead.statuses.filter((l) => l.category !== "terrain" && !unit.statuses.some((s) => s.statusId === l.statusId && s.category === l.category)) : [];
   const ordered = [...unit.statuses, ...shared].sort((a, b) => a.seq - b.seq);
   for (const inst of ordered) {
     const st = pack.byId.statuses.get(inst.statusId);

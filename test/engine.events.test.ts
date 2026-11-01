@@ -79,7 +79,7 @@ test("an on_attack soldier skill fires once after the squad's attack, on every u
 });
 
 test("reactions do not trigger reactions: an on_hit damage effect does not loop", () => {
-  const dmg = { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 1 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0, trigger: "on_hit" };
+  const dmg = { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 1 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [], hit_bonus_percent: 0, trigger: "on_hit" };
   const { state, x, u, ev } = setup(withSoldierSkill(dmg));
   scheduleInitial(state);
   u(SQ_D).alive = false;
@@ -134,7 +134,7 @@ test("until_next_hit statuses tick once per attacking action on a squad, through
   applyStatus(state, sq, "status_003", "active", EMPEROR); // until_next_hit
   sq.statuses[0]!.remaining = 3;
   const skill = { id: "s", interactions: { guard: "standard", soldiers: "standard" } } as Pick<Skill, "id" | "interactions">;
-  const eff: DamageEffect = { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 0.01 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 };
+  const eff: DamageEffect = { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 0.01 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [], hit_bonus_percent: 0 };
   state.bus.beginAction();
   hitSquad(x, u(LEON), sq, skill, eff, true); // area: 10 soldiers hit
   assert.equal(ev("damage").length, 10);

@@ -1,17 +1,20 @@
 // Pre-battle resolution (design Section 9 priority list, roadmap 2.5). Runs at the start of every phase, after leader succession and before the
 // initial scheduling, as an ordered list of named steps:
 //   1 equipment         (no-op until 3b)
-//   2 buff_grants       ally / faction / field-ally leader auras (positive modifiers); pre-battle passives come in 3a
-//   3 immunity          (no-op until 3a; it belongs after the grants and before the debuffs so Immunity can block enemy-debuff auras)
-//   4 buff_removal      (no-op until 3a; may strip Immunity before step 5)
-//   5 debuffs           enemy-debuff auras (and negative modifiers of any aura)
-//   6 event_auras       subscribes event-triggered auras (Jasmine) on the bus; they do nothing until their event fires
-//   7 spd_finalization  marker: the initial scheduling (`scheduleInitial`) reads the final SPD right after the steps
+//   2 terrain           the battlefield's modifiers on every living hero and squad of the listed classes, both sides (`terrain` stacking category)
+//   3 buff_grants       ally / faction / field-ally leader auras (positive modifiers); pre-battle passives come in 3a
+//   4 immunity          (no-op until 3a; it belongs after the grants and before the debuffs so Immunity can block enemy-debuff auras)
+//   5 buff_removal      (no-op until 3a; may strip Immunity before step 6)
+//   6 debuffs           enemy-debuff auras (and negative modifiers of any aura)
+//   7 event_auras       subscribes event-triggered auras (Jasmine) on the bus; they do nothing until their event fires
+//   8 spd_finalization  marker: the initial scheduling (`scheduleInitial`) reads the final SPD right after the steps
 //
 // Leader auras [DECIDED, Section 2]: only the side's current leader's aura counts, and only while `leaders[side].auraActive`. No PP, no "used" state.
 // Always-on aura modifiers are put on units as status instances in the `passive` stacking category (`StatusInstance.inline`, statusId `aura:<leader>:<n>`),
 // so the normal stacking rules and the squad's sharing of its leader's statuses apply. They are never ticked or cleared mid-phase except by the leader's
 // death (`removeAuras`); the next phase builds fresh units and applies the aura again for the (possibly new) leader.
+// Terrain: like aura modifiers, inline status instances (statusId `terrain:<id>:<n>`, category `terrain`) that last the whole phase and are never
+// ticked; a unit's class decides (a squad's class is its soldier type's). Terrain is not an aura, so a leader's death never removes it.
 // [DEFAULT] An aura's `condition` is checked at phase start (always auras) or when its event fires (event auras). [DEFAULT] "Fielded" in
 // party_has_hero means a living hero of the side at that moment.
 // Not implemented (logged, never dropped): aura effects other than modify_stat on always auras, anything but heal on event auras, trigger events
@@ -26,6 +29,7 @@ import { otherSide, targetsOf } from "./state";
 
 export const AURA_ORDER = 50; // bus order: after engine handlers (0), before soldier skills (100)
 export const AURA_PREFIX = "aura:";
+export const TERRAIN_PREFIX = "terrain:";
 
 type Aura = Character["leader_aura"];
 type LeaderAura = { side: Side; leader: Unit; aura: Aura };
@@ -74,7 +78,7 @@ export function auraTargets(state: BattleState, la: LeaderAura): Unit[] {
 /** True when a modify_stat effect of the aura belongs to the debuff step. */
 const isDebuff = (aura: Aura, e: Extract<Effect, { type: "modify_stat" }>): boolean => aura.type === "enemy_debuff" || e.value < 0;
 
-const fmt = (e: Extract<Effect, { type: "modify_stat" }>): string => `${e.stat} ${e.value >= 0 ? "+" : ""}${e.value}${e.mode === "percent" ? "%" : ""}`;
+const fmt = (e: { stat: string; mode: "flat" | "percent"; value: number }): string => `${e.stat} ${e.value >= 0 ? "+" : ""}${e.value}${e.mode === "percent" ? "%" : ""}`;
 
 function notImplemented(c: PreBattleCtx, leader: Unit, what: string): void {
   c.log.emit({ type: "not_implemented", ...at(c.state), unit: leader.id, what });
@@ -108,6 +112,26 @@ function grantAlways(c: PreBattleCtx, debuffs: boolean): void {
   }
 }
 
+/** Puts the battlefield's modifiers on every living hero and squad (both sides) whose class is listed. */
+function applyTerrain(c: PreBattleCtx): void {
+  const { state, log } = c;
+  const terrain = state.battlefield ? state.pack.byId.terrains.get(state.battlefield) : undefined;
+  if (!terrain) return;
+  terrain.modifiers.forEach((m, i) => {
+    for (const side of ["challenger", "defender"] as const) {
+      for (const u of targetsOf(state, side)) {
+        if (!m.classes.includes(u.class)) continue;
+        const inst: StatusInstance = {
+          statusId: `${TERRAIN_PREFIX}${terrain.id}:${i}`, category: "terrain", sourceUnitId: u.id, remaining: null, skipNextTick: false, seq: state.statusSeq++,
+          inline: { name: terrain.name, modifiers: [{ stat: m.stat, mode: m.mode, value: m.value }] },
+        };
+        u.statuses.push(inst);
+        log.emit({ type: "terrain_applied", ...at(state), terrain: terrain.id, name: terrain.name, unit: u.id, status: inst.statusId, category: "terrain", effect: fmt(m) });
+      }
+    }
+  });
+}
+
 /** Event-triggered auras subscribe on the bus. Jasmine: self_action_completed (an idle action counts when trigger_includes_idle_action). */
 function subscribeEventAuras(c: PreBattleCtx): void {
   const { state } = c;
@@ -134,6 +158,7 @@ function subscribeEventAuras(c: PreBattleCtx): void {
 
 export const PREBATTLE_STEPS: PreBattleStep[] = [
   { name: "equipment", run: () => {} },
+  { name: "terrain", run: applyTerrain },
   { name: "buff_grants", run: (c) => grantAlways(c, false) },
   { name: "immunity", run: () => {} },
   { name: "buff_removal", run: () => {} },

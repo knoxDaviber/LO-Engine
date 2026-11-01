@@ -279,3 +279,450 @@
   designer_notes: "Cav bonus attack for Lief. Power = (100% ATK + 50% INT), then x1.5 as the skill multiplier."
   meta:
     resolved: "Physical, so DEF applies even though it scales with INT. The +30% vs Cavalry multiplies with the class advantage."
+
+# ---------------------------------------------------------------- generic kit (one hero per class)
+
+- id: skl_001
+  name: "Strike"
+  description: "Deals 1.0x ATK damage to one enemy."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [infantry, lancer, cavalry, flyer, assassin, aquatic, monster], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Generic basic melee attack."
+
+- id: skl_002
+  name: "Shot"
+  description: "Deals 1.0x ATK damage to one enemy. +10 HIT."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [archer], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: ranged, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 10 }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Generic basic ranged attack."
+
+- id: skl_003
+  name: "Bolt"
+  description: "Deals 1.0x INT magic damage to one enemy."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [mage, holy], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Generic basic spell."
+
+- id: skl_004
+  name: "Cleave"
+  description: "Deals 0.8x ATK damage to a row of enemies."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [infantry, monster], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_005
+  name: "Pierce"
+  description: "Deals 1.0x ATK damage to a column of enemies."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [lancer], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: column, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_006
+  name: "Charge"
+  description: "Deals 1.4x ATK damage to one enemy, then gains [SPD UP]."
+  category: active
+  tags: [damage, buff]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [cavalry], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.4, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: apply_status, status_id: buff_007, chance_percent: 100, target: self }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_007
+  name: "Volley"
+  description: "Deals 0.7x ATK damage to a row of enemies."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [archer], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: ranged, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.7, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_008
+  name: "Dive"
+  description: "Deals 1.3x ATK damage to one enemy. +20 HIT. 20% extra damage on Mountains."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [flyer], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.3, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [{ terrain: terrain_003, modifier_percent: 20 }], hit_bonus_percent: 20 }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_009
+  name: "Backstab"
+  description: "Deals 1.2x ATK damage to one back-row enemy, ignoring GUARD. 20% extra damage in Forest."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [assassin], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.2, ignores_guard: true, bonus_vs_class: [], bonus_on_terrain: [{ terrain: terrain_002, modifier_percent: 20 }], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: ignores, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_010
+  name: "Fireball"
+  description: "Deals 0.9x INT magic damage to a row of enemies."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [mage], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.9, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_011
+  name: "Hex"
+  description: "Deals 0.8x INT magic damage to one enemy and inflicts [Defense Down]."
+  category: active
+  tags: [damage, debuff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [mage], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: targets }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_012
+  name: "Mend"
+  description: "Heals one ally for 1.5x INT."
+  category: active
+  tags: [heal]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [holy], characters: [] }
+  default_activation: null
+  effects:
+    - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 1.5 }
+  targeting: { side: ally, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_013
+  name: "Blessing"
+  description: "Heals all allies for 0.8x INT."
+  category: active
+  tags: [heal]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [holy], characters: [] }
+  default_activation: null
+  effects:
+    - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.8 }
+  targeting: { side: ally, shape: all, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_014
+  name: "Brace"
+  description: "Gains [DEF UP] and [GUARD UP]."
+  category: active
+  tags: [buff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [infantry, lancer, aquatic], characters: [] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_004, chance_percent: 100, target: self }
+    - { type: apply_status, status_id: buff_006, chance_percent: 100, target: self }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_015
+  name: "Tidal Crash"
+  description: "Deals 1.1x ATK damage to a row of enemies. 30% extra damage in Swamp."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [aquatic], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [{ terrain: terrain_004, modifier_percent: 30 }], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_016
+  name: "Rend"
+  description: "Deals 1.5x ATK damage to one enemy and inflicts [Defense Down]."
+  category: active
+  tags: [damage, debuff]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [monster], characters: [] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.5, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: targets }
+  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_017
+  name: "Rally"
+  description: "Grants [ATTACK UP] to allies in this unit's row."
+  category: active
+  tags: [buff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [cavalry], characters: [] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_005, chance_percent: 100, target: caster_row, include_soldiers: false }
+  targeting: { side: self, shape: caster_row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_018
+  name: "Follow-Up"
+  description: "After this unit lands a single-target attack, strikes the same target for 0.5x ATK."
+  category: passive
+  tags: [damage]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: self_landed_single_target_hit
+  trigger_timing: after_hit
+  cooldown: null
+  eligible: { classes: [cavalry, assassin], characters: [] }
+  default_activation: { type: self_landed_single_target_hit }
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.5, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: event_unit, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_019
+  name: "Pursuit"
+  description: "When an ally lands a single-target attack, strikes that target for 0.6x ATK."
+  category: passive
+  tags: [damage]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: ally_landed_single_target_hit
+  trigger_timing: after_hit
+  cooldown: null
+  eligible: { classes: [lancer, flyer, archer], characters: [] }
+  default_activation: { type: ally_landed_single_target_hit }
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.6, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: event_unit, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_020
+  name: "Counter"
+  description: "After being hit by a melee attack, strikes the attacker for 0.7x ATK."
+  category: passive
+  tags: [damage]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: self_hit_by_melee
+  trigger_timing: after_hit
+  cooldown: null
+  eligible: { classes: [infantry, aquatic], characters: [] }
+  default_activation: { type: self_hit_by_melee }
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.7, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: attacker, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""
+
+- id: skl_021
+  name: "Frenzy"
+  description: "While below 50% HP, gains [Frenzy] (ATK +30%, DEF -20%)."
+  category: passive
+  tags: [buff, debuff]
+  pp_pool: passive
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: while_condition
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [monster], characters: [] }
+  default_activation: { type: hp_percent, side: self, op: "<", value: 50 }
+  effects:
+    - { type: apply_status, status_id: status_004, chance_percent: 100, target: self }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: ""

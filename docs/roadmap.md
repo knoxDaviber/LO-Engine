@@ -67,14 +67,14 @@ Split into independent tracks; 3a first, the rest in any order. Section 15 does 
 - [NEEDS DECISION] `stun_pushback_counts` value (before 3a).
 - [NEEDS DECISION] Flyer melee EVA bonus and Aquatic water SPD bonus values (before 3d).
 - [NEEDS DECISION] Base god names (virtues, Decision 113) and their 2-piece / 4-piece blessings (before 3c).
-- [NEEDS DECISION] Terrain list, per-class modifiers, and terrain's stacking category (before 3d).
+- [DECIDED] Terrain list, per-class modifiers and the `terrain` stacking category: Decision 122 (values are [DEFAULT]).
 
 | # | Milestone | Done when |
 |---|---|---|
-| 3a | **Full condition library, passives and statuses**: all registry leaves; cover effect (intercept single-target attacks on allies, Decision 116); per-hit-once tests for Regen, on-hit reactives and Longinus; passives spend Passive PP on trigger with "used" semantics (one-event vs state passives) and log when PP is short; Stun pushback, Confusion, Regen (extend on reapply), Fairy's Grace, Immunity, buff removal; pre-battle priority order (equipment, buff grants, buff removal, debuffs, SPD finalization); Hegemony before the triggering attack, Quick Heal after | Section 17 status, passive and pre-battle tests; cover intercepts a single-target attack aimed at an ally. |
+| 3a | **Full condition library, passives and statuses**: all registry leaves; cover effect (intercept single-target attacks on allies, Decision 116); per-hit-once tests for Regen, on-hit reactives and Longinus; passives spend Passive PP on trigger with "used" semantics (one-event vs state passives) and log when PP is short; Stun pushback, Confusion, Regen (extend on reapply), Fairy's Grace, Immunity, buff removal; pre-battle priority order (equipment, buff grants, buff removal, debuffs, SPD finalization); Hegemony before the triggering attack, Quick Heal after | Section 17 status, passive and pre-battle tests; cover intercepts a single-target attack aimed at an ally. Note: the event names `self_landed_single_target_hit`, `ally_landed_single_target_hit` and `self_hit_by_melee` (Follow-Up, Pursuit, Counter) are in content but need engine producers. |
 | 3b | **Equipment in the engine**: flat lines into base, conditional/percentage effects as Equipment category (fills the equipment step of the pre-battle order), PP bonuses (Dragon Scale), duplicate accessories | Dragon Scale example: 5 and 57; with Empire's Dominion: 1 and 37; equipment vs equipment does not stack; two Speed Rings = SPD +40. |
 | 3c | **Devotion**: sigil field on equipment (god list open-ended, Decision 113), blessing content type (god, 2-piece, 4-piece), `prayer` category in the engine, blessings priced by the cost algorithm | 2 and 4 same-god sigils unlock the tiers; prayer multiplies with other categories. |
-| 3d | **Battlefield and class traits**: terrain content type, defender's battlefield in the snapshot/battle input, terrain class modifiers, Flyer melee EVA and Aquatic water SPD | Flyer EVA higher vs melee only; Aquatic SPD up on water only. |
+| 3d | **Battlefield and class traits**: terrain content type, defender's battlefield in the snapshot/battle input, terrain class modifiers, Flyer melee EVA and Aquatic water SPD | Flyer EVA higher vs melee only; Aquatic SPD up on water only. Note: the stat part of terrain landed early (terrain content type, `battlefield` in the battle input, the terrain pre-battle step, `bonus_on_terrain`; Decision 122); Flyer melee EVA and Aquatic traits remain. |
 | 3e | **Draft and between-phase edits**: battle input grows from two fielded sides to two 6-hero rosters (challenger, and defender with anchor, ban sheet and battlefield), validated by the existing roster layer (which already enforces cost caps); draft sequence (variant C) with anchor/protected/ban sheet/fallback ban, leader line resolution, formation overflow by leader-line rank; challenger edits between phases (allowed vs locked fields, Section 5.5) | Draft tests (4 heroes each, anchor never banned, deterministic, fallback rule); locked-field edits rejected. |
 
 ## Step 4: Content expansion + batch simulator (Section 15, step 4)
@@ -109,7 +109,7 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 | Before 1.1 | Per-phase seed handling | One seed per phase in the battle input |
 | Before 3a | `stun_pushback_counts` | none proposed |
 | Before 3c | Base gods (virtues) and blessings | none |
-| Before 3d | Flyer melee EVA, Aquatic water SPD, terrain list and stacking category | none |
+| Before 3d | Flyer melee EVA, Aquatic water SPD (terrain decided: Decision 122) | none |
 | Before 4.1 | Which new heroes and soldier types | designer content |
 | Step 4.3 | Cost weights, GUARD dual role, leader focus | from batch sim data |
 | Before 5 | Editor tech stack | web, reusing zod |

@@ -1,4 +1,4 @@
-import type { Character, Equipment, Faction, Rules, Skill, SoldierType, Status } from "../schema";
+import type { Character, Equipment, Faction, Rules, Skill, SoldierType, Status, Terrain } from "../schema";
 
 /** Content that passed the schema pass, with lookup maps. */
 export interface Pack {
@@ -8,6 +8,7 @@ export interface Pack {
   statuses: Status[];
   soldiers: SoldierType[];
   factions: Faction[];
+  terrains: Terrain[];
   rules: Rules;
   byId: {
     characters: Map<string, Character>;
@@ -16,6 +17,7 @@ export interface Pack {
     statuses: Map<string, Status>;
     soldiers: Map<string, SoldierType>;
     factions: Map<string, Faction>;
+    terrains: Map<string, Terrain>;
   };
 }
 
@@ -30,8 +32,9 @@ export function indexPack(p: Omit<Pack, "byId">): Pack {
       statuses: m(p.statuses),
       soldiers: m(p.soldiers),
       factions: m(p.factions),
+      terrains: m(p.terrains),
     },
   };
 }
 
-export type CollectionKey = "characters" | "skills" | "equipment" | "statuses" | "soldiers" | "factions";
+export type CollectionKey = "characters" | "skills" | "equipment" | "statuses" | "soldiers" | "factions" | "terrains";

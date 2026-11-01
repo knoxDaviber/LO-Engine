@@ -183,3 +183,19 @@
   stacking: { stackable: true, unique: true, on_reapply: refresh, max_stacks: 1, suppress_weaker: false }
   removal: { removable_by_dispel: true, removed_on_death: true }
   meta: { authored_notes: "Both the guaranteed hit and the 20% DEF Down end after the next hit (designer, v3)." }
+
+- id: status_004
+  name: Frenzy
+  description: "Increase ATK by 30%. Lower DEF by 20%."
+  category: other
+  source_category: inherit
+  modifiers:
+    - { stat: ATK, mode: percent, value: 30 }
+    - { stat: DEF, mode: percent, value: -20 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: while_condition, count: null, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: true, unique: true, on_reapply: refresh, max_stacks: 1, suppress_weaker: false }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Generic monster passive (Frenzy). Modeled on Berserk: unique, lasts while HP is below 50%." }

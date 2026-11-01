@@ -195,7 +195,7 @@ test("a wiped squad takes no heal and does not come back", () => {
   const sq = u(SQ_C);
   const jas = u(JASMINE);
   const emp = u(EMPEROR);
-  for (const s of sq.soldiers) hitSquad(x, emp, sq, { id: "x", interactions: { guard: "standard", soldiers: "standard" } }, { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 100 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }, true);
+  for (const s of sq.soldiers) hitSquad(x, emp, sq, { id: "x", interactions: { guard: "standard", soldiers: "standard" } }, { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 100 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [], hit_bonus_percent: 0 }, true);
   assert.equal(sq.alive, false);
   assert.equal(applyHeal(x, jas, sq, { id: "h" }, 600), 0);
   assert.deepEqual(hps(sq), Array(10).fill(0));
@@ -367,6 +367,22 @@ test("soldier skills the engine cannot run (on_event, a condition, non-stat lead
   assert.ok(notes.includes("not implemented: event soldier skill"));
   assert.ok(notes.includes("not implemented: soldier skill effect heal"));
   assert.equal(state.units.find((v) => v.id === SQ_C)!.innate.length, 2); // only the always-on ATK/DEF mods run
+});
+
+test("hero passive skills are logged as not implemented, one note per passive of each fielded hero", () => {
+  const { pack, battle } = loadReal({ squads: true });
+  const log = new EventLog();
+  beginPhase(pack, battle, 1, null, log);
+  const notes = log.events.filter((e): e is Extract<BattleEvent, { type: "not_implemented" }> => e.type === "not_implemented");
+  const expected = [battle.challenger, battle.defender].flatMap((s) =>
+    s.heroes.flatMap((h) =>
+      pack.byId.characters.get(h.char_id)!.skills.map((id) => pack.byId.skills.get(id)!).filter((sk) => sk.category === "passive")
+        .map((sk) => `${h.char_id}|not implemented: passive ${sk.name}`),
+    ),
+  );
+  assert.ok(expected.length > 0);
+  const got = notes.filter((n) => n.what.startsWith("not implemented: passive ")).map((n) => `${n.unit}|${n.what}`);
+  assert.deepEqual(got.sort(), expected.sort());
 });
 
 // ------------------------------------------------------------------ whole battle

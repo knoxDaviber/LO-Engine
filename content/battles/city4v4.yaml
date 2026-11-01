@@ -1,0 +1,63 @@
+# City 4v4 with the generic kit: one generic hero per class. Battlefield City (terrain_005): cavalry SPD -10%, assassin CRIT +10, infantry GUARD +10.
+# Every hero brings its class's natural soldier type; only each leader's squad is deployed. Tactic sheets: big skill first, basic attack second.
+battle_id: city_4v4
+version: "1"
+battlefield: terrain_005
+seeds: [11, 22, 33]
+
+challenger:
+  leader: char_005
+  heroes:
+    - char_id: char_005   # Infantry, leader
+      squad_id: soldier_003
+      equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_020, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_004, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Cleave
+        - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
+    - char_id: char_007   # Cavalry
+      squad_id: soldier_005
+      equipment: { weapon: equip_010, armor: equip_018, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_006, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Charge
+        - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
+    - char_id: char_008   # Archer
+      squad_id: soldier_006
+      equipment: { weapon: equip_012, armor: equip_017, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_007, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Volley
+        - { priority: 2, skill_id: skl_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Shot
+    - char_id: char_012   # Holy
+      squad_id: soldier_009
+      equipment: { weapon: equip_011, armor: equip_019, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_013, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Blessing
+        - { priority: 2, skill_id: skl_012, enabled: true, activation: null, targeting: { main: null, sub: { select: lowest, metric: hp_percent, side: ally } }, fallback: skip }   # Mend
+        - { priority: 3, skill_id: skl_003, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Bolt
+
+defender:
+  leader: char_014
+  heroes:
+    - char_id: char_014   # Monster, leader
+      squad_id: soldier_012
+      equipment: { weapon: equip_015, armor: equip_018, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_016, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Rend
+        - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
+    - char_id: char_011   # Assassin
+      squad_id: soldier_010
+      equipment: { weapon: equip_013, armor: equip_017, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_009, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Backstab
+        - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
+    - char_id: char_010   # Mage
+      squad_id: soldier_008
+      equipment: { weapon: equip_014, armor: equip_019, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_010, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Fireball
+        - { priority: 2, skill_id: skl_003, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Bolt
+    - char_id: char_006   # Lancer
+      squad_id: soldier_004
+      equipment: { weapon: equip_016, armor: equip_018, accessory_1: null, accessory_2: null }
+      tactic_sheet:
+        - { priority: 1, skill_id: skl_005, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Pierce
+        - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike

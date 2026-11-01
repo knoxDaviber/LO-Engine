@@ -112,12 +112,12 @@ Skills carry authored `tags` (e.g. `revive`, `stun`, `aoe`, `heal`, `debuff`). B
 ### 3.1 Classes and matchups [DECIDED structure, DEFAULT values]
 Classes: Infantry, Lancer, Cavalry, Archer, Flyer, Aquatic, Mage, Assassin, Holy, Monster. More classes will come [DECIDED]; the class list is data (`enums.ts`), so adding one is a data change.
 Triangle: Infantry > Lancer > Cavalry > Infantry. Archer > Flyer. Holy > Monster. **Mage and Assassin stay neutral (no matchups) for now** [DECIDED].
-- **Monster and Holy** [DECIDED]: Monster units generally have higher base stats than other classes (a content guideline; the cost algorithm prices the extra stats), and Holy is their counter (Holy > Monster).
+- **Monster and Holy** [DECIDED]: Monster units generally have higher base stats than other classes (a content guideline; the cost algorithm prices the extra stats), and Holy is their counter (Holy > Monster). Generic Monster heroes carry a +15% stat-score lead (391 vs 340) and Holy > Monster deals +50% damage instead of +25% (Decision 118). Lore: a Monster is a hero who fell into madness or accepted evil for power; Monster-class soldiers are Undead ("Risen"), replacing Beasts (Decision 119).
 - **Flyer** [DECIDED]: much higher evasion against **melee** attacks (value TBD in `rules.yaml`, e.g. `flyer_melee_eva_bonus`). It is added to the defender's EVA in the hit formula (Section 8) and is bounded by the hit% floor.
 - **Aquatic** [DECIDED]: gets an SPD bonus on water battlefields (value TBD; see Battlefield, Section 10A).
 - (`aquatic` is in `CLASSES` and `rules.class_traits` holds the Flyer and Aquatic constants, value TBD; the trait mechanics are not implemented yet.)
 - **Melee / ranged** [DECIDED]: every damage skill declares `range: melee | ranged`, and each soldier type declares the range of its basic attack. Range is what Flyer evasion keys on
-Matchups are a data table (attacker class, defender class, modifier). Default advantage: **+25% damage and +10 HIT** (HIT enters the formula as `hit_bonus`, Section 8). Disadvantage mirrors it at −15% damage. Skill-specific bonuses (e.g. Vine Stab +30% vs Cavalry) are separate modifiers [DECIDED: it multiplies with the class advantage]. Class advantage and skill bonuses apply to `power x multiplier` **before** defense is subtracted [DECIDED], so advantage matters most against high-DEF targets. Soldier types keep their own class (Heavy Infantry: infantry, Heavy Cavalry: cavalry), so matchups also apply to and from squads [DECIDED].
+Matchups are a data table (attacker class, defender class, modifier). Default advantage: **+25% damage and +10 HIT** (HIT enters the formula as `hit_bonus`, Section 8). A `class_advantage` entry may carry its own `damage_percent` (>= 0) that replaces the +25% for that pair only; HIT and the disadvantage side are unchanged (Decision 118). Disadvantage mirrors it at −15% damage. Skill-specific bonuses (e.g. Vine Stab +30% vs Cavalry) are separate modifiers [DECIDED: it multiplies with the class advantage]. Class advantage and skill bonuses apply to `power x multiplier` **before** defense is subtracted [DECIDED], so advantage matters most against high-DEF targets. Soldier types keep their own class (Heavy Infantry: infantry, Heavy Cavalry: cavalry), so matchups also apply to and from squads [DECIDED].
 
 ### 3.2 Factions [DECIDED]
 A hero can have several factions. A faction is a **category only**: lore, and a filter target for effects (faction auras, `faction_is` conditions). **No global set bonuses**, neither faction nor class sets [DECIDED]. Combination play is hero-carried: auras, passives and partner rules (e.g. Leon's aura requires The Emperor) live on the hero, so the synergy is banned with its hero and priced by that hero's cost.
@@ -127,6 +127,7 @@ HP, ATK, INT, DEF, MDEF, SPD, HIT, SKL, CRIT, GUARD, EVA.
 - **Heroes deal damage only through skills** [DECIDED]: there is no hero basic attack, so a hero with no damage skill (Jasmine) cannot deal damage whatever her ATK. ATK stays a required stat, for lore and future skills.
 - **CRIT** is the single source of truth for crit chance; the defender's **GUARD** is crit's opposed stat, the way EVA opposes HIT (Section 8) [DECIDED]. New heroes default to 30 in the editor [DECIDED baseline]. Sheets without a CRIT value (Leon) are a validation error, not a silent default.
 - **SKL** (hidden reliability) feeds hit, evasion, guard and crit through one centralized function, with class-dependent weights [DECIDED concept]. [DEFAULT for prototype] no per-class SKL weights: SKL feeds the Section 8 formulas at flat coefficients; per-class weights deferred. The party-pooled redistribution idea is deferred until the basics balance.
+- **SPD bands** [DEFAULT] (Decision 121): walking classes ~38-42, Monster 47, Cavalry/Flyer 55; soldiers walking 30-35, mounted 50, Risen 40.
 - **Modifier order** [DEFAULT]: base → flat → percentage (strongest wins within a source category, multiplied across categories, Section 9.1) → conditional → floor/cap.
 
 ---
@@ -268,7 +269,7 @@ Order: select target (a single-target hit on a squad resolves to its lowest-HP l
 
 ### 9.1 Buff stacking [DECIDED]
 
-Every percentage modifier carries a **source category**: **Passive** (includes leader auras), **Active** (skill effects), **Equipment**, **Soldier** (soldier skills), or **Prayer** (devotion blessings, Section 9A) [DECIDED]. (`prayer` is in `SOURCE_CATEGORIES`.)
+Every percentage modifier carries a **source category**: **Passive** (includes leader auras), **Active** (skill effects), **Equipment**, **Soldier** (soldier skills), or **Prayer** (devotion blessings, Section 9A) [DECIDED], plus **Terrain** (battlefield class modifiers, Section 10A, Decision 122). (`prayer` and `terrain` are in `SOURCE_CATEGORIES`.)
 
 - **Within the same category, effects do not stack.** For the same stat, the strongest wins (a 20% passive and a 30% passive give 30%).
 - **Across categories, each is its own multiplier.** A 20% passive and a 20% active give ×1.2 × 1.2 = ×1.44.
@@ -307,9 +308,10 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 - Column and row skills must declare shape and damage distribution as separate fields.
 
 ### 10A. Battlefield [DECIDED concept, details TBD]
-- A new content category: **terrain types** (land, sea/water, forest, mountains, cliffside, ...), each giving **buffs and debuffs to classes** (e.g. Aquatic SPD bonus on water, Section 3.1) [DECIDED].
-- The **defender picks the battlefield** as part of their snapshot [DECIDED]. It is visible at reveal, like the anchor (Section 11).
-- Terrain list and per-class modifiers are TBD. Terrain effects use the existing effect system; stacking category TBD. (schema change pending: no battlefield content type yet.)
+- A content category: **terrain types** (`content/terrains.yaml`), each giving **buffs and debuffs to classes** [DECIDED].
+- The **defender picks the battlefield** as part of their snapshot [DECIDED]. It is visible at reveal, like the anchor (Section 11). The battle input carries it as `battlefield`.
+- Terrains [DEFAULT values] (Decision 122): Plains (no effect, the generic field), Forest, Mountains, Swamp, City (cavalry SPD -10%, assassin CRIT +10, infantry GUARD +10).
+- Terrain modifiers are their own stacking category `terrain` (Section 9.1), applied in a pre-battle step to heroes and squads of the listed classes; a squad uses its own soldier class. Damage effects may carry `bonus_on_terrain` (Dive: mountains +20, Backstab: forest +20, Tidal Crash: swamp +30).
 
 ---
 
@@ -330,7 +332,7 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 ## 12. Authoring and the Editor
 
 - Mechanics are stored as structured data (JSON/YAML). Markdown is for lore only. Free-text fields like "1.2x" or "Armour/Armor" are what produce validation errors.
-- Enumerated tags for equipment types: `sword`, `spear`, `staff`, `light_armor`, `heavy_armor`, `robe`.
+- Enumerated tags for equipment types: weapons `sword`, `spear`, `axe`, `staff`, `tome`, `bow`, `dagger`, `hammer`; shields are accessories tagged `shield`; armor `light_armor`, `heavy_armor`, `robe`. A class can use several weapon types (Decision 120).
 - The editor shows the per-stat stacking breakdown (Section 9.1) alongside the tactics board.
 - A schema-driven in-game editor generates dropdowns for stats, tags, conditions and references, and validates IDs, duplicates and missing fields before a battle.
 - Build order for the editor: **tactics board first**, then skills, equipment, characters.
@@ -507,6 +509,12 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 115 | Timeout tiebreak | CANDIDATE | If the batch sim shows a high timeout rate, replace "survivors after phase 3 = challenger loss" with a tiebreak: higher remaining HP %, or most total damage dealt (inspired by Unicorn Overlord) |
 | 116 | Cover | DECIDED concept | Cover (a unit intercepts single-target attacks aimed at allies) will exist; needs a new effect type. Iron Fist was meant as a cover skill and is currently a row GUARD UP buff |
 | 117 | Class branches | DECIDED (optional, roadmap 4.1) | A hero may have 0-2 branches; each branch = a different class plus at most one swapped skill, optionally a different stat lean; name, aura and core kit unchanged (e.g. Leon: Cavalry, or Flyer "Dragoon" swapping Charging Assault for a dive attack). Chosen per team entry like gear; bans target the hero; priced by the cost algorithm. Schema: optional `branches` on characters, `branch` on roster entries. Built in 4.1 only if the 10-hero pool feels narrow (revisited after the batch sim). The active branch's class is the hero's class for every class check: matchups, conditions, ban filters, class-filtered auras, default row |
+| 118 | Per-pair class advantage | DECIDED (DEFAULT values) | A `class_advantage` entry may carry its own `damage_percent` (>= 0); Holy > Monster is +50%, all other pairs keep the global +25% / +10 HIT. Counterweight: generic Monster heroes get a +15% stat-score lead (391 vs 340) |
+| 119 | Monster class lore and soldiers | DECIDED | A Monster is a hero who fell into madness or accepted evil for power. Monster-class soldiers are Undead ("Risen"), replacing Beasts |
+| 120 | Weapon tags | DECIDED | Weapon tags: sword, spear, axe, staff, tome, bow, dagger, hammer; shields are accessories (tag `shield`). A class can use several weapon types; the per-class table lives with the generic heroes in `characters.yaml` |
+| 121 | SPD bands | DEFAULT | Heroes: walking classes ~38-42, Monster 47, Cavalry/Flyer 55. Soldiers: walking 30-35, mounted 50, Risen 40 |
+| 122 | Terrain | DECIDED (DEFAULT values) | Battlefield chosen by the defender. Terrains: Plains (no effect, generic field), Forest, Mountains, Swamp, City (cavalry SPD -10%, assassin CRIT +10, infantry GUARD +10). Modifiers are a `terrain` stacking category applied pre-battle to heroes and squads of the listed classes (squads use their own soldier class). Damage effects may carry `bonus_on_terrain` (Dive mountains +20, Backstab forest +20, Tidal Crash swamp +30) |
+| 123 | New passives | DECIDED (content) | Follow-Up, Pursuit, Counter and Frenzy are authored; they run in roadmap 3a (logged as not implemented until then) |
 
 ---
 
@@ -568,7 +576,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - **Known gap for 3a:** state-passive statuses with a `while_condition` duration (Berserk) are not removed when the condition ends; the engine only applies them.
 - **Meta loop:** gear acquisition (hero acquisition is Decisions 103-108, 110-111), progression, rewards, defender rewards for holding a floor, and new-player onboarding are not designed yet [DEFERRED]. Hero progression is deliberately out for now (Decision 114).
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
-- Devotion god names and blessings, battlefield terrain list, class values (Flyer melee EVA, Aquatic water SPD), stun pushback counts: TBD in `rules.yaml` / content.
+- Devotion god names and blessings, class values (Flyer melee EVA, Aquatic water SPD), stun pushback counts: TBD in `rules.yaml` / content.
 - **Races** (Decisions 109, 112): final race list and lore; each race's stat lean and racial soldier type or class option; whether to add a racial passive list after the batch sim. Factions (Evil, Light, Forest-folk) may need recasting as political allegiances so they do not overlap races.
 
 

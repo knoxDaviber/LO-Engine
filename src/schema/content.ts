@@ -180,6 +180,17 @@ export type SoldierType = z.infer<typeof soldierSchema>;
 export const factionSchema = z.strictObject({ id, name, lore: text.nullable(), effects: z.array(effectSchema), meta });
 export type Faction = z.infer<typeof factionSchema>;
 
+// ---------------------------------------------------------------- terrain
+/** A battlefield. Each modifier applies, for the whole phase, to every hero and squad of the listed classes on both sides. */
+export const terrainSchema = z.strictObject({
+  id,
+  name,
+  description: text,
+  modifiers: z.array(z.strictObject({ classes: z.array(z.enum(CLASSES)).min(1), stat: z.enum(STATS), mode: z.enum(MODIFIER_MODES), value: z.number() })),
+  meta,
+});
+export type Terrain = z.infer<typeof terrainSchema>;
+
 // ---------------------------------------------------------------- character
 export const leaderAuraSchema = z.strictObject({
   name,

@@ -32,6 +32,7 @@ const damage = z.strictObject({
   multiplier: z.number().positive(),
   ignores_guard: z.boolean(),
   bonus_vs_class: z.array(z.strictObject({ class: z.enum(CLASSES), modifier_percent: z.number() })),
+  bonus_on_terrain: z.array(z.strictObject({ terrain: idRef, modifier_percent: z.number() })).default([]), // applies when the battlefield matches
   hit_bonus_percent: z.number(),
   ...common,
 });

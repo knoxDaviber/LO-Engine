@@ -9,6 +9,7 @@ export const FILES = {
   statuses: "statuses.yaml",
   soldiers: "soldiers.yaml",
   factions: "factions.yaml",
+  terrains: "terrains.yaml", // optional: a missing file is an empty list
   rules: "rules.yaml",
 } as const;
 
@@ -19,6 +20,7 @@ export interface RawPack {
   statuses: unknown[];
   soldiers: unknown[];
   factions: unknown[];
+  terrains?: unknown[];
   rules: unknown;
   rosters: { name: string; data: unknown }[];
   battles?: { name: string; data: unknown }[];
@@ -68,6 +70,7 @@ export function loadPack(dir: string): RawPack {
     statuses: list("statuses"),
     soldiers: list("soldiers"),
     factions: list("factions"),
+    terrains: existsSync(join(dir, FILES.terrains)) ? list("terrains") : [],
     rules: readYaml(join(dir, FILES.rules)),
     rosters,
     battles,

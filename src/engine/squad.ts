@@ -20,7 +20,7 @@ export const SOLDIER_ATTACK: SkillRef = { id: "soldier_basic_attack", interactio
 export function soldierEffect(x: ExecCtx, squad: Unit): DamageEffect {
   const st = x.state.pack.byId.soldiers.get(squad.soldierTypeId!)!;
   const b = st.basic_attack;
-  return { type: "damage", damage_type: b.damage_type, range: b.range, scaling: b.scaling, multiplier: 1, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 };
+  return { type: "damage", damage_type: b.damage_type, range: b.range, scaling: b.scaling, multiplier: 1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [], hit_bonus_percent: 0 };
 }
 
 /** Nearest living enemy, front board row first, then column, then id. */
@@ -46,7 +46,7 @@ export function executeSquadAction(x: ExecCtx, squad: Unit): void {
     if (target.kind === "squad") hitSquad(x, squad, target, SOLDIER_ATTACK, effect, false, s.index);
     else {
       const outcome = rollOutcome(x, squad, target, SOLDIER_ATTACK, effect, { by: s.index });
-      const d = computeDamage(squad, target, effect, { pack: state.pack, guardMode: "standard" }, outcome);
+      const d = computeDamage(squad, target, effect, { pack: state.pack, guardMode: "standard", battlefield: state.battlefield }, outcome);
       if (d.landed) applyDamage(x, squad, target, SOLDIER_ATTACK, d, s.index);
     }
   }
