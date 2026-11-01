@@ -1,0 +1,59 @@
+// Vite dev server for the local editor (npm run editor). The `editor-api` plugin mounts editor/api.ts as middleware under /api, so the
+// validator and engine run in Node; the browser only renders.
+import type { IncomingMessage } from "node:http";
+import { fileURLToPath } from "node:url";
+import react from "@vitejs/plugin-react";
+import { defineConfig, type Plugin } from "vite";
+import { createApi, MAX_BODY_BYTES, requestGuard } from "./api";
+
+const root = fileURLToPath(new URL(".", import.meta.url));
+const contentDir = fileURLToPath(new URL("../content", import.meta.url));
+
+const PORT = 5173;
+
+class TooLarge extends Error {}
+
+/** The request body as JSON: Buffers collected up to MAX_BODY_BYTES (TooLarge past it), decoded once. */
+const readBody = (req: IncomingMessage): Promise<unknown> =>
+  new Promise((ok, fail) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size <= MAX_BODY_BYTES) chunks.push(c); // past the cap the rest is drained and dropped, so the 413 can still be sent
+    });
+    req.on("end", () => {
+      if (size > MAX_BODY_BYTES) return fail(new TooLarge(`body exceeds ${MAX_BODY_BYTES} bytes`));
+      const s = Buffer.concat(chunks).toString("utf-8");
+      try { ok(s ? JSON.parse(s) : undefined); } catch (e) { fail(e); }
+    });
+    req.on("error", fail);
+  });
+
+function editorApi(): Plugin {
+  return {
+    name: "editor-api",
+    configureServer(server) {
+      const api = createApi(contentDir);
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith("/api/")) return next();
+        const method = req.method ?? "GET";
+        let out: { status: number; json: unknown };
+        const denied = requestGuard(method, req.headers, PORT);
+        if (denied) out = { status: denied.status, json: { error: denied.error } };
+        else {
+          try {
+            out = api.handle(method, req.url, method === "POST" ? await readBody(req) : undefined);
+          } catch (e) {
+            out = e instanceof TooLarge ? { status: 413, json: { error: e.message } } : { status: 400, json: { error: `bad request body: ${(e as Error).message}` } };
+          }
+        }
+        res.statusCode = out.status;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(out.json));
+      });
+    },
+  };
+}
+
+export default defineConfig({ root, plugins: [react(), editorApi()], server: { port: PORT, strictPort: true, host: "127.0.0.1" } });

@@ -1,0 +1,93 @@
+# gods.yaml: the pantheon (devotion, design Section 9A). Placeholder pantheon: the Japanese Seven Lucky Gods, each embodying a virtue (vice: lore only).
+# The list is open-ended (Decision 113): more gods may be added as new sigil sets. A hero's sigils (roster entry `sigils`, one god per filled equipment
+# slot) unlock a god's blessing: 2 sigils -> two_piece, 4 sigils -> two_piece and four_piece. Blessing effects use the `prayer` stacking category.
+# Event-style blessings carry trigger: on_event; their condition is judged per hit of the attacking action (engine equipment.ts).
+
+- id: god_001
+  name: Benzaiten
+  virtue: Amiability
+  vice: Lust
+  description: "Goddess of everything that flows: water, words, music. Her mirror returns what is given."
+  blessing:
+    name: Mirror
+    two_piece:
+      - { type: modify_stat, stat: HP, mode: percent, value: 20 }
+    four_piece:   # when hit by a single-target attack, 30% of the damage taken goes back to the attacker
+      - { type: reflect_damage, percent: 30, trigger: on_event, condition: { type: unit_hit_by_single_target_attack } }
+
+- id: god_002
+  name: Jurojin
+  virtue: Longevity
+  vice: Sloth
+  description: "The old sage of long life, walking with his deer under the full moon."
+  blessing:
+    name: Full Moon
+    two_piece:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+    four_piece:   # while own HP > 80%
+      - { type: modify_stat, stat: ATK, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+      - { type: modify_stat, stat: INT, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+      - { type: modify_stat, stat: DEF, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+      - { type: modify_stat, stat: MDEF, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+
+- id: god_003
+  name: Bishamonten
+  virtue: Dignity
+  vice: Wrath
+  description: "The armoured warrior god, guardian of the north."
+  blessing:
+    name: Plate
+    two_piece:
+      - { type: modify_stat, stat: HP, mode: percent, value: 20 }
+    four_piece:   # damage taken -10% for the whole battle
+      - { type: reduce_damage, percent: 10, applies_to: all, duration: battle }
+
+- id: god_004
+  name: Daikokuten
+  virtue: Fortune
+  vice: Greed
+  description: "God of the harvest and the kitchen, carrying a sack of treasure."
+  blessing:
+    name: Gift
+    two_piece:
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+    four_piece:   # after being attacked by a single-target attack, heal 30% max HP (once per attacking action)
+      - { type: heal, percent_max_hp: 30, trigger: on_event, condition: { all: [{ type: self_attacked }, { type: unit_hit_by_single_target_attack }] } }
+
+- id: god_005
+  name: Hotei
+  virtue: Magnanimity
+  vice: Gluttony
+  description: "The laughing wanderer with the cloth sack, light on his feet."
+  blessing:
+    name: Breeze
+    two_piece:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+    four_piece:
+      - { type: modify_stat, stat: SPD, mode: percent, value: 20 }
+
+- id: god_006
+  name: Fukurokuju
+  virtue: Wisdom
+  vice: Pride
+  description: "The star god of wisdom, whose long brow holds the night sky."
+  blessing:
+    name: Meteor
+    two_piece:   # CRIT is a rate stat: flat
+      - { type: modify_stat, stat: CRIT, mode: flat, value: 10 }
+    four_piece:   # while using a single-target attack
+      - { type: modify_stat, stat: CRIT, mode: flat, value: 30, condition: { type: action_is_single_target } }
+
+- id: god_007
+  name: Ebisu
+  virtue: Candor
+  vice: Envy
+  description: "The fisherman god, patron of honest trade, who strikes straight and true."
+  blessing:
+    name: Rush
+    two_piece:
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+    four_piece:   # while using a single-target attack: ATK and INT +30%, and the attack ignores GUARD
+      - { type: modify_stat, stat: ATK, mode: percent, value: 30, condition: { type: action_is_single_target } }
+      - { type: modify_stat, stat: INT, mode: percent, value: 30, condition: { type: action_is_single_target } }
+      - { type: ignore_guard, condition: { type: action_is_single_target } }

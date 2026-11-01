@@ -143,7 +143,7 @@ test("death: alive false, unscheduled, statuses cleared when removed_on_death", 
   assert.ok(log.events.some((e) => e.type === "death"));
 });
 
-test("executing Thousand Azure Hooves: spends PP, damages, stun logs not implemented, SPD UP schedules the next action sooner", () => {
+test("executing Thousand Azure Hooves: spends PP, damages, stuns (pushback), SPD UP schedules the next action sooner", () => {
   const { s, leon, emp } = setup();
   scheduleInitial(s);
   const a = nextAction(s)!;
@@ -153,11 +153,14 @@ test("executing Thousand Azure Hooves: spends PP, damages, stun logs not impleme
   const decision = decideTactic(s, leon, rng);
   assert.equal(decision.skillId, "skl_cav_active_002");
   const x: ExecCtx = { state: s, rng, log };
+  const empBefore = s.timeline.pending.get(EMPEROR)!.due;
   executeSkill(x, leon, decision);
   assert.equal(leon.pp.active.cur, 0);
   assert.equal(emp.hp, 200 - 107);
   assert.equal(s.timeline.pending.get(LEON)!.due, 20 + 17); // interval 17 with SPD UP (57.5), not 20
-  assert.ok(log.events.some((e) => e.type === "not_implemented" && e.what.includes("Stun")));
+  const empDue = s.timeline.pending.get(EMPEROR)!.due;
+  assert.equal(empDue, empBefore + 15); // rules.stun_pushback_counts; no PP lost
+  assert.ok(log.events.some((e) => e.type === "action_delayed" && e.unit === EMPEROR && e.counts === 15 && e.due === empDue));
   assert.equal(leon.statuses.length, 1); // SPD UP, 1 turn
 });
 

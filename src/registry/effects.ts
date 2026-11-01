@@ -10,6 +10,9 @@ export const EFFECT_REGISTRY: Record<string, { communitySafe: boolean; descripti
   modify_pp: { communitySafe: false, description: "Changes PP" },
   delay_action: { communitySafe: false, description: "Delays an action" },
   advance_action: { communitySafe: false, description: "Advances an action" },
+  cover: { communitySafe: true, description: "Takes a single-target hit aimed at an ally (before_hit passive)" },
+  reflect_damage: { communitySafe: true, description: "Deals part of the damage taken from an attacking action back to the attacker (devotion)" },
+  ignore_guard: { communitySafe: true, description: "The wearer's attacks ignore GUARD while active (devotion)" },
 };
 
 /** Status flags that deny actions or bypass death are official-only. Each predicate reports whether the flag is in use. */

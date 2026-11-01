@@ -33,7 +33,7 @@ test("log shape: setup first with breakdowns and seeds, phase markers, every eve
   assert.equal(setup.units[0]!.stats.ATK.result, 70);
   assert.equal(ev.at(-1)!.type, "battle_end");
   const types = new Set(ev.map((e) => e.type));
-  for (const t of ["phase_start", "schedule", "tactic_evaluation", "target_selection", "roll", "damage", "pp_spend", "status_applied", "idle", "phase_end", "not_implemented"]) assert.ok(types.has(t as any), t);
+  for (const t of ["phase_start", "schedule", "tactic_evaluation", "target_selection", "roll", "damage", "pp_spend", "status_applied", "idle", "phase_end", "action_delayed"]) assert.ok(types.has(t as any), t);
   assert.match(renderLog(ev), /=== Battle over: \w+ wins/);
 });
 

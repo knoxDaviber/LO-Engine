@@ -64,17 +64,17 @@ Exit criteria for Step 1: all of the above tests pass, `CLAUDE.md` gains an engi
 Split into independent tracks; 3a first, the rest in any order. Section 15 does not place the draft or between-phase edits; the roadmap adds them here (3e) because the batch simulator in Step 4 needs 6-hero rosters drafted to 4.
 
 **Blocking decisions:**
-- [NEEDS DECISION] `stun_pushback_counts` value (before 3a).
-- [NEEDS DECISION] Flyer melee EVA bonus and Aquatic water SPD bonus values (before 3d).
-- [NEEDS DECISION] Base god names (virtues, Decision 113) and their 2-piece / 4-piece blessings (before 3c).
+- [DEFAULT] `stun_pushback_counts` is 15 (3a); a designer value can replace it in rules.yaml.
+- [DECIDED] Flyer melee EVA +50% and Aquatic water SPD +30% (Decision 126).
+- [DECIDED] Placeholder pantheon (the Seven Lucky Gods) and their 2-piece / 4-piece blessings, sigils chosen per slot (Decision 125).
 - [DECIDED] Terrain list, per-class modifiers and the `terrain` stacking category: Decision 122 (values are [DEFAULT]).
 
 | # | Milestone | Done when |
 |---|---|---|
 | 3a | **Full condition library, passives and statuses**: all registry leaves; cover effect (intercept single-target attacks on allies, Decision 116); per-hit-once tests for Regen, on-hit reactives and Longinus; passives spend Passive PP on trigger with "used" semantics (one-event vs state passives) and log when PP is short; Stun pushback, Confusion, Regen (extend on reapply), Fairy's Grace, Immunity, buff removal; pre-battle priority order (equipment, buff grants, buff removal, debuffs, SPD finalization); Hegemony before the triggering attack, Quick Heal after | Section 17 status, passive and pre-battle tests; cover intercepts a single-target attack aimed at an ally. Note: the event names `self_landed_single_target_hit`, `ally_landed_single_target_hit` and `self_hit_by_melee` (Follow-Up, Pursuit, Counter) are in content but need engine producers. |
 | 3b | **Equipment in the engine**: flat lines into base, conditional/percentage effects as Equipment category (fills the equipment step of the pre-battle order), PP bonuses (Dragon Scale), duplicate accessories | Dragon Scale example: 5 and 57; with Empire's Dominion: 1 and 37; equipment vs equipment does not stack; two Speed Rings = SPD +40. |
-| 3c | **Devotion**: sigil field on equipment (god list open-ended, Decision 113), blessing content type (god, 2-piece, 4-piece), `prayer` category in the engine, blessings priced by the cost algorithm | 2 and 4 same-god sigils unlock the tiers; prayer multiplies with other categories. |
-| 3d | **Battlefield and class traits**: terrain content type, defender's battlefield in the snapshot/battle input, terrain class modifiers, Flyer melee EVA and Aquatic water SPD | Flyer EVA higher vs melee only; Aquatic SPD up on water only. Note: the stat part of terrain landed early (terrain content type, `battlefield` in the battle input, the terrain pre-battle step, `bonus_on_terrain`; Decision 122); Flyer melee EVA and Aquatic traits remain. |
+| 3c | **Devotion**: sigil field on equipment (god list open-ended, Decision 113), blessing content type (god, 2-piece, 4-piece), `prayer` category in the engine, blessings priced by the cost algorithm | 2 and 4 same-god sigils unlock the tiers; prayer multiplies with other categories. **Done**: `content/gods.yaml` (god content type), roster `sigils` per slot (player-chosen, revises Decision 74; W_SIGIL_EMPTY_SLOT), `src/devotion.ts`, blessings run by `engine/equipment.ts` (prayer category; `reflect_damage`, `ignore_guard`, `action_is_single_target`), priced by `cost.ts effectPrice`; Decision 125. |
+| 3d | **Battlefield and class traits**: terrain content type, defender's battlefield in the snapshot/battle input, terrain class modifiers, Flyer melee EVA and Aquatic water SPD | Flyer EVA higher vs melee only; Aquatic SPD up on water only. Note: the stat part of terrain landed early (terrain content type, `battlefield` in the battle input, the terrain pre-battle step, `bonus_on_terrain`; Decision 122); **Done**: Flyer EVA x1.5 vs melee hits (damage.ts hitChance), terrain `water` flag (Swamp), Aquatic SPD +30% on water in the terrain step; Decision 126. |
 | 3e | **Draft and between-phase edits**: battle input grows from two fielded sides to two 6-hero rosters (challenger, and defender with anchor, ban sheet and battlefield), validated by the existing roster layer (which already enforces cost caps); draft sequence (variant C) with anchor/protected/ban sheet/fallback ban, leader line resolution, formation overflow by leader-line rank; challenger edits between phases (allowed vs locked fields, Section 5.5) | Draft tests (4 heroes each, anchor never banned, deterministic, fallback rule); locked-field edits rejected. |
 
 ## Step 4: Content expansion + batch simulator (Section 15, step 4)
@@ -84,12 +84,13 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 | # | Milestone | Done when |
 |---|---|---|
 | 4.1 | **Content expansion** (designer-led): heroes for the classes with none yet (archer, flyer, mage, assassin, aquatic, monster), enough for several distinct 6-hero rosters; race stat leans and racial soldier types (Decision 112); optional class branches (0-2 per hero, Decision 117) if the pool feels narrow; one generic hero and one generic soldier type per class (Decisions 105-106; generic heroes can be authored earlier as test fixtures); damage type on soldier basic attacks for Mage soldiers | Validator clean; at least ~12 heroes covering every class. |
-| 4.2 | **Batch simulator** `npm run batch`: N seeded battles per matchup (including the draft), reports challenger win rate, timeout rate, average phases, per-hero damage/healing | Report includes challenger win rate and timeout rate. |
+| 4.2 | **Batch simulator** `npm run batch`: N seeded battles per matchup (including the draft), reports challenger win rate, timeout rate, average phases, per-hero damage/healing | Report includes challenger win rate and timeout rate. **Done**: `npm run batch -- <files> [--runs=N] [--seed=S] [--json]` (`src/batch.ts`, `src/batchReport.ts`): per matchup win/timeout rates, end-reason histogram, average phases, hero actions per phase and hero deaths per side; per hero and squad damage, healing, death rate, actions, fielded/banned rates. Seeds derived per run from (base seed, file, run). |
 | 4.3 | **Balance pass**: calibrate cost weights, Jasmine's aura `cost_adjustment` (+10 proposed in the conversion report, deferred to calibration), roll constants; re-check GUARD dual role, turtling/timeout rate (timeout tiebreak candidate, Decision 115), and the leader-focus candidates (squad guards leader, back-row leaders) | Decisions recorded in the decision log; constants updated in `rules.yaml`. |
 
 ## Step 5: Editor (Section 15, step 5)
 
-- [NEEDS DECISION] Tech stack (e.g. web app reusing the zod schema; decide at the start of Step 5, not before).
+- Tech stack **decided** (Decision 127): local web app, Vite + React + TypeScript, plain CSS; a Vite plugin serves a JSON API (`editor/api.ts`) that runs the existing zod schema, validator and engine in Node. No hosting, no accounts.
+- **Milestone 1 (tactics board + run sim): done.** `npm run editor` (`editor/`): open a battle file (either form) or start a new one; edit both sides (heroes, squad, rows, equipment, sigils, leader or leader line / anchor / battlefield / draft picks, seeds); tactics board per hero in the player slot shape with leaf parameter inputs generated from the leaf JSON Schema; live validation with click-to-field; per-stat Section 9.1 breakdown (phase 1-3 pre-battle); run the sim and read the log with a unit filter; save to `content/battles/` (refused with errors). Not editable yet (kept as loaded): between-phase edits, the defender ban sheet.
 - Order: tactics board first (schema-driven dropdowns, slot-shape limits, per-stat stacking breakdown), then skills, equipment, characters.
 - Done when a player can build a roster, write tactic sheets, run a sim and read the log without touching YAML.
 
@@ -107,12 +108,12 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 |---|---|---|
 | Before 1.1 | `max_actions_per_phase` | 200 |
 | Before 1.1 | Per-phase seed handling | One seed per phase in the battle input |
-| Before 3a | `stun_pushback_counts` | none proposed |
-| Before 3c | Base gods (virtues) and blessings | none |
-| Before 3d | Flyer melee EVA, Aquatic water SPD (terrain decided: Decision 122) | none |
+| Before 3a | `stun_pushback_counts` | [DEFAULT] 15 set in 3a |
+| Before 3c | Base gods (virtues) and blessings | decided: Decision 125 (placeholder pantheon) |
+| Before 3d | Flyer melee EVA, Aquatic water SPD (terrain decided: Decision 122) | decided: Decision 126 (50 / 30) |
 | Before 4.1 | Which new heroes and soldier types | designer content |
 | Step 4.3 | Cost weights, GUARD dual role, leader focus | from batch sim data |
-| Before 5 | Editor tech stack | web, reusing zod |
+| Before 5 | Editor tech stack | decided: Decision 127 (Vite + React, local) |
 | Before 6 | Meta loop, tower limits | none |
 
 ## Possible scope improvements (not committed)

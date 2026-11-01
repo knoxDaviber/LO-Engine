@@ -46,6 +46,10 @@ export const rosterHeroSchema = z.strictObject({
     accessory_1: id.nullable(),
     accessory_2: id.nullable(),
   }),
+  // Devotion (Section 9A): a god id per slot, chosen by the player. A sigil counts only while its slot holds an item (W_SIGIL_EMPTY_SLOT).
+  sigils: z
+    .strictObject({ weapon: id.nullable().optional(), armor: id.nullable().optional(), accessory_1: id.nullable().optional(), accessory_2: id.nullable().optional() })
+    .optional(),
   tactic_sheet: z.array(tacticSchema),
   preferred_row: z.enum(ROWS).optional(), // optional: falls back to the character's preferred_row
 });
@@ -58,5 +62,6 @@ export const rosterSchema = z.strictObject({
   leader_line: z.array(id),
   anchor: id.nullable(),
   ban_sheet: banSheetSchema.nullable(),
+  battlefield: id.nullable().optional(), // terrain id; picked by a defender (Decision 111). E_BATTLE_TERRAIN if unknown, ignored (warning) on a challenger
 });
 export type Roster = z.infer<typeof rosterSchema>;

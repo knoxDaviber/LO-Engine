@@ -10,7 +10,7 @@ export interface Where {
   path: string;
 }
 
-/** Every effect in the pack, with where it lives. Auras, equipment, soldier passives and faction effects are included. */
+/** Every effect in the pack, with where it lives. Auras, equipment, soldier passives, faction effects and god blessings are included. */
 export function forEachEffect(pack: Pack, fn: (effect: Effect, where: Where) => void): void {
   pack.skills.forEach((s) => s.effects.forEach((e, i) => fn(e, { file: FILES.skills, id: s.id, path: `effects[${i}]` })));
   pack.equipment.forEach((q) => q.effects.forEach((e, i) => fn(e, { file: FILES.equipment, id: q.id, path: `effects[${i}]` })));
@@ -24,6 +24,10 @@ export function forEachEffect(pack: Pack, fn: (effect: Effect, where: Where) => 
     ),
   );
   pack.factions.forEach((f) => f.effects.forEach((e, i) => fn(e, { file: FILES.factions, id: f.id, path: `effects[${i}]` })));
+  pack.gods.forEach((g) => {
+    g.blessing.two_piece.forEach((e, i) => fn(e, { file: FILES.gods, id: g.id, path: `blessing.two_piece[${i}]` }));
+    g.blessing.four_piece.forEach((e, i) => fn(e, { file: FILES.gods, id: g.id, path: `blessing.four_piece[${i}]` }));
+  });
 }
 
 /** Every condition tree in the pack with the context it is written in. */

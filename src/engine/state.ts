@@ -1,13 +1,20 @@
 // Battle state types and construction. Plain data; functions elsewhere take the state and mutate it explicitly.
-import type { Battle, Character, Effect, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
+import type { Battle, Character, ConditionNode, Effect, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
 import { STATS } from "../schema";
 import { resolvePlacements, resolveSquadPlacement, rowOverflows } from "../formation";
+import { heroCost } from "../validate/cost";
+import type { Blessing } from "../devotion";
+import { unlockedBlessings } from "../devotion";
 import type { Pack } from "../validate/pack";
 import { statBreakdown } from "./stats";
 import { EventBus } from "./events";
 import type { SideLeader } from "./leader";
 import { pairingPenalties } from "./leader";
 import { isReactiveTrigger, registerSoldierSkill, registerSystemHandlers } from "./reactions";
+import type { StatePassive } from "./passives";
+import { registerPassives } from "./passives";
+import type { EquipmentState } from "./equipment";
+import { emptyEquipment, registerEquipment } from "./equipment";
 
 export type Side = "challenger" | "defender";
 
@@ -24,6 +31,8 @@ export interface StatusInstance {
   seq: number;
   /** Leader auras (2.5): modifiers carried by the instance itself, since an aura is not a pack status. `statusId` is then `aura:<leader>:<n>`. */
   inline?: { name: string; modifiers: { stat: Stat; mode: "flat" | "percent"; value: number }[] };
+  /** while_condition statuses: the applying skill's activation (judged from `owner`, the wearer as target); the status ends when it turns false. */
+  whileCond?: { cond: ConditionNode; owner: string };
 }
 
 export interface PpPool {
@@ -77,6 +86,10 @@ export interface Unit {
   formationIndex: number; // front-left to back-right across the side; a front squad is -1, a back squad is the hero count
   baseStats: Record<Stat, number>;
   equipFlat: Record<Stat, number>; // flat equipment lines, added to base before anything else
+  /** Heroes: worn item ids by slot (weapon, armor, accessory_1, accessory_2; null = empty). Squads: []. Item effects: equipment.ts. */
+  equipment: (string | null)[];
+  /** Heroes: the blessing tiers its sigils unlock (src/devotion.ts; run by equipment.ts). Absent or empty: none. */
+  blessings?: Blessing[];
   hp: number;
   maxHp: number;
   pp: { active: PpPool; passive: PpPool };
@@ -84,6 +97,14 @@ export interface Unit {
   alive: boolean;
   tactics: Tactic[]; // sorted by priority, lowest first
   skills: string[];
+  /** Stun pushback (counts) waiting for the unit's next schedule, when it was stunned with no pending action (pre-battle, or mid-own-action). */
+  pushback?: number;
+  /** Own actions completed this phase (skills, idles, prevented actions, squad attacks): action_count, cooldowns. */
+  actions: number;
+  /** Per skill this phase: times used and the `actions` count from which it is off cooldown (tactics.ts skillReady). */
+  skillUses: Record<string, { uses: number; readyAt: number }>;
+  /** Heroes: computed roster cost (validate/cost.ts heroCost), for the `cost` leaf. Squads: 0. */
+  cost: number;
 }
 
 export interface TimelineEntry {
@@ -94,6 +115,8 @@ export interface TimelineEntry {
   seq: number;
   /** True when the entry was moved by an SPD change; those ties are FILO by seq. */
   changed: boolean;
+  /** Stun pushback (counts) included in `due`; kept apart so an SPD change rescales only the interval part. */
+  delay?: number;
 }
 
 export interface Timeline {
@@ -118,6 +141,11 @@ export interface BattleState {
   bus: EventBus;
   /** Per side: the current leader and the `aura active` flag (leader.ts). Aura content is 2.5. */
   leaders: Record<Side, SideLeader>;
+  /** while_condition hero passives of this phase (passives.ts); `checkingPassives` guards against re-entry. */
+  statePassives: StatePassive[];
+  checkingPassives: boolean;
+  /** Worn item effects and devotion blessings of this phase (equipment.ts): modify_stat modifiers, on_hit / on_attack, pre_battle and blessing effects. */
+  equipment: EquipmentState;
 }
 
 const zeroStats = (): Record<Stat, number> => Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>;
@@ -135,26 +163,38 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     const equipFlat = zeroStats();
     let ppA = ch.pp.active;
     let ppP = ch.pp.passive;
-    for (const eqId of [h.equipment.weapon, h.equipment.armor, h.equipment.accessory_1, h.equipment.accessory_2]) {
+    const worn = [h.equipment.weapon, h.equipment.armor, h.equipment.accessory_1, h.equipment.accessory_2];
+    for (const eqId of worn) {
       const eq = eqId ? pack.byId.equipment.get(eqId) : undefined;
       if (!eq) continue;
       for (const st of STATS) equipFlat[st] += eq.stat_modifiers[st];
       ppA += eq.pp_modifiers.active;
       ppP += eq.pp_modifiers.passive;
     }
-    const maxHp = Math.max(1, ch.base_stats.HP + equipFlat.HP);
+    const items = worn.flatMap((id) => (id ? [pack.byId.equipment.get(id)] : [])).filter((e) => e !== undefined);
+    const skillDefs = ch.skills.map((id) => pack.byId.skills.get(id)).filter((sk) => sk !== undefined);
+    const blessings = unlockedBlessings(pack, h);
+    const cost = heroCost(ch, pack.rules, { squad: pack.byId.soldiers.get(h.squad_id) ?? null, equipment: items, skills: skillDefs, blessings: blessings.flatMap((b) => b.effects) });
+    // [DEFAULT] Max HP is base + flat item lines; status HP modifiers never change it. Exception (3c): unconditional prayer HP percent lines of the
+    // unconditional blessing HP percent lines (either sign) change it like statBreakdown does: one god's lines add per (category, sign), the
+    // strongest god wins per (category, sign), winners multiply (Decision 125). A blessing's HP +20% means 20% more max HP.
+    const sums = new Map<string, Map<string, number>>(); // `<category>|<sign>` -> god -> summed percent
+    for (const b of blessings) for (const e of b.effects) {
+      if (e.type !== "modify_stat" || e.stat !== "HP" || e.mode !== "percent" || e.value === 0 || e.condition || (e.trigger && e.trigger !== "always")) continue;
+      const key = `${e.source_category ?? "prayer"}|${e.value < 0 ? "-" : "+"}`;
+      const g = sums.get(key) ?? sums.set(key, new Map()).get(key)!;
+      g.set(b.god.id, (g.get(b.god.id) ?? 0) + e.value);
+    }
+    let hpMult = 1;
+    for (const g of sums.values()) hpMult *= 1 + [...g.values()].reduce((a, v) => (Math.abs(v) > Math.abs(a) ? v : a), 0) / 100;
+    const maxHp = Math.max(1, Math.floor((ch.base_stats.HP + equipFlat.HP) * hpMult + 1e-9));
     // The leader's squad is the only deployed one, so only the leader carries pairing penalties (Leon's SPD -20 with non-mounted soldiers).
     const pairedType = h.char_id === s.leader ? pack.byId.soldiers.get(h.squad_id) : undefined;
     const innate = pairedType ? pairingPenalties(ch, pairedType, notes) : [];
-    // Hero passive skills do not run yet (roadmap 3a); note each one so it is never silently dropped.
-    for (const skId of ch.skills) {
-      const sk = pack.byId.skills.get(skId);
-      if (sk?.category === "passive") notes.push({ unit: ch.id, what: `not implemented: passive ${sk.name}` });
-    }
     const unit: Unit = {
       id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
-      baseStats: { ...ch.base_stats }, equipFlat, hp: maxHp, maxHp,
+      baseStats: { ...ch.base_stats }, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
       pp: {
         active: { cur: Math.min(ppA, pack.rules.pp.max), max: Math.min(ppA, pack.rules.pp.max) },
         passive: { cur: Math.min(ppP, pack.rules.pp.max), max: Math.min(ppP, pack.rules.pp.max) },
@@ -162,6 +202,7 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
       statuses: [], alive: true,
       tactics: [...h.tactic_sheet].sort((a, b) => a.priority - b.priority),
       skills: [...ch.skills],
+      actions: 0, skillUses: {}, cost,
     };
     return unit;
   });
@@ -213,9 +254,9 @@ function buildSquad(pack: Pack, side: Side, battle: Battle, heroes: Unit[], note
     id, kind: "squad", soldiers: [], innate, leaderId: sp.leaderCharId, soldierTypeId: st.id, side, charId: sp.leaderCharId,
     name: `${leader.name}'s ${st.name}`, class: st.class, factions: [], isLeader: false,
     row: sp.row, column: 0, formationIndex: sp.row === "front" ? -1 : heroes.length,
-    baseStats: stats, equipFlat: zeroStats(), hp: 0, maxHp: 0,
+    baseStats: stats, equipFlat: zeroStats(), equipment: [], hp: 0, maxHp: 0,
     pp: { active: { cur: 0, max: 0 }, passive: { cur: 0, max: 0 } },
-    statuses: [], alive: true, tactics: [], skills: [],
+    statuses: [], alive: true, tactics: [], skills: [], actions: 0, skillUses: {}, cost: 0,
   };
   // Soldier max HP is the effective HP stat (base plus always-on soldier modifiers).
   const perSoldier = Math.max(1, Math.floor(statBreakdown(squad, "HP", pack).result));
@@ -256,8 +297,12 @@ export function createBattleState(pack: Pack, battle: Battle, phase = 1): Battle
       challenger: { leaderId: battle.challenger.leader, auraActive: true },
       defender: { leaderId: battle.defender.leader, auraActive: true },
     },
+    statePassives: [], checkingPassives: false,
+    equipment: emptyEquipment(),
   };
   registerSystemHandlers(state);
+  registerPassives(state); // hero passives on the tactic sheet (3a)
+  registerEquipment(state); // worn item effects (3b) and devotion blessings (3c)
   for (const { squad, skills: sk } of squadSkills) {
     const st = pack.byId.soldiers.get(squad.soldierTypeId!) as SoldierType;
     for (const r of sk.reactive) registerSoldierSkill(state, squad, st, r.label, r.effect);

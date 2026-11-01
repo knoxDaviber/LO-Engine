@@ -6,17 +6,20 @@
 //   2. exhausted   every living hero is exhausted: Active PP below pp_cost of every enabled active skill on its sheet.
 //                  Slice decision: a tactic only counts if the slice can run its skill (skillSupport), skills it can never run
 //                  must not keep a phase alive. A hero with no such tactic is exhausted.
-//   3. idle_cycle  every living unit has had an action since the last skill was executed, and none executed one
+//   3. idle_cycle  every living unit has had an action since the last skill was executed, and none executed one (not while a hero has a
+//                  usable skill that only waits for its cooldown: its idles bring it back)
 //   4. action_cap  rules.phase.max_actions_per_phase (200 when null), last resort
 // The same checks run once before the first action. Squads (design 5.2: soldier attacks never keep a phase alive) take part in none of
 // the exhaustion and idle checks: only living heroes count there. A squad acts on its own SPD schedule and is reported as `squad_actions`,
 // apart from the heroes' `actions`. Only HERO actions count toward the cap ([DEFAULT], decision log 93): a very fast squad must not end a
 // phase while heroes still have PP. Squad actions have their own generous safety bound (SQUAD_BOUND_FACTOR x the cap) against endless loops. A unit killed before it acts keeps its unspent PP
 // (it is simply never spent); dead units stay dead and unscheduled in later phases.
-import type { Battle } from "../schema";
-import { STATS } from "../schema";
+import type { Battle, BattleInput } from "../schema";
+import { STATS, isRosterBattle } from "../schema";
+import { resolveDraft, type DraftOutcome } from "../draft";
+import { battleAtPhase, editsFor } from "../edits";
 import type { Pack } from "../validate/pack";
-import { executeIdle, executeSkill, type ExecCtx } from "./damage";
+import { actionBlocker, executeIdle, executePrevented, executeSkill, useStatus, type ExecCtx } from "./damage";
 import { applySuccession, endSquadSkills } from "./leader";
 import { runPreBattle } from "./prebattle";
 import type { BattleEvent, EventSink } from "./log";
@@ -27,7 +30,7 @@ import { allBreakdowns } from "./stats";
 import type { BattleState, Side, Unit } from "./state";
 import { createBattleState, livingOf, syncSquad } from "./state";
 import { executeSquadAction } from "./squad";
-import { decideTactic, skillSupport } from "./tactics";
+import { decideTactic, skillReady, skillSupport } from "./tactics";
 import { nextAction, scheduleInitial } from "./timeline";
 
 export const MAX_PHASES = 3;
@@ -53,26 +56,39 @@ export interface BattleResult {
   units: { id: string; side: Side; hp: number; max_hp: number; alive: boolean }[]; // heroes
   leaders: Record<Side, { leader: string; aura_active: boolean }>; // at the end of the battle
   squads: { id: string; side: Side; hp: number; max_hp: number; alive: boolean; soldiers: number[] }[]; // soldier HP, 0 = dead
+  /** Roster-form input only: the draft steps and per-side outcome (src/draft.ts). Null for a fielded input. */
+  draft: Pick<DraftOutcome, "steps" | "sides"> | null;
   events: BattleEvent[];
 }
 
-/** Active PP is below the cost of every usable enabled active skill on the unit's sheet (or there is none). */
+/** Active PP is below the cost of every usable enabled active skill on the unit's sheet (or there is none). A skill at its use_limit is not usable. */
 export function isExhausted(state: BattleState, unit: Unit): boolean {
-  for (const t of unit.tactics) {
-    if (!t.enabled || !unit.skills.includes(t.skill_id)) continue;
-    const skill = state.pack.byId.skills.get(t.skill_id);
-    if (!skill || skillSupport(skill, state.pack) !== null) continue;
-    if (unit.pp.active.cur >= skill.pp_cost) return false;
-  }
-  return true;
+  return usableSkills(state, unit).length === 0;
 }
+
+/** Enabled active skills on the sheet the engine runs, affordable and under their use_limit (cooldown aside). */
+function usableSkills(state: BattleState, unit: Unit) {
+  return unit.tactics.flatMap((t) => {
+    if (!t.enabled || !unit.skills.includes(t.skill_id)) return [];
+    const skill = state.pack.byId.skills.get(t.skill_id);
+    if (!skill || skillSupport(skill, state.pack) !== null || unit.pp.active.cur < skill.pp_cost) return [];
+    const why = skillReady(unit, skill);
+    return why === null || why.startsWith("on cooldown") ? [skill] : [];
+  });
+}
+
+/** Some usable skill only waits for its cooldown: the hero's idles bring it back, so an idle cycle is not a stall. */
+const coolingDown = (state: BattleState, unit: Unit): boolean => usableSkills(state, unit).some((sk) => skillReady(unit, sk) !== null);
 
 const squadsOf = (s: BattleState) => s.units.filter((u) => u.kind === "squad");
 const survivors = (s: BattleState) => ({ challenger: livingOf(s, "challenger").length, defender: livingOf(s, "defender").length });
 
-/** Builds the state for `phase`: fresh PP and statuses, timeline 0; HP and deaths come from the previous phase's state. */
+/**
+ * Builds the state for `phase`: fresh PP and statuses, timeline 0; HP and deaths come from the previous phase's state. Challenger edits
+ * up to this phase (src/edits.ts) are applied to the hero entries the state is built from.
+ */
 export function beginPhase(pack: Pack, battle: Battle, phase: number, prev: BattleState | null, log: EventSink): { state: BattleState; rng: Rng } {
-  const state = createBattleState(pack, battle, phase);
+  const state = createBattleState(pack, battleAtPhase(battle, phase), phase);
   if (prev) {
     for (const u of state.units) {
       const p = prev.units.find((x) => x.id === u.id)!;
@@ -89,10 +105,13 @@ export function beginPhase(pack: Pack, battle: Battle, phase: number, prev: Batt
   const rng = phaseRng(battle, phase);
   const later: BattleEvent[] = []; // succession is logged right after the phase header
   if (prev) {
+    for (const ed of editsFor(battle.challenger, phase)) { // only the challenger edits (defender edits are ignored, see edits.ts)
+      later.push({ type: "edit", ...at(state), side: "challenger", hero: ed.hero, fields: ed.fields, applied: true, note: "" });
+    }
     applySuccession(state, prev, battle, { emit: (e) => void later.push(e) });
     for (const q of squadsOf(state)) if (!q.alive) endSquadSkills(state, q); // a removed or wiped squad never comes back, nor do its skills
   }
-  runPreBattle(state, { emit: (e) => void later.push(e) }); // priority-ordered pre-battle steps (auras); SPD is final before the initial scheduling
+  runPreBattle(state, { emit: (e) => void later.push(e) }, rng); // priority-ordered pre-battle steps (auras); SPD is final before the initial scheduling
   scheduleInitial(state);
   log.emit({
     type: "phase_start", ...at(state), seed: battle.seeds[phase - 1]!,
@@ -111,6 +130,11 @@ export function beginPhase(pack: Pack, battle: Battle, phase: number, prev: Batt
 /** One unit's action: evaluate tactics, then execute the chosen skill or idle. Returns true when a skill was executed. */
 export function performAction(x: ExecCtx, actor: Unit): boolean {
   const { state, rng, log } = x;
+  const blocked = actionBlocker(state, actor);
+  if (blocked) {
+    executePrevented(x, actor, blocked);
+    return false;
+  }
   const decision = decideTactic(state, actor, rng);
   log.emit({
     type: "tactic_evaluation", ...at(state), unit: actor.id, chosen: decision.skillId,
@@ -123,6 +147,7 @@ export function performAction(x: ExecCtx, actor: Unit): boolean {
   const chosen = decision.evaluations.find((e) => e.outcome === "chosen");
   log.emit({ type: "target_selection", ...at(state), unit: actor.id, skill: decision.skillId!, targets: decision.targets.map((u) => u.id), reason: chosen?.reason ?? "" });
   executeSkill(x, actor, decision);
+  if (decision.confusedBy) useStatus(x, actor, decision.confusedBy); // an until_used Confusion ends after the attack
   return true;
 }
 
@@ -139,7 +164,7 @@ export function runPhase(state: BattleState, rng: Rng, log: EventSink): PhaseRes
     const living = state.units.filter((u) => u.alive && u.kind === "hero");
     if (livingOf(state, "challenger").length === 0 || livingOf(state, "defender").length === 0) return "wipe";
     if (living.every((u) => isExhausted(state, u))) return "exhausted";
-    if (living.every((u) => acted.has(u.id))) return "idle_cycle";
+    if (living.every((u) => acted.has(u.id)) && !living.some((u) => coolingDown(state, u))) return "idle_cycle";
     if (actions >= cap || squadActions >= cap * SQUAD_BOUND_FACTOR) return "action_cap";
     return null;
   };
@@ -193,19 +218,47 @@ export function setupEvent(pack: Pack, battle: Battle, state: BattleState): Batt
   };
 }
 
-/** Runs up to 3 phases. Survivors on both sides after phase 3 means the defender wins (challenger loss). */
-export function runBattle(pack: Pack, battle: Battle): BattleResult {
+/**
+ * A phase's state after the pre-battle steps, built from the hero entries alone (challenger edits up to `phase` applied; HP and deaths are not
+ * carried over, nothing is logged). It uses its own rng from the phase seed, so the phase stream is untouched. Used for the phase-1 setup stats
+ * (battle_setup) and by the editor's stacking breakdown.
+ */
+export function preBattleState(pack: Pack, battle: Battle, phase = 1): BattleState {
+  const state = createBattleState(pack, battleAtPhase(battle, phase), phase);
+  runPreBattle(state, nullSink, phaseRng(battle, phase));
+  return state;
+}
+
+/** Logs the draft (roster form). Names come from the pack, since banned heroes never reach battle_setup. */
+function logDraft(pack: Pack, d: DraftOutcome, log: EventSink): void {
+  const name = (id: string) => pack.byId.characters.get(id)?.name ?? id;
+  for (const s of d.steps) log.emit({ type: "draft_step", ...s, name: name(s.hero) });
+  for (const side of ["challenger", "defender"] as const) {
+    const r = d.sides![side];
+    log.emit({ type: "draft_result", side, fielded: r.fielded, banned: r.banned, protected: r.protected, leader: r.leader, anchor: r.anchor, moved: r.moved });
+  }
+}
+
+/**
+ * Runs up to 3 phases. Survivors on both sides after phase 3 means the defender wins (challenger loss). A roster-form input is drafted
+ * first (src/draft.ts; throws when the draft has issues, which the validator reports); the draft is logged before battle_setup.
+ */
+export function runBattle(pack: Pack, input: BattleInput): BattleResult {
   const log = new EventLog();
+  let battle: Battle;
+  let draft: DraftOutcome | null = null;
+  if (isRosterBattle(input)) {
+    draft = resolveDraft(pack, input);
+    if (!draft.battle) throw new Error(`draft failed: ${draft.issues.map((i) => `${i.code} ${i.path}: ${i.message}`).join("; ")}`);
+    battle = draft.battle;
+    logDraft(pack, draft, log);
+  } else battle = input;
   const phases: PhaseResult[] = [];
   let prev: BattleState | null = null;
   let winner: Side | null = null;
   let reason: BattleResult["reason"] = "phase3_timeout";
   for (let phase = 1; phase <= MAX_PHASES; phase++) {
-    if (phase === 1) {
-      const setup = createBattleState(pack, battle, 1);
-      runPreBattle(setup, nullSink); // the setup stats include the leader auras
-      log.emit(setupEvent(pack, battle, setup));
-    }
+    if (phase === 1) log.emit(setupEvent(pack, battle, preBattleState(pack, battle, 1))); // the setup stats include the leader auras
     const { state, rng } = beginPhase(pack, battle, phase, prev, log);
     const res = runPhase(state, rng, log);
     phases.push(res);
@@ -220,6 +273,7 @@ export function runBattle(pack: Pack, battle: Battle): BattleResult {
   log.emit({ type: "battle_end", winner, reason, phases: phases.length });
   return {
     winner, reason, phases, events: log.events,
+    draft: draft ? { steps: draft.steps, sides: draft.sides } : null,
     leaders: {
       challenger: { leader: prev!.leaders.challenger.leaderId, aura_active: prev!.leaders.challenger.auraActive },
       defender: { leader: prev!.leaders.defender.leaderId, aura_active: prev!.leaders.defender.auraActive },

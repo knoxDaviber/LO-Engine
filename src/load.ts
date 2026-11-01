@@ -10,6 +10,7 @@ export const FILES = {
   soldiers: "soldiers.yaml",
   factions: "factions.yaml",
   terrains: "terrains.yaml", // optional: a missing file is an empty list
+  gods: "gods.yaml", // optional, like terrains
   rules: "rules.yaml",
 } as const;
 
@@ -21,6 +22,7 @@ export interface RawPack {
   soldiers: unknown[];
   factions: unknown[];
   terrains?: unknown[];
+  gods?: unknown[];
   rules: unknown;
   rosters: { name: string; data: unknown }[];
   battles?: { name: string; data: unknown }[];
@@ -71,6 +73,7 @@ export function loadPack(dir: string): RawPack {
     soldiers: list("soldiers"),
     factions: list("factions"),
     terrains: existsSync(join(dir, FILES.terrains)) ? list("terrains") : [],
+    gods: existsSync(join(dir, FILES.gods)) ? list("gods") : [],
     rules: readYaml(join(dir, FILES.rules)),
     rosters,
     battles,

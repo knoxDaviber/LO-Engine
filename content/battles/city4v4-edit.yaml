@@ -1,0 +1,335 @@
+battle_id: city_4v4
+version: "1"
+battlefield: terrain_005
+seeds:
+  - 11
+  - 22
+  - 33
+challenger:
+  leader: char_005
+  heroes:
+    - char_id: char_005
+      squad_id: soldier_003
+      equipment:
+        weapon: equip_009
+        armor: equip_018
+        accessory_1: equip_020
+        accessory_2: equip_006
+      sigils:
+        weapon: god_006
+        armor: god_006
+        accessory_1: god_003
+        accessory_2: god_003
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_004
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_020
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+    - char_id: char_007
+      squad_id: soldier_005
+      equipment:
+        weapon: equip_010
+        armor: equip_018
+        accessory_1: equip_006
+        accessory_2: equip_021
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_006
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_018
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+      sigils:
+        weapon: god_002
+        armor: god_002
+        accessory_1: god_002
+        accessory_2: god_002
+    - char_id: char_008
+      squad_id: soldier_006
+      equipment:
+        weapon: equip_012
+        armor: equip_017
+        accessory_1: equip_008
+        accessory_2: equip_008
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_007
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_002
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_passive_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 4
+          skill_id: skl_019
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+      sigils:
+        weapon: god_002
+        armor: god_002
+        accessory_1: god_002
+        accessory_2: god_002
+    - char_id: char_012
+      squad_id: soldier_009
+      equipment:
+        weapon: equip_011
+        armor: equip_019
+        accessory_1: equip_006
+        accessory_2: equip_006
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_003
+          enabled: true
+          activation:
+            type: class_is
+            side: enemy
+            value: monster
+          targeting:
+            main:
+              type: is_leader
+              side: enemy
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_012
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub:
+              select: lowest
+              metric: hp_percent
+              side: ally
+          fallback: skip
+        - priority: 3
+          skill_id: skl_003
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 4
+          skill_id: skl_passive_003
+          enabled: true
+          activation:
+            type: hp_percent
+            side: ally
+            op: <
+            value: 100
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+      sigils:
+        weapon: god_005
+        armor: god_005
+        accessory_1: god_005
+        accessory_2: god_005
+defender:
+  leader: char_014
+  heroes:
+    - char_id: char_014
+      squad_id: soldier_012
+      equipment:
+        weapon: equip_015
+        armor: equip_018
+        accessory_1: equip_021
+        accessory_2: equip_021
+      sigils:
+        weapon: god_001
+        armor: god_001
+        accessory_1: god_001
+        accessory_2: god_001
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_016
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_021
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+    - char_id: char_011
+      squad_id: soldier_010
+      equipment:
+        weapon: equip_013
+        armor: equip_017
+        accessory_1: equip_022
+        accessory_2: equip_022
+      sigils:
+        weapon: god_007
+        armor: god_007
+        accessory_1: god_007
+        accessory_2: god_007
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_009
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_passive_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 4
+          skill_id: skl_018
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+    - char_id: char_010
+      squad_id: soldier_008
+      equipment:
+        weapon: equip_014
+        armor: equip_019
+        accessory_1: null
+        accessory_2: null
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_010
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_003
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_passive_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+    - char_id: char_006
+      squad_id: soldier_004
+      equipment:
+        weapon: equip_016
+        armor: equip_018
+        accessory_1: null
+        accessory_2: null
+      tactic_sheet:
+        - priority: 1
+          skill_id: skl_005
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 2
+          skill_id: skl_001
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip
+        - priority: 3
+          skill_id: skl_019
+          enabled: true
+          activation: null
+          targeting:
+            main: null
+            sub: null
+          fallback: skip

@@ -20,13 +20,45 @@ export function scheduleInitial(state: BattleState): void {
   for (const u of state.units) if (u.alive) scheduleNext(state, u);
 }
 
-/** Puts the unit's next action `interval` counts after the current clock. Replaces any existing entry. */
+/** Puts the unit's next action `interval` counts after the current clock (plus any stun pushback waiting on the unit). Replaces any existing entry. */
 export function scheduleNext(state: BattleState, u: Unit): TimelineEntry {
   const tl = state.timeline;
   const interval = unitInterval(state, u);
-  const entry: TimelineEntry = { unitId: u.id, due: tl.now + interval, interval, seq: ++tl.seqCounter, changed: false };
+  // Pushback may be negative (advance_action while the unit had no pending entry); the action is never due before now.
+  const due = Math.max(tl.now, tl.now + interval + (u.pushback ?? 0));
+  const delay = due - tl.now - interval;
+  u.pushback = 0;
+  const entry: TimelineEntry = { unitId: u.id, due, interval, seq: ++tl.seqCounter, changed: false, ...(delay ? { delay } : {}) };
   tl.pending.set(u.id, entry);
   return entry;
+}
+
+/**
+ * Stun (design Section 6): pushes the unit's pending action back by a fixed number of counts, whatever its SPD. No action or PP is lost.
+ * With no pending entry (pre-battle, or the unit is mid-action), the pushback waits for its next schedule. Returns the new due, or null.
+ */
+export function delayPending(state: BattleState, u: Unit, counts: number): number | null {
+  const e = state.timeline.pending.get(u.id);
+  if (!e) {
+    u.pushback = (u.pushback ?? 0) + counts;
+    return null;
+  }
+  e.due += counts;
+  e.delay = (e.delay ?? 0) + counts;
+  return e.due;
+}
+
+/** advance_action: moves the pending action `counts` earlier, never before now (no entry: kept for the next schedule). Returns the new due, or null. */
+export function advancePending(state: BattleState, u: Unit, counts: number): number | null {
+  const e = state.timeline.pending.get(u.id);
+  if (!e) {
+    u.pushback = (u.pushback ?? 0) - counts;
+    return null;
+  }
+  const due = Math.max(state.timeline.now, e.due - counts);
+  e.delay = (e.delay ?? 0) - (e.due - due);
+  e.due = due;
+  return e.due;
 }
 
 export function unschedule(state: BattleState, u: Unit): void {
@@ -43,9 +75,11 @@ export function rescheduleOnSpdChange(state: BattleState, u: Unit): boolean {
   if (!e) return false;
   const interval = unitInterval(state, u);
   if (interval === e.interval) return false;
-  const elapsed = tl.now - (e.due - e.interval);
+  const delay = e.delay ?? 0; // stun pushback is counts, not SPD: it carries over unscaled
+  if (tl.now >= e.due - delay) return false; // the interval part is over, only pushback is left: SPD no longer matters
+  const elapsed = tl.now - (e.due - delay - e.interval);
   const fraction = Math.min(1, Math.max(0, elapsed / e.interval));
-  e.due = Math.round(tl.now + (1 - fraction) * interval);
+  e.due = Math.max(tl.now, Math.round(tl.now + (1 - fraction) * interval) + delay); // a negative delay (advance_action) never goes before now
   e.interval = interval;
   e.seq = ++tl.seqCounter;
   e.changed = true;

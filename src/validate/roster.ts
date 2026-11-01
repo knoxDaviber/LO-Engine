@@ -1,5 +1,6 @@
-import { rosterSchema, type RosterHero } from "../schema";
+import { rosterSchema, type Roster, type RosterHero } from "../schema";
 import type { Collector, Location, Tier } from "../types";
+import { SIGIL_SLOTS, unlockedBlessings } from "../devotion";
 import { heroCost } from "./cost";
 import { canEquip, squadEligible } from "./eligibility";
 import type { Pack } from "./pack";
@@ -12,41 +13,50 @@ const SLOTS = { weapon: "weapon", armor: "armor", accessory_1: "accessory", acce
 export function validateRoster(raw: unknown, pack: Pack, c: Collector, opts: { role: "challenger" | "defender"; tier: Tier; file: string }): void {
   const parsed = rosterSchema.safeParse(raw);
   if (!parsed.success) return void reportZod(c, parsed.error.issues, { file: opts.file });
-  const r = parsed.data;
+  checkRoster(parsed.data, pack, c, opts);
+}
+
+/** Roster checks on a schema-valid roster. `base` prefixes every path (a roster inside a battle input: `challenger.roster`). */
+export function checkRoster(r: Roster, pack: Pack, c: Collector, opts: { role: "challenger" | "defender"; tier: Tier; file: string; base?: string }): void {
   const { draft, cost } = pack.rules;
   const file = opts.file;
+  const at = (p: string) => (opts.base ? `${opts.base}.${p}` : p);
 
-  if (r.heroes.length !== draft.roster_size) c.error("E_ROSTER_SIZE", `a roster has exactly ${draft.roster_size} heroes, found ${r.heroes.length}`, { file, path: "heroes" });
+  if (r.heroes.length !== draft.roster_size) c.error("E_ROSTER_SIZE", `a roster has exactly ${draft.roster_size} heroes, found ${r.heroes.length}`, { file, path: at("heroes") });
   const ids = r.heroes.map((h) => h.char_id);
   const dupes = ids.filter((x, i) => ids.indexOf(x) !== i);
-  for (const d of new Set(dupes)) c.error("E_ROSTER_DUP", `hero '${d}' appears twice`, { file, path: "heroes" });
+  for (const d of new Set(dupes)) c.error("E_ROSTER_DUP", `hero '${d}' appears twice`, { file, path: at("heroes") });
 
   // leader line must be a permutation of the roster
   const line = r.leader_line;
   const sameSet = line.length === ids.length && new Set(line).size === line.length && line.every((x) => ids.includes(x));
-  if (!sameSet) c.error("E_LEADER_LINE", "leader_line must list every roster hero exactly once", { file, path: "leader_line" });
+  if (!sameSet) c.error("E_LEADER_LINE", "leader_line must list every roster hero exactly once", { file, path: at("leader_line") });
 
   let rosterCost = 0;
   const costs = new Map<string, number>();
   r.heroes.forEach((h, i) => {
-    const total = checkRosterHero(h, { file, id: h.char_id, path: `heroes[${i}]` }, pack, c, opts.tier);
+    const total = checkRosterHero(h, { file, id: h.char_id, path: at(`heroes[${i}]`) }, pack, c, opts.tier);
     if (total === null) return;
     costs.set(h.char_id, total);
     rosterCost += total;
   });
-  if (cost.caps.roster !== null && rosterCost > cost.caps.roster) c.error("E_COST_CAP", `roster cost ${rosterCost} exceeds the cap of ${cost.caps.roster}`, { file, path: "heroes" });
+  if (cost.caps.roster !== null && rosterCost > cost.caps.roster) c.error("E_COST_CAP", `roster cost ${rosterCost} exceeds the cap of ${cost.caps.roster}`, { file, path: at("heroes") });
 
   if (opts.role === "defender") {
     if (draft.defender_anchor) {
-      if (!r.anchor) c.error("E_ANCHOR", "a defender roster must name an anchor hero", { file, path: "anchor" });
-      else if (!ids.includes(r.anchor)) c.error("E_ANCHOR", `anchor '${r.anchor}' is not in the roster`, { file, path: "anchor" });
+      if (!r.anchor) c.error("E_ANCHOR", "a defender roster must name an anchor hero", { file, path: at("anchor") });
+      else if (!ids.includes(r.anchor)) c.error("E_ANCHOR", `anchor '${r.anchor}' is not in the roster`, { file, path: at("anchor") });
       else if (cost.caps.protected_or_anchor !== null && (costs.get(r.anchor) ?? 0) > cost.caps.protected_or_anchor) {
-        c.error("E_COST_CAP", `anchor cost exceeds the protected/anchor cap of ${cost.caps.protected_or_anchor}`, { file, path: "anchor" });
+        c.error("E_COST_CAP", `anchor cost exceeds the protected/anchor cap of ${cost.caps.protected_or_anchor}`, { file, path: at("anchor") });
       }
     }
-    if (!r.ban_sheet) c.error("E_BAN_SHEET", "a defender roster needs a ban_sheet", { file, path: "ban_sheet" });
+    if (!r.ban_sheet) c.error("E_BAN_SHEET", "a defender roster needs a ban_sheet", { file, path: at("ban_sheet") });
   }
-  if (r.ban_sheet) checkBanSheet(r.ban_sheet, { file, path: "ban_sheet" }, c, pack, opts.tier);
+  if (r.battlefield != null) {
+    if (opts.role !== "defender") c.warn("W_ROSTER_BATTLEFIELD", "only a defender picks the battlefield; ignored on a challenger roster", { file, path: at("battlefield") });
+    else if (!pack.byId.terrains.has(r.battlefield)) c.error("E_BATTLE_TERRAIN", `battlefield '${r.battlefield}' is not a known terrain`, { file, path: at("battlefield") });
+  }
+  if (r.ban_sheet) checkBanSheet(r.ban_sheet, { file, path: at("ban_sheet") }, c, pack, opts.tier);
 }
 
 /** Per-hero checks shared by rosters and battle sides: known hero, squad, equipment, tactic sheet, per-hero cost cap. Returns the hero's cost, or null if the hero is unknown. */
@@ -79,9 +89,19 @@ export function checkRosterHero(h: RosterHero, loc: Location, pack: Pack, c: Col
     items.push(item);
   }
 
+  // Devotion sigils (Section 9A): a known god per slot; a sigil on an empty slot counts for nothing.
+  for (const key of SIGIL_SLOTS) {
+    const god = h.sigils?.[key];
+    if (!god) continue;
+    const p = { ...loc, path: `${loc.path}.sigils.${key}` };
+    if (!pack.byId.gods.has(god)) c.error("E_REF_MISSING", `unknown god '${god}'`, p);
+    else if (!h.equipment[key]) c.warn("W_SIGIL_EMPTY_SLOT", `the ${key} slot is empty, so its '${god}' sigil does not count`, p);
+  }
+
   checkTacticSheet(h.tactic_sheet, hero.skills, { ...loc, path: `${loc.path}.tactic_sheet` }, c, pack, tier);
 
-  const total = heroCost(hero, pack.rules, { squad: squad ?? null, equipment: items, skills: hero.skills.map((id) => pack.byId.skills.get(id)).filter((s) => s !== undefined) });
+  const blessings = unlockedBlessings(pack, h).flatMap((b) => b.effects);
+  const total = heroCost(hero, pack.rules, { squad: squad ?? null, equipment: items, skills: hero.skills.map((id) => pack.byId.skills.get(id)).filter((s) => s !== undefined), blessings });
   if (cost.caps.per_hero !== null && total > cost.caps.per_hero) c.error("E_COST_CAP", `hero cost ${total} exceeds the per-hero cap of ${cost.caps.per_hero}`, loc);
   return total;
 }

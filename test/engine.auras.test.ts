@@ -35,7 +35,7 @@ const mod = (stat: string, value: number) => ({ type: "modify_stat", stat, mode:
 
 // ------------------------------------------------------------------ the step list
 
-test("pre-battle steps run in the Section 9 priority order; 3a/3b slots are named no-ops", () => {
+test("pre-battle steps run in the Section 9 priority order", () => {
   assert.deepEqual(PREBATTLE_STEPS.map((s) => s.name), ["equipment", "terrain", "buff_grants", "immunity", "buff_removal", "debuffs", "event_auras", "spd_finalization"]);
 });
 

@@ -85,11 +85,12 @@ test("applyStatus resolves inherit, refreshes within a category, coexists across
   assert.ok(Math.abs(effectiveStat(leon, "ATK", state.pack) - 70 * 1.44) < 1e-9);
 });
 
-test("Stun logs not implemented and is not applied", () => {
+test("Stun is instant: applied, but nothing is stored on the unit (the caller runs the pushback)", () => {
   const state = sampleState();
   const r = applyStatus(state, unit(state, LEON), "status_001", "active", LEON);
-  assert.equal(r.applied, false);
-  assert.match(r.notes[0]!, /^not implemented/);
+  assert.equal(r.applied, true);
+  assert.equal(r.instant, true);
+  assert.deepEqual(unit(state, LEON).statuses, []);
 });
 
 test("1 turn ends only on an active skill use; idle does not count; applying action counts per status", () => {

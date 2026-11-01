@@ -52,15 +52,17 @@ test("disabled tactic and skill not in the hero's list", () => {
   assert.match(d.evaluations[1]!.reason, /not in the hero's skill list/);
 });
 
-test("unsupported skills are skipped with 'not implemented' (Last Chance has a status without stat modifiers)", () => {
+test("unsupported skills are skipped with 'not implemented'; Last Chance (Fairy's Grace, a flag-only status) now runs", () => {
   const s = sampleState();
   const { pack } = loadReal();
-  assert.match(skillSupport(pack.byId.skills.get(LASTCHANCE)!, pack)!, /^not implemented/);
-  assert.match(skillSupport(pack.byId.skills.get("skl_passive_001")!, pack)!, /^not implemented/);
+  const lastChance = pack.byId.skills.get(LASTCHANCE)!;
+  assert.equal(skillSupport(lastChance, pack), null);
+  const fake = { ...lastChance, effects: [{ type: "made_up_effect" }] } as any;
+  assert.match(skillSupport(fake, pack)!, /^not implemented: effect made_up_effect/);
+  assert.match(skillSupport(pack.byId.skills.get("skl_passive_001")!, pack)!, /^passive skill: runs on its trigger/); // passives never run on the turn (3a)
   for (const id of [HOOVES, ASSAULT, DIRGE, IRON, VINE, STRIKE]) assert.equal(skillSupport(pack.byId.skills.get(id)!, pack), null, id);
   const d = decideTactic(s, unit(s, JASMINE), rng());
-  assert.equal(d.tactic, null);
-  assert.match(d.evaluations[0]!.reason, /^not implemented/);
+  assert.equal(d.skillId, LASTCHANCE);
 });
 
 test("activation: phase condition gates a tactic; skill default activation is used when the tactic has none", () => {
@@ -74,10 +76,10 @@ test("activation: phase condition gates a tactic; skill default activation is us
   assert.match(decideTactic(s1, unit(s1, LEON), rng()).evaluations[0]!.reason, /activation condition false/);
   // unknown leaf in activation: false + reason
   const leon = unit(s1, LEON);
-  leon.tactics = [tactic(HOOVES, { activation: { type: "enemies_alive", op: ">", value: 0 } })];
+  leon.tactics = [tactic(HOOVES, { activation: { type: "made_up_leaf", op: ">", value: 0 } as any })];
   const d = decideTactic(s1, leon, rng());
   assert.equal(d.tactic, null);
-  assert.match(d.evaluations[0]!.reason, /not implemented: enemies_alive/);
+  assert.match(d.evaluations[0]!.reason, /not implemented: made_up_leaf/);
 });
 
 test("phase in targeting: main condition filters candidates", () => {

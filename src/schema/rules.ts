@@ -37,6 +37,7 @@ export const rulesSchema = z.strictObject({
       HIT: z.number(), SKL: z.number(), CRIT: z.number(), GUARD: z.number(), EVA: z.number(),
     }),
     skill_price: z.number().min(0),
+    effect_price: z.number().min(0), // a blessing effect that is not an unconditional modify_stat (devotion pricing, cost.ts)
     aura_price: z.number().min(0),
     squad_price: z.number().min(0),
     caps: z.strictObject({ per_hero: z.number().positive().nullable(), protected_or_anchor: z.number().positive().nullable(), roster: z.number().positive().nullable() }),

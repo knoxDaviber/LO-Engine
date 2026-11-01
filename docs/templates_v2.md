@@ -208,7 +208,7 @@ eligible:
 rules:
   duplicate_allowed_in_both_accessory_slots: true   # Decision 19: duplicates allowed; flat stats add, identical effects do not stack
 
-sigil: null             # devotion: one god's sigil, fixed on the item, no random substats (Section 17; schema change pending)
+# devotion: items carry no sigil; the player picks a god per slot on the roster entry (`sigils`, Sections 11 and 17; Decision 125)
 cost_override: null     # optional (official content only)
 designer_notes: ""
 ```
@@ -403,7 +403,7 @@ matchups:
   - { vs: lancer, damage_modifier_percent: 25, hit_modifier: 10 }
   - { vs: cavalry, damage_modifier_percent: -15, hit_modifier: 0 }
 # Mage, Assassin: no matchups for now (neutral). Holy > Monster. More classes will come.
-# Flyer: evasion_vs_melee_bonus (value TBD in rules.yaml). Aquatic: SPD bonus on water terrain (see Section 18). Both constants exist in rules.yaml `class_traits` (null = TBD); the trait mechanics are not implemented.
+# Flyer: EVA x(1 + flyer_melee_eva_bonus/100) against melee hits. Aquatic: SPD +aquatic_water_spd_bonus% on water terrain (Section 18). Both in rules.yaml `class_traits` (50 / 30, Decision 126).
 skl_weights:                # DEFERRED: no per-class SKL weights for the prototype (flat coefficients, design doc Section 8)
   hit: 0
   evasion: 0
@@ -424,12 +424,13 @@ heroes:                # exactly 6
     squad_id: soldier_000   # the player's pairing: a soldier type eligible for this hero. Banned with the hero; deploys only if this hero is leader.
     squad_row: null         # OPTIONAL. Omit to use the soldier type's default_soldier_row; must be one of its allowed_soldier_rows
     equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+    sigils: { weapon: null, armor: null, accessory_1: null, accessory_2: null }   # OPTIONAL. A god id per slot (Section 17); counts only on a filled slot (W_SIGIL_EMPTY_SLOT)
     tactic_sheet: []   # up to 10 tactics (Section 8)
     preferred_row: front
 leader_line: []        # ordered char_ids; highest-ranked fielded hero leads
 anchor: null           # char_id; defender snapshots only. Unbannable and cost-capped.
 ban_sheet: null        # Section 12; required for defender snapshots
-battlefield: null      # terrain id; defender snapshots only; visible at reveal (Section 18; schema change pending)
+battlefield: null      # terrain id; defender snapshots only; visible at reveal (Decision 111). E_BATTLE_TERRAIN if unknown
 ```
 
 ## 12. Ban sheet (defender)
@@ -511,38 +512,43 @@ rules:
   timeline:  { interval_constant: 1000, min_spd: 5 }
   pp:        { base_active: 2, base_passive: 2, max: 4 }
   board:     { rows: 4, columns: 3, hero_rows: 2 }
-  stun_pushback_counts: null   # TBD: Stun delays the target's pending action by this many timeline counts
+  stun_pushback_counts: 15     # [DEFAULT] Stun delays the target's pending action by this many timeline counts
   rolls:     { hit_min: 70, hit_max: 100, crit_min: 0, crit_max: 100, guard_min: 0, guard_max: 75, skl_divisor: 4 }
   # hit% = clamp(HIT + hit_bonus - EVA + (aSKL - dSKL)/skl_divisor, hit_min, hit_max); crit% = clamp(CRIT - defender GUARD + (aSKL - dSKL)/skl_divisor, crit_min, crit_max); guard% = clamp(GUARD + dSKL/skl_divisor, guard_min, guard_max)
-  class_traits: { flyer_melee_eva_bonus: null, aquatic_water_spd_bonus: null }   # TBD
+  class_traits: { flyer_melee_eva_bonus: 50, aquatic_water_spd_bonus: 30 }   # percent (Decision 126)
   phase:     { max_actions_per_phase: null }   # TBD; hard last-resort cap, added with the engine
-  # also: class_advantage, draft, limits, cost (stat_weights, skill_price, aura_price, squad_price, caps)
+  # also: class_advantage, draft, limits, cost (stat_weights, skill_price, effect_price, aura_price, squad_price, caps)
 ```
 
 
-## 17. Devotion (prayer) stub
+## 17. Devotion (prayer): god
 
 ```yaml
-# 7 gods govern the world; every gear piece carries one god's sigil (fixed, no random substats). TBD; schema change pending.
-god:
-  id: god_000
+# content/gods.yaml (open-ended list, Decision 113; placeholder pantheon: the Seven Lucky Gods, Decision 125)
+- id: god_000
   name: ""
-  lore: ""
-  blessings:
-    - { pieces: 2, effects: [] }     # e.g. Thorns: reflect part of damage taken
-    - { pieces: 4, effects: [] }     # e.g. Breeze: SPD up after acting
-# Equipment carries `sigil: god_id`. 2 / 4 sigils of the same god on one hero unlock the tiers.
-# Blessing effects use source_category: prayer (5th stacking multiplier). Priced by the cost algorithm.
+  virtue: ""
+  vice: ""                # lore only
+  description: ""
+  blessing:
+    name: ""
+    two_piece: []         # effects (Section 7), unlocked by 2 sigils of this god on one hero
+    four_piece: []        # unlocked by 4 sigils, on top of the two_piece
+# Sigils: the roster entry's `sigils` (Section 11), one god per filled equipment slot.
+# Blessing effects use the `prayer` stacking category. Engine forms: modify_stat (optionally with a condition, e.g. action_is_single_target),
+# ignore_guard (with a condition), reflect_damage / heal with `trigger: on_event` and an event-leaf condition judged per hit of the attacking
+# action (e.g. unit_hit_by_single_target_attack), reduce_damage with duration battle. Priced by the cost algorithm (Section 14).
 ```
 
 ## 18. Battlefield stub
 
 ```yaml
-# Terrain types (land, water, forest, mountains, cliffside, ...). TBD; schema change pending.
-battlefield:
-  id: terrain_000
+# content/terrains.yaml (Decision 122). The schema in src/schema/content.ts is authoritative.
+- id: terrain_000
   name: ""
-  class_modifiers: []     # e.g. [{ class: aquatic, stat: SPD, mode: percent, value: 0 }]  (buffs and debuffs to classes)
+  description: ""
+  water: false            # OPTIONAL. Water terrain: aquatic units get SPD +class_traits.aquatic_water_spd_bonus% (Decision 126)
+  modifiers: []           # e.g. [{ classes: [cavalry], stat: SPD, mode: percent, value: -10 }] (terrain stacking category)
 # The defender picks one per snapshot; visible at reveal (like the anchor).
 ```
 

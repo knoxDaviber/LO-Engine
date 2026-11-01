@@ -4,6 +4,7 @@ import {
   characterSchema,
   equipmentSchema,
   factionSchema,
+  godSchema,
   rulesSchema,
   skillSchema,
   soldierSchema,
@@ -77,6 +78,7 @@ export function schemaPass(c: Collector, raw: RawPack): Pack | null {
     soldiers: parseList(c, raw.soldiers, soldierSchema, FILES.soldiers),
     factions: parseList(c, raw.factions, factionSchema, FILES.factions),
     terrains: parseList(c, raw.terrains ?? [], terrainSchema, FILES.terrains),
+    gods: parseList(c, raw.gods ?? [], godSchema, FILES.gods),
   };
   if (!rulesResult.success) return null;
   return indexPack({ ...pack, rules: rulesResult.data });

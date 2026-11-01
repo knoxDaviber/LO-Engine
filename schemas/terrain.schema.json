@@ -73,6 +73,9 @@
         "additionalProperties": false
       }
     },
+    "water": {
+      "type": "boolean"
+    },
     "meta": {
       "type": "object",
       "propertyNames": {

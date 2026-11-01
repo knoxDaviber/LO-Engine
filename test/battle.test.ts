@@ -94,3 +94,15 @@ test("buildUnits throws on a full row instead of clamping the column", async () 
   crowd(battle, 4);
   assert.throws(() => createBattleState(pack, battle), /E_BATTLE_ROW_FULL/);
 });
+
+test("battle hero entries get the sigil checks: unknown god E_REF_MISSING, sigil on an empty slot W_SIGIL_EMPTY_SLOT; sigils are locked between phases", () => {
+  assert.ok(run((b) => { b.challenger.heroes[0].sigils = { weapon: "god_999" }; b.challenger.heroes[0].equipment.weapon = "equip_009"; }).includes("E_REF_MISSING"));
+  const raw = fresh();
+  const b = sampleBattle();
+  b.challenger.heroes[0].equipment = { weapon: null, armor: null, accessory_1: null, accessory_2: null };
+  b.challenger.heroes[0].sigils = { armor: "god_001" };
+  raw.battles = [{ name: "warn.yaml", data: b }];
+  const issues = validateRaw(raw).report.issues;
+  assert.deepEqual(issues.filter((i) => i.code === "W_SIGIL_EMPTY_SLOT").map((i) => i.path), ["challenger.heroes[0].sigils.armor"]);
+  assert.ok(run((x) => { x.challenger.edits = [{ phase: 2, heroes: [{ char_id: x.challenger.heroes[0].char_id, sigils: { weapon: "god_001" } }] }]; }).includes("E_EDIT_LOCKED"));
+});

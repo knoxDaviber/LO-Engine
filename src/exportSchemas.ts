@@ -1,10 +1,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { z } from "zod/v4";
-import { battleSchema, characterSchema, equipmentSchema, factionSchema, rosterSchema, rulesSchema, skillSchema, soldierSchema, statusSchema, terrainSchema } from "./schema";
+import { battleInputSchema, characterSchema, equipmentSchema, factionSchema, godSchema, rosterSchema, rulesSchema, skillSchema, soldierSchema, statusSchema, terrainSchema } from "./schema";
 
 const out = "schemas";
 mkdirSync(out, { recursive: true });
-const all = { character: characterSchema, skill: skillSchema, equipment: equipmentSchema, status: statusSchema, soldier: soldierSchema, faction: factionSchema, terrain: terrainSchema, rules: rulesSchema, roster: rosterSchema, battle: battleSchema };
+const all = { character: characterSchema, skill: skillSchema, equipment: equipmentSchema, status: statusSchema, soldier: soldierSchema, faction: factionSchema, terrain: terrainSchema, god: godSchema, rules: rulesSchema, roster: rosterSchema, battle: battleInputSchema };
 for (const [name, schema] of Object.entries(all)) {
   try {
     writeFileSync(`${out}/${name}.schema.json`, JSON.stringify(z.toJSONSchema(schema as z.ZodType, { unrepresentable: "any" }), null, 2));

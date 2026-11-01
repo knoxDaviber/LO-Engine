@@ -1,7 +1,8 @@
-// Terrain (battlefield modifiers in the `terrain` stacking category), bonus_on_terrain and per-pair class advantage damage_percent.
+// Terrain (battlefield modifiers in the `terrain` stacking category), bonus_on_terrain, per-pair class advantage damage_percent and the class traits
+// (roadmap 3d: Flyer EVA vs melee, Aquatic SPD on water).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { EventLog, beginPhase, computeDamage, effectiveStat, type DamageEffect } from "../src/engine";
+import { EventLog, beginPhase, computeDamage, effectiveStat, hitChance, type DamageEffect } from "../src/engine";
 import type { Terrain } from "../src/schema";
 import { EMPEROR, JASMINE, LEON, LIEF, loadReal, sampleState, unit } from "./engineHelpers";
 
@@ -57,4 +58,33 @@ test("a class_advantage pair's damage_percent replaces the global advantage for 
   assert.equal(computeDamage(holy, mon, strike(), ctx, HIT).matchup, 1.5);
   assert.equal(computeDamage(mon, holy, strike(), ctx, HIT).matchup, 0.85); // disadvantage side unchanged
   assert.equal(computeDamage(unit(s, LIEF), unit(s, LEON), strike(), ctx, HIT).matchup, 1.25); // other pairs keep the global 25
+});
+
+test("Flyer: EVA x1.5 against melee hits only (rules.class_traits.flyer_melee_eva_bonus 50)", () => {
+  const s = sampleState();
+  const a = unit(s, LIEF), d = unit(s, LEON);
+  Object.assign(a.baseStats, { HIT: 100, SKL: 0 });
+  Object.assign(d.baseStats, { EVA: 20, SKL: 0 });
+  const ctx = { pack: s.pack };
+  a.class = "mage"; // neutral matchup: no advantage HIT
+  assert.equal(hitChance(a, d, strike(), ctx), 80); // not a flyer
+  d.class = "flyer";
+  assert.equal(hitChance(a, d, strike(), ctx), 70); // 100 - 20 * 1.5
+  assert.equal(hitChance(a, d, strike({ range: "ranged" }), ctx), 80);
+});
+
+test("Aquatic: SPD +30% (terrain category) on water terrain (Swamp), nothing on Plains", () => {
+  const spd = (battlefield: string) => {
+    const { pack, battle } = loadReal();
+    pack.byId.characters.get(LIEF)!.class = "aquatic";
+    const log = new EventLog();
+    const { state } = beginPhase(pack, { ...battle, battlefield }, 1, null, log);
+    const lief = state.units.find((u) => u.id === LIEF)!;
+    return { spd: effectiveStat(lief, "SPD", pack), ids: lief.statuses.map((x) => x.statusId), log };
+  };
+  const plains = spd("terrain_001"), swamp = spd("terrain_004");
+  assert.deepEqual(plains.ids, []);
+  assert.deepEqual(swamp.ids, ["terrain:terrain_004:water"]);
+  assert.ok(Math.abs(swamp.spd - plains.spd * 1.3) < 1e-9);
+  assert.ok(swamp.log.events.some((e) => e.type === "terrain_applied" && e.unit === LIEF && e.effect === "SPD +30%"));
 });

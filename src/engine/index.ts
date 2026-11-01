@@ -12,3 +12,5 @@ export * from "./events";
 export * from "./leader";
 export * from "./reactions";
 export * from "./prebattle";
+export * from "./passives";
+export * from "./equipment";

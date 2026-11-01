@@ -78,14 +78,14 @@ test("all / any / not", () => {
   assert.equal(ev({ not: T }, c).value, false);
 });
 
-test("other leaves are false with 'not implemented: <type>', also under all/any/not", () => {
+test("a leaf outside the registry is false with 'not implemented: <type>', also under all/any/not", () => {
   const s = sampleState();
   const c = { state: s, self: unit(s, LEON) };
-  const leaf = { type: "active_pp", side: "self", op: ">", value: 0 };
-  assert.deepEqual(ev(leaf, c), { value: false, reasons: ["not implemented: active_pp"] });
-  assert.deepEqual(ev({ all: [leaf, { type: "phase", op: "=", value: 1 }] }, c), { value: false, reasons: ["not implemented: active_pp"] });
+  const leaf = { type: "made_up_leaf", side: "self", op: ">", value: 0 };
+  assert.deepEqual(ev(leaf, c), { value: false, reasons: ["not implemented: made_up_leaf"] });
+  assert.deepEqual(ev({ all: [leaf, { type: "phase", op: "=", value: 1 }] }, c), { value: false, reasons: ["not implemented: made_up_leaf"] });
   const n = ev({ not: leaf }, c);
   assert.equal(n.value, false); // an unknown leaf never turns true by negation
-  assert.deepEqual(n.reasons, ["not implemented: active_pp"]);
+  assert.deepEqual(n.reasons, ["not implemented: made_up_leaf"]);
   assert.equal(ev({ any: [leaf, { type: "phase", op: "=", value: 1 }] }, c).value, true);
 });

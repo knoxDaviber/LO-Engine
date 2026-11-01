@@ -187,9 +187,23 @@ export const terrainSchema = z.strictObject({
   name,
   description: text,
   modifiers: z.array(z.strictObject({ classes: z.array(z.enum(CLASSES)).min(1), stat: z.enum(STATS), mode: z.enum(MODIFIER_MODES), value: z.number() })),
+  water: z.boolean().optional(), // absent = false. Water terrain gives aquatic units rules.class_traits.aquatic_water_spd_bonus (3d)
   meta,
 });
 export type Terrain = z.infer<typeof terrainSchema>;
+
+// ---------------------------------------------------------------- god (devotion, Section 9A)
+/** A god of the pantheon (open-ended list, Decision 113). A hero's sigils of one god unlock its blessing: 2 -> two_piece, 4 -> both tiers. */
+export const godSchema = z.strictObject({
+  id,
+  name,
+  virtue: text,
+  vice: text, // lore only
+  description: text,
+  blessing: z.strictObject({ name, two_piece: z.array(effectSchema).min(1), four_piece: z.array(effectSchema).min(1) }),
+  meta,
+});
+export type God = z.infer<typeof godSchema>;
 
 // ---------------------------------------------------------------- character
 export const leaderAuraSchema = z.strictObject({

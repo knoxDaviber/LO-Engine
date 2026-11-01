@@ -1,4 +1,5 @@
 # terrains.yaml: battlefields. Each modifier applies for the whole phase to every hero and squad of the listed classes, both sides.
+# water: true (default false) marks water terrain, where aquatic units get rules.class_traits.aquatic_water_spd_bonus.
 
 - id: terrain_001
   name: Plains
@@ -23,11 +24,11 @@
 
 - id: terrain_004
   name: Swamp
-  description: "Deep mud slows walking units and badly bogs down cavalry; aquatic units move faster, and flyers are unaffected."
+  description: "Deep mud slows walking units and badly bogs down cavalry; flyers are unaffected. Water terrain: aquatic units move faster (class trait, rules.class_traits)."
+  water: true
   modifiers:
     - { classes: [infantry, lancer, archer, mage, assassin, holy, monster], stat: SPD, mode: percent, value: -10 }
     - { classes: [cavalry], stat: SPD, mode: percent, value: -20 }
-    - { classes: [aquatic], stat: SPD, mode: percent, value: 15 }
 
 - id: terrain_005
   name: City

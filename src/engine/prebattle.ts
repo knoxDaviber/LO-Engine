@@ -1,11 +1,17 @@
 // Pre-battle resolution (design Section 9 priority list, roadmap 2.5). Runs at the start of every phase, after leader succession and before the
 // initial scheduling, as an ordered list of named steps:
-//   1 equipment         (no-op until 3b)
+//   1 equipment         item modify_stat effects (equipment category; conditional ones on while their condition holds) and pre_battle item
+//                       effects that are not debuffs (equipment.ts); flat lines and PP bonuses are already in the unit (state.ts)
 //   2 terrain           the battlefield's modifiers on every living hero and squad of the listed classes, both sides (`terrain` stacking category)
-//   3 buff_grants       ally / faction / field-ally leader auras (positive modifiers); pre-battle passives come in 3a
-//   4 immunity          (no-op until 3a; it belongs after the grants and before the debuffs so Immunity can block enemy-debuff auras)
-//   5 buff_removal      (no-op until 3a; may strip Immunity before step 6)
-//   6 debuffs           enemy-debuff auras (and negative modifiers of any aura)
+//   3 buff_grants       buff-granting pre_battle hero passives (spend PP, passives.ts), then ally / faction / field-ally leader auras (positive
+//                       modifiers), then the first check of while_condition passives (HP carries over between phases, so Frenzy can start on)
+//   4 immunity          pre_battle passives that grant a blocks_debuffs status (Preventative Care: Immunity + Regen), after the grants and before
+//                       the debuffs so Immunity can block enemy-debuff auras
+//   5 buff_removal      pre_battle passives (then items) with remove_buffs; may strip Immunity before step 6
+//   6 debuffs           enemy-debuff auras (and negative modifiers of any aura; a unit with Immunity resists them, `status_blocked`), then
+//                       debuff pre_battle passives (debuff statuses or enemy targets), then debuff pre_battle item effects (Strange Box: field
+//                       Confusion), which Immunity blocks the same way
+// Which step a pre_battle passive takes: passives.ts preBattleStepOf.
 //   7 event_auras       subscribes event-triggered auras (Jasmine) on the bus; they do nothing until their event fires
 //   8 spd_finalization  marker: the initial scheduling (`scheduleInitial`) reads the final SPD right after the steps
 //
@@ -15,15 +21,23 @@
 // death (`removeAuras`); the next phase builds fresh units and applies the aura again for the (possibly new) leader.
 // Terrain: like aura modifiers, inline status instances (statusId `terrain:<id>:<n>`, category `terrain`) that last the whole phase and are never
 // ticked; a unit's class decides (a squad's class is its soldier type's). Terrain is not an aura, so a leader's death never removes it.
+// Aquatic trait (3d, Decision 126): on a `water` terrain every aquatic hero and squad (by its own class) also gets SPD +aquatic_water_spd_bonus%
+// (rules.class_traits; null = off) the same way, statusId `terrain:<id>:water`, terrain category.
 // [DEFAULT] An aura's `condition` is checked at phase start (always auras) or when its event fires (event auras). [DEFAULT] "Fielded" in
 // party_has_hero means a living hero of the side at that moment.
 // Not implemented (logged, never dropped): aura effects other than modify_stat on always auras, anything but heal on event auras, trigger events
 // other than self_action_completed, a faction_buff without faction_id, effects carrying their own trigger/condition on always auras.
 import type { Character, Effect } from "../schema";
 import { evaluateCondition } from "./conditions";
+import type { ExecCtx } from "./damage";
 import { runEffect } from "./damage";
 import type { EventSink } from "./log";
 import { at } from "./log";
+import { checkStatePassives, runPreBattlePassives } from "./passives";
+import { checkEquipment, runPreBattleEquipment } from "./equipment";
+import type { Rng } from "./rng";
+import { createRng } from "./rng";
+import { immunityOf } from "./stats";
 import type { BattleState, Side, StatusInstance, Unit } from "./state";
 import { otherSide, targetsOf } from "./state";
 
@@ -37,6 +51,8 @@ type LeaderAura = { side: Side; leader: Unit; aura: Aura };
 export interface PreBattleCtx {
   state: BattleState;
   log: EventSink;
+  /** The phase rng (pre-battle passives may roll); a fixed stream when none is given. */
+  rng?: Rng;
 }
 export interface PreBattleStep {
   name: string;
@@ -101,6 +117,11 @@ function grantAlways(c: PreBattleCtx, debuffs: boolean): void {
         return;
       }
       for (const t of auraTargets(state, la)) {
+        const imm = e.value < 0 ? immunityOf(state, t) : undefined;
+        if (imm) { // Immunity blocks a negative aura modifier
+          log.emit({ type: "status_blocked", ...at(state), unit: t.id, status: `${AURA_PREFIX}${leader.id}:${i}`, source: leader.id, by: imm.statusId });
+          continue;
+        }
         const inst: StatusInstance = {
           statusId: `${AURA_PREFIX}${leader.id}:${i}`, category: "passive", sourceUnitId: leader.id, remaining: null, skipNextTick: false, seq: state.statusSeq++,
           inline: { name: aura.name, modifiers: [{ stat: e.stat, mode: e.mode, value: e.value }] },
@@ -130,6 +151,20 @@ function applyTerrain(c: PreBattleCtx): void {
       }
     }
   });
+  const bonus = state.pack.rules.class_traits.aquatic_water_spd_bonus;
+  if (terrain.water !== true || bonus === null) return;
+  const m = { stat: "SPD" as const, mode: "percent" as const, value: bonus };
+  for (const side of ["challenger", "defender"] as const) {
+    for (const u of targetsOf(state, side)) {
+      if (u.class !== "aquatic") continue;
+      const inst: StatusInstance = {
+        statusId: `${TERRAIN_PREFIX}${terrain.id}:water`, category: "terrain", sourceUnitId: u.id, remaining: null, skipNextTick: false, seq: state.statusSeq++,
+        inline: { name: `${terrain.name} (water)`, modifiers: [m] },
+      };
+      u.statuses.push(inst);
+      log.emit({ type: "terrain_applied", ...at(state), terrain: terrain.id, name: `${terrain.name} (water)`, unit: u.id, status: inst.statusId, category: "terrain", effect: fmt(m) });
+    }
+  }
 }
 
 /** Event-triggered auras subscribe on the bus. Jasmine: self_action_completed (an idle action counts when trigger_includes_idle_action). */
@@ -157,19 +192,22 @@ function subscribeEventAuras(c: PreBattleCtx): void {
 }
 
 export const PREBATTLE_STEPS: PreBattleStep[] = [
-  { name: "equipment", run: () => {} },
+  { name: "equipment", run: (c) => { checkEquipment(execCtx(c)); runPreBattleEquipment(execCtx(c), "equipment"); } },
   { name: "terrain", run: applyTerrain },
-  { name: "buff_grants", run: (c) => grantAlways(c, false) },
-  { name: "immunity", run: () => {} },
-  { name: "buff_removal", run: () => {} },
-  { name: "debuffs", run: (c) => grantAlways(c, true) },
+  { name: "buff_grants", run: (c) => { runPreBattlePassives(execCtx(c), "buff_grants"); grantAlways(c, false); checkStatePassives(execCtx(c)); } },
+  { name: "immunity", run: (c) => runPreBattlePassives(execCtx(c), "immunity") },
+  { name: "buff_removal", run: (c) => { runPreBattlePassives(execCtx(c), "buff_removal"); runPreBattleEquipment(execCtx(c), "buff_removal"); } },
+  { name: "debuffs", run: (c) => { grantAlways(c, true); runPreBattlePassives(execCtx(c), "debuffs"); runPreBattleEquipment(execCtx(c), "debuffs"); } },
   { name: "event_auras", run: subscribeEventAuras },
   { name: "spd_finalization", run: () => {} },
 ];
 
+const execCtx = (c: PreBattleCtx): ExecCtx => ({ state: c.state, log: c.log, rng: c.rng ?? (c.rng = createRng(0)) });
+
 /** Runs the pre-battle steps in order for a freshly built phase state. */
-export function runPreBattle(state: BattleState, log: EventSink): void {
-  for (const step of PREBATTLE_STEPS) step.run({ state, log });
+export function runPreBattle(state: BattleState, log: EventSink, rng?: Rng): void {
+  const c: PreBattleCtx = { state, log, ...(rng ? { rng } : {}) };
+  for (const step of PREBATTLE_STEPS) step.run(c);
 }
 
 /** The leader is down: every aura status it put on any unit ends. */

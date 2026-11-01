@@ -184,3 +184,14 @@ test("rules rolls with min above max", () => {
   const raw = fresh(); (raw.rules as any).rolls.hit_min = 101;
   assert.ok(codes(raw).includes("E_ROLLS"));
 });
+
+test("an item modify_stat with an event-style trigger is rejected (E_EFFECT_TRIGGER)", () => {
+  const raw = fresh();
+  const eff: any = { type: "modify_stat", stat: "SPD", mode: "percent", value: 10 };
+  find(raw.equipment, "equip_006").effects = [eff];
+  assert.ok(!codes(raw).includes("E_EFFECT_TRIGGER"));
+  for (const trigger of ["on_hit", "on_attack", "pre_battle"]) {
+    eff.trigger = trigger;
+    assert.ok(codes(raw).includes("E_EFFECT_TRIGGER"), trigger);
+  }
+});

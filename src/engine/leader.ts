@@ -3,8 +3,10 @@
 //  - Soft leader rule: when the leader dies its squad is removed at once (all soldiers dead, off the timeline, its soldier skills end),
 //    the side's `auraActive` flag goes false, and the battle goes on. Soldiers are never a victory condition.
 //  - Succession: between phases, a dead leader is replaced and the aura flag comes back; the squad does not (no respawn).
-//    [DEFAULT] No leader line exists in the fixed 4-hero slice (it comes with the draft in 3e), so the line is the battle input's hero order: the
-//    successor is the first living hero in it. [DEFAULT] The successor keeps its row (no re-placement mid-battle; edits come with 3e).
+//    The successor is the first living hero of the leader line. A drafted side's heroes are in leader-line order (src/draft.ts), so the
+//    line is the side's hero order; in a hand-written fielded input that order stands in for it. A challenger edit for this phase may name
+//    the successor instead (`edits[].leader`, design 5.5); it is ignored, and logged as not applied, while the current leader lives or when
+//    the named hero is dead. [DEFAULT] The successor keeps its row (no re-placement mid-battle).
 //  - Pairing penalties (Leon's SPD -20 with non-mounted soldiers): `restrictions.soldier.stat_penalties` of the LEADER, evaluated against the
 //    soldier type of its deployed squad, applied as always-on flat/percent modifiers through the normal stat pipeline. [DEFAULT] Only the
 //    leader has a deployed squad, so only the leader is penalised; a hero whose squad is not deployed is not.
@@ -70,7 +72,7 @@ export function onLeaderDeath(x: ExecCtx, dead: Unit): void {
   removeAuras(state, log, dead.id); // the aura statuses it put on units end with it (2.5)
 }
 
-/** The side's leader line in the slice: the battle input's hero order. */
+/** The side's leader line: its hero order (leader-line order after the draft; the input order of a hand-written fielded side). */
 export const leaderLine = (battle: Battle, side: Side): string[] => battle[side].heroes.map((h) => h.char_id);
 
 /**
@@ -81,7 +83,14 @@ export function applySuccession(state: BattleState, prev: BattleState, battle: B
   for (const side of ["challenger", "defender"] as const) {
     const prevId = prev.leaders[side].leaderId;
     const cur = state.units.find((u) => u.id === prevId)!;
-    const nextId = cur.alive ? prevId : leaderLine(battle, side).find((id) => state.units.some((u) => u.id === id && u.alive));
+    const living = (id: string) => state.units.some((u) => u.id === id && u.side === side && u.kind === "hero" && u.alive);
+    let nextId = cur.alive ? prevId : leaderLine(battle, side).find(living);
+    const named = side === "challenger" ? battle[side].edits?.find((e) => e.phase === state.phase)?.leader : undefined; // defender edits are ignored
+    if (named !== undefined) {
+      const note = cur.alive ? "the current leader is alive" : !living(named) ? "the named hero is dead" : "";
+      if (!note) nextId = named;
+      log.emit({ type: "edit", ...at(state), side, hero: named, fields: ["leader"], applied: !note, note });
+    }
     if (!nextId) {
       state.leaders[side] = { leaderId: prevId, auraActive: false };
       continue;

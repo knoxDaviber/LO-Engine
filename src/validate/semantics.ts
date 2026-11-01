@@ -1,3 +1,4 @@
+import { blessingKind } from "../devotion";
 import { FILES } from "../load";
 import { EFFECT_REGISTRY, OFFICIAL_ONLY_STATUS_FLAGS } from "../registry/effects";
 import { CANONICAL_ID, COUNTED_DURATIONS, SLOT_TAGS, type Effect } from "../schema";
@@ -17,6 +18,7 @@ export function checkPack(c: Collector, pack: Pack, tier: Tier): void {
   checkStatuses(c, pack, tier);
   checkEquipment(c, pack, tier);
   checkSoldiers(c, pack);
+  checkGods(c, pack);
   checkCharacters(c, pack, tier);
   checkRules(c, pack);
   checkUsage(c, pack);
@@ -33,6 +35,7 @@ function checkIds(c: Collector, pack: Pack): void {
     [FILES.soldiers, pack.soldiers],
     [FILES.factions, pack.factions],
     [FILES.terrains, pack.terrains],
+    [FILES.gods, pack.gods],
   ];
   for (const [file, entries] of groups) {
     for (const e of entries) {
@@ -153,8 +156,27 @@ function checkEquipment(c: Collector, pack: Pack, tier: Tier): void {
     e.eligible.characters.forEach((id, i) => {
       if (!pack.byId.characters.has(id)) c.error("E_REF_MISSING", `eligible character '${id}' does not exist`, { ...loc, path: `eligible.characters[${i}]` });
     });
+    // An item modify_stat is a standing modifier (engine equipment.ts); an event-style trigger has nothing to run it.
+    e.effects.forEach((ef, i) => {
+      if (ef.type === "modify_stat" && ef.trigger && ef.trigger !== "always") {
+        c.error("E_EFFECT_TRIGGER", `an item modify_stat is always on (optionally with a condition); trigger '${ef.trigger}' is not supported`, { ...loc, path: `effects[${i}].trigger` });
+      }
+    });
     if (pack.characters.length > 0 && !pack.characters.some((h) => canEquip(h, e))) {
       c.warn("W_EQUIP_NOBODY", "no current hero can equip this item", loc);
+    }
+  }
+}
+
+// ------------------------------------------------------------------ gods
+/** A blessing effect must be one of the forms the engine runs (devotion.ts blessingKind). */
+function checkGods(c: Collector, pack: Pack): void {
+  for (const g of pack.gods) {
+    for (const tier of ["two_piece", "four_piece"] as const) {
+      g.blessing[tier].forEach((e, i) => {
+        if (blessingKind(e) !== null) return;
+        c.error("E_EFFECT_TRIGGER", `a blessing ${e.type} effect with trigger '${e.trigger ?? "always"}' is not supported (modify_stat / ignore_guard always, reflect_damage, on_event reactions, reduce_damage for the battle)`, { file: FILES.gods, id: g.id, path: `blessing.${tier}[${i}].trigger` });
+      });
     }
   }
 }

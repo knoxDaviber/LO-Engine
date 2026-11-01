@@ -3,6 +3,7 @@ import type { ConditionNode } from "../schema";
 import type { Collector, Location, Tier } from "../types";
 import { checkCondition } from "./conditions";
 import type { Pack } from "./pack";
+import { banMetric } from "../draft";
 
 /** Player-written slots hold one leaf, or `all` of exactly two leaves: no `any`, `not`, nesting or third condition. */
 export function checkSlotShape(node: ConditionNode, loc: Location, c: Collector): void {
@@ -48,5 +49,8 @@ export function checkBanSheet(sheet: BanSheet, loc: Location, c: Collector, pack
     priorities.add(r.priority);
     checkSlotShape(r.filter, { ...here, path: `${here.path}.filter` }, c);
     checkCondition(r.filter, "ban", { ...here, path: `${here.path}.filter` }, c, pack, tier);
+    if (r.select !== "nearest" && banMetric(r.metric, { cost: 0, stat: () => 0 }) === null) {
+      c.error("E_BAN_METRIC", `metric '${r.metric}' must be cost, hp or stat:<STAT>`, { ...here, path: `${here.path}.metric` });
+    }
   });
 }

@@ -94,4 +94,4 @@ export const BAN_SELECTS = ["highest", "lowest", "nearest"] as const;
 
 export const ID_PATTERN = /^[a-z][a-z0-9_]*$/;
 /** Canonical new-content id: type prefix + three digits. Older authored ids are kept and only noted. */
-export const CANONICAL_ID = /^(char|skl|equip|status|soldier|faction|terrain)_\d{3}$/;
+export const CANONICAL_ID = /^(char|skl|equip|status|soldier|faction|terrain|god)_\d{3}$/;

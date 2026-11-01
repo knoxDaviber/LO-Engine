@@ -1,20 +1,47 @@
-// Condition evaluator. Slice leaves: hp_percent, hp_current, hp_missing, unit_kind, row_is, class_is, has_status,
-// lacks_status, phase. Groups all/any/not. Every other leaf is false with reason "not implemented: <type>".
+// Condition evaluator (design 4.3). Every LEAF_REGISTRY leaf evaluates; groups all/any/not. A leaf type outside the registry (never valid
+// content) is false with reason "not implemented: <type>".
 //
 // `side` resolution for a leaf:
 //   self   -> the acting unit
 //   target -> the candidate under evaluation (false + reason when the context has none)
 //   ally / enemy -> with a candidate in context: the candidate, provided it is on that side of the actor (else false);
 //                   without one (activation): true if any living unit on that side satisfies the leaf.
-// Leaves without a `side` (unit_kind, row_is without side) test the candidate if present, else the actor.
+// Leaves without a `side` (unit_kind, row_is / column_is / stat_compare without side, same_column_as, soldier_mounted, the ban leaves) test the
+// candidate if present, else the actor. Count and battle leaves (enemies_alive, allies_alive, enemy_soldiers_remaining, phase, action_count)
+// are about the actor and the board.
+// Leaf meanings [DEFAULT where the design is silent]:
+//   is_leader / not_leader   the side's CURRENT leader (state.leaders, after succession); a squad is never a leader
+//   has_class_advantage      the unit's class beats `value` (rules.class_advantage); without value it beats the other unit of the pair: the
+//                            actor when the unit is someone else ("class has advantage over me"), else the candidate (false without one)
+//   column_is                hero column 1-3; a squad spans every column (true)
+//   same_column_as           value names the reference unit: self (the actor), target (the candidate), attacker / event_unit (the event's);
+//                            a squad shares every column. Any other value is false with a reason
+//   has_any_debuff           a status of a debuff category (stats.ts DEBUFF_CATEGORIES) or an aura instance with a negative modifier
+//   stat_compare             effective stat (stats.ts); active_pp / passive_pp the current pool (a squad has none: 0)
+//   enemies_alive / allies_alive   living heroes (allies include the actor); enemy_soldiers_remaining: living soldiers of enemy squads
+//   action_count             the actor's own completed actions this phase (skills and idles)
+//   action_is_single_target  the unit is the current actor and its action is a single-target attack (EventBus.singleAttack, set by executeSkill
+//                            for an active damage skill of shape single); false for squads, passives and reactions
+//   soldier_mounted          the unit's deployed soldier type (a squad's own, a leader's squad's); no deployed squad: false
+//   ban leaves               hero_class / hero_faction / leader_aura_type / has_skill_tag / cost read the hero's character and its computed
+//                            roster cost; is_official compares with true (the engine only runs the official pack; heroes carry no origin)
+// Event leaves (the EVENT_NAMES): in an event context (a passive's trigger) they judge that event from the actor's point of view by the
+// predicates the passive triggers use (events.ts EVENT_SPECS). Outside an event (a tactic activation) they mean "since my last action": true
+// when any event in the actor's window (EventBus.windowOf: from its last after_action on, reactions' events included) matches.
+// was_attacked_since_last_action always reads the window (a hit aimed at the actor, landed or not).
 import type { ConditionNode } from "../schema";
+import type { EventCtx } from "./events";
+import { EVENT_SPECS, eventAttacker, eventUnit } from "./events";
+import { effectiveStat, isDebuffStatus } from "./stats";
 import type { BattleState, Unit } from "./state";
-import { alliesOf, enemiesOf, otherSide, targetsOf } from "./state";
+import { alliesOf, enemiesOf, livingOf, otherSide, targetsOf } from "./state";
 
 export interface CondContext {
   state: BattleState;
   self: Unit;
   target?: Unit | null;
+  /** The event that triggered a passive, for event leaves. */
+  event?: EventCtx;
 }
 export interface CondResult {
   value: boolean;
@@ -41,6 +68,24 @@ type LeafFn = (u: Unit, leaf: Record<string, any>, ctx: CondContext) => boolean;
 
 const hpPercent = (u: Unit) => (u.maxHp > 0 ? (u.hp / u.maxHp) * 100 : 0);
 
+const isLeader = (u: Unit, ctx: CondContext) => u.kind === "hero" && ctx.state.leaders[u.side].leaderId === u.id;
+const beats = (ctx: CondContext, a: string, d: string) => ctx.state.pack.rules.class_advantage.some((p) => p.attacker === a && p.defender === d);
+const character = (u: Unit, ctx: CondContext) => (u.kind === "hero" ? ctx.state.pack.byId.characters.get(u.charId) : undefined);
+/** The unit's deployed soldier type id: a squad's own, a hero's squad when it leads one. */
+const soldierTypeOf = (u: Unit, ctx: CondContext) =>
+  u.kind === "squad" ? u.soldierTypeId : (ctx.state.units.find((v) => v.kind === "squad" && v.leaderId === u.id)?.soldierTypeId ?? null);
+
+/** same_column_as reference unit; undefined for an unknown reference name. */
+function columnRef(name: string, ctx: CondContext): Unit | null | undefined {
+  switch (name) {
+    case "self": return ctx.self;
+    case "target": return ctx.target ?? null;
+    case "attacker": return ctx.event ? eventAttacker(ctx.event) : null;
+    case "event_unit": return ctx.event ? eventUnit(ctx.event) : null;
+    default: return undefined;
+  }
+}
+
 const LEAVES: Record<string, LeafFn> = {
   hp_percent: (u, l) => compare(hpPercent(u), l.op, l.value),
   hp_current: (u, l) => compare(u.hp, l.op, l.value),
@@ -50,35 +95,91 @@ const LEAVES: Record<string, LeafFn> = {
     const kind = u.kind === "squad" ? "soldier" : "hero";
     return l.is !== undefined ? l.is === kind : l.ignore !== kind;
   },
+  is_leader: (u, _l, c) => isLeader(u, c),
+  not_leader: (u, _l, c) => !isLeader(u, c),
   // front / back are hero rows; soldier_front / soldier_back are the soldier rows, which only a squad stands in.
   row_is: (u, l) => (u.kind === "squad" ? l.value === `soldier_${u.row}` : u.row === l.value),
+  column_is: (u, l) => u.kind === "squad" || u.column === l.value,
   class_is: (u, l) => u.class === l.value,
+  has_class_advantage: (u, l, c) => {
+    if (l.value !== undefined) return beats(c, u.class, l.value);
+    const other = u === c.self ? c.target : c.self;
+    return !!other && other !== u && beats(c, u.class, other.class);
+  },
   // Authored-only hero leaves (auras, 2.5). Squads are never "a hero"; party_has_hero is hero_is read over the ally pool (activation context).
   hero_is: (u, l) => u.kind === "hero" && u.charId === l.value,
   party_has_hero: (u, l) => u.kind === "hero" && u.charId === l.value,
   faction_is: (u, l) => u.kind === "hero" && u.factions.includes(l.value),
+  soldier_mounted: (u, l, c) => {
+    const id = soldierTypeOf(u, c);
+    const st = id ? c.state.pack.byId.soldiers.get(id) : undefined;
+    return st !== undefined && st.mounted === l.value;
+  },
+  action_is_single_target: (u, _l, c) => c.state.bus.singleAttack && c.state.bus.actor === u,
   has_status: (u, l) => u.statuses.some((s) => s.statusId === l.status_id),
   lacks_status: (u, l) => !u.statuses.some((s) => s.statusId === l.status_id),
+  has_any_debuff: (u, _l, c) =>
+    u.statuses.some((s) => {
+      if (s.inline) return s.inline.modifiers.some((m) => m.value < 0);
+      const st = c.state.pack.byId.statuses.get(s.statusId);
+      return st !== undefined && isDebuffStatus(st);
+    }),
+  stat_compare: (u, l, c) => compare(effectiveStat(u, l.stat, c.state.pack), l.op, l.value),
+  active_pp: (u, l) => compare(u.pp.active.cur, l.op, l.value),
+  passive_pp: (u, l) => compare(u.pp.passive.cur, l.op, l.value),
+  // Ban-sheet leaves, read off the hero (draft is 3e; in battle they describe a candidate hero).
+  hero_class: (u, l) => u.kind === "hero" && u.class === l.value,
+  hero_faction: (u, l) => u.kind === "hero" && u.factions.includes(l.value),
+  leader_aura_type: (u, l, c) => character(u, c)?.leader_aura.type === l.value,
+  has_skill_tag: (u, l, c) => u.kind === "hero" && u.skills.some((id) => c.state.pack.byId.skills.get(id)?.tags.includes(l.value)),
+  cost: (u, l) => u.kind === "hero" && compare(u.cost, l.op, l.value),
+  is_official: (u, l) => u.kind === "hero" && l.value === true,
 };
+
+/** Leaves about the actor and the board rather than a unit picked by `side`. */
+const BOARD: Record<string, (leaf: Record<string, any>, ctx: CondContext) => boolean> = {
+  phase: (l, c) => compare(c.state.phase, l.op, l.value),
+  action_count: (l, c) => compare(c.self.actions, l.op, l.value),
+  enemies_alive: (l, c) => compare(livingOf(c.state, otherSide(c.self.side)).length, l.op, l.value),
+  allies_alive: (l, c) => compare(livingOf(c.state, c.self.side).length, l.op, l.value),
+  enemy_soldiers_remaining: (l, c) => {
+    const squads = targetsOf(c.state, otherSide(c.self.side)).filter((u) => u.kind === "squad");
+    return compare(squads.reduce((n, q) => n + q.soldiers.filter((s) => s.alive).length, 0), l.op, l.value);
+  },
+};
+
+const ok = (value: boolean): Inner => ({ value, reasons: [], unknown: false });
 
 function evalLeaf(leaf: Record<string, any>, ctx: CondContext): Inner {
   const type = leaf.type as string;
-  if (type === "phase") return { value: compare(ctx.state.phase, leaf.op, leaf.value), reasons: [], unknown: false };
+  const board = BOARD[type];
+  if (board) return ok(board(leaf, ctx));
+  if (type === "was_attacked_since_last_action") {
+    return ok(ctx.state.bus.windowOf(ctx.self).some((e) => EVENT_SPECS.self_attacked!.match(ctx.self, e)));
+  }
+  const spec = EVENT_SPECS[type];
+  if (spec) return ok(ctx.event ? spec.match(ctx.self, ctx.event) : ctx.state.bus.windowOf(ctx.self).some((e) => spec.match(ctx.self, e)));
+  if (type === "same_column_as") {
+    const ref = columnRef(leaf.value, ctx);
+    if (ref === undefined) return { value: false, reasons: [`same_column_as: unknown reference '${leaf.value}' (self, target, attacker, event_unit)`], unknown: false };
+    const u = ctx.target ?? ctx.self;
+    return ok(!!ref && (u.kind === "squad" || ref.kind === "squad" || u.column === ref.column));
+  }
   const fn = LEAVES[type];
   if (!fn) return { value: false, reasons: [`not implemented: ${type}`], unknown: true };
   const side: string | undefined = leaf.side;
   const cand = ctx.target ?? null;
-  if (side === undefined) return { value: fn(cand ?? ctx.self, leaf, ctx), reasons: [], unknown: false };
-  if (side === "self") return { value: fn(ctx.self, leaf, ctx), reasons: [], unknown: false };
+  if (side === undefined) return ok(fn(cand ?? ctx.self, leaf, ctx));
+  if (side === "self") return ok(fn(ctx.self, leaf, ctx));
   if (side === "target") {
     if (!cand) return { value: false, reasons: [`${type}: side 'target' used with no target in context`], unknown: false };
-    return { value: fn(cand, leaf, ctx), reasons: [], unknown: false };
+    return ok(fn(cand, leaf, ctx));
   }
   // A candidate may be a squad (targets of its side include it); without a candidate (activation) only heroes are considered.
   const sideOf = side === "ally" ? ctx.self.side : otherSide(ctx.self.side);
-  if (cand) return { value: targetsOf(ctx.state, sideOf).includes(cand) && fn(cand, leaf, ctx), reasons: [], unknown: false };
+  if (cand) return ok(targetsOf(ctx.state, sideOf).includes(cand) && fn(cand, leaf, ctx));
   const pool = side === "ally" ? alliesOf(ctx.state, ctx.self) : enemiesOf(ctx.state, ctx.self);
-  return { value: pool.some((u) => fn(u, leaf, ctx)), reasons: [], unknown: false };
+  return ok(pool.some((u) => fn(u, leaf, ctx)));
 }
 
 function evalNode(node: ConditionNode, ctx: CondContext): Inner {

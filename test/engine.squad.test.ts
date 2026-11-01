@@ -211,8 +211,9 @@ test("squad defeated: all soldiers dead removes it from the timeline, logs it, a
   assert.equal(sq.alive, false);
   assert.equal(state.timeline.pending.has(SQ_C), false);
   const deaths = ev("death");
-  assert.equal(deaths.filter((e) => e.unit === SQ_C && e.soldier !== undefined).length, 10);
-  assert.equal(deaths.at(-1)!.unit, SQ_C); // the squad's own defeat comes after the last soldier
+  assert.equal(deaths.filter((e) => e.unit === SQ_C && e.soldier !== undefined).length, 9);
+  assert.equal(deaths.filter((e) => e.unit === SQ_C).length, 10); // the last soldier's death is the wipe, logged once
+  assert.equal(deaths.at(-1)!.unit, SQ_C); // the squad's own defeat comes after the other soldiers
   assert.equal(deaths.at(-1)!.soldier, undefined);
   assert.equal(u(LEON).alive, true);
   assert.ok(state.units.filter((v) => v.kind === "hero" && v.side === "challenger").every((v) => v.alive));
@@ -369,20 +370,12 @@ test("soldier skills the engine cannot run (on_event, a condition, non-stat lead
   assert.equal(state.units.find((v) => v.id === SQ_C)!.innate.length, 2); // only the always-on ATK/DEF mods run
 });
 
-test("hero passive skills are logged as not implemented, one note per passive of each fielded hero", () => {
+test("hero passive skills run (3a): no 'not implemented: passive' notes remain for fielded heroes", () => {
   const { pack, battle } = loadReal({ squads: true });
   const log = new EventLog();
   beginPhase(pack, battle, 1, null, log);
   const notes = log.events.filter((e): e is Extract<BattleEvent, { type: "not_implemented" }> => e.type === "not_implemented");
-  const expected = [battle.challenger, battle.defender].flatMap((s) =>
-    s.heroes.flatMap((h) =>
-      pack.byId.characters.get(h.char_id)!.skills.map((id) => pack.byId.skills.get(id)!).filter((sk) => sk.category === "passive")
-        .map((sk) => `${h.char_id}|not implemented: passive ${sk.name}`),
-    ),
-  );
-  assert.ok(expected.length > 0);
-  const got = notes.filter((n) => n.what.startsWith("not implemented: passive ")).map((n) => `${n.unit}|${n.what}`);
-  assert.deepEqual(got.sort(), expected.sort());
+  assert.deepEqual(notes.filter((n) => n.what.startsWith("not implemented: passive ")), []);
 });
 
 // ------------------------------------------------------------------ whole battle

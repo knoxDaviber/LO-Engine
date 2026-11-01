@@ -95,6 +95,12 @@ const reduceDamage = z.strictObject({
 
 const delayAction = z.strictObject({ type: z.literal("delay_action"), counts: z.number().positive(), ...common });
 const advanceAction = z.strictObject({ type: z.literal("advance_action"), counts: z.number().positive(), ...common });
+/** Cover (Decision 116): run by a before_hit passive on an ally's event (e.g. ally_attacked); the owner takes that single-target hit instead. */
+const cover = z.strictObject({ type: z.literal("cover"), ...common });
+/** Devotion (Mirror): fixed damage = percent of the damage the wearer took from an attacking action, dealt back to the attacker after it (engine equipment.ts). */
+const reflectDamage = z.strictObject({ type: z.literal("reflect_damage"), percent: pct, ...common });
+/** Devotion (Rush): while active (its condition), the wearer's attacks ignore GUARD, like a damage effect's `ignores_guard`. */
+const ignoreGuard = z.strictObject({ type: z.literal("ignore_guard"), ...common });
 
-export const effectSchema = z.discriminatedUnion("type", [damage, heal, applyStatus, removeBuffs, modifyStat, modifyPp, reduceDamage, delayAction, advanceAction]);
+export const effectSchema = z.discriminatedUnion("type", [damage, heal, applyStatus, removeBuffs, modifyStat, modifyPp, reduceDamage, delayAction, advanceAction, cover, reflectDamage, ignoreGuard]);
 export type Effect = z.infer<typeof effectSchema>;

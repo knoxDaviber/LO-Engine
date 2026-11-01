@@ -21,10 +21,10 @@ test("phase ends by exhaustion when every living hero is out of PP for its skill
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
   const res = runPhase(state, rng, log);
   assert.equal(res.reason, "exhausted");
-  assert.equal(res.skills, 4); // Leon Hooves, Lief 2x Defensive Strike, Emperor Dirge
+  assert.equal(res.skills, 5); // Leon Hooves, Lief 2x Defensive Strike, Emperor Dirge, Jasmine Last Chance
   assert.ok(state.units.every((u) => isExhausted(state, u)));
   assert.equal(state.units.find((u) => u.id === LEON)!.pp.active.cur, 0);
-  assert.equal(state.units.find((u) => u.id === JASMINE)!.pp.active.cur, 2); // unusable skill (not implemented) does not keep the phase alive
+  assert.equal(state.units.find((u) => u.id === JASMINE)!.pp.active.cur, 0);
 });
 
 test("a hero with no usable active skill is exhausted", () => {
@@ -84,7 +84,7 @@ test("only hero actions count toward the action cap: a very fast squad cannot en
   assert.ok(res.squadActions > 10, `squad acted ${res.squadActions} times, more than the cap`);
   assert.notEqual(res.reason, "action_cap");
   assert.equal(res.reason, "exhausted");
-  assert.equal(res.skills, 4); // every hero still got to spend its PP
+  assert.equal(res.skills, 5); // every hero still got to spend its PP
 });
 
 test("squad actions have their own safety bound (10x the cap) so an endless squad cannot loop forever", () => {
@@ -111,6 +111,7 @@ test("phase 3 ending with both sides alive is a challenger loss; every phase run
 
 test("a wipe ends the battle at once and the other side wins", () => {
   const { pack, battle } = setup(false);
+  sheetOf(battle, JASMINE).tactic_sheet = []; // no Fairy's Grace (Last Chance), so somebody dies
   const r = runBattle(pack, battle);
   assert.equal(r.reason, "wipe");
   assert.equal(r.phases.at(-1)!.reason, "wipe");

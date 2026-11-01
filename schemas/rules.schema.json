@@ -448,6 +448,10 @@
           "type": "number",
           "minimum": 0
         },
+        "effect_price": {
+          "type": "number",
+          "minimum": 0
+        },
         "aura_price": {
           "type": "number",
           "minimum": 0
@@ -504,6 +508,7 @@
       "required": [
         "stat_weights",
         "skill_price",
+        "effect_price",
         "aura_price",
         "squad_price",
         "caps"

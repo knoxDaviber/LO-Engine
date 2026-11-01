@@ -64,24 +64,43 @@ export type BattleEvent =
   | ({ type: "schedule"; unit: string; due: number; interval: number; reason: "initial" | "next_action" | "spd_change" } & Stamp)
   | ({ type: "tactic_evaluation"; unit: string; evaluations: TacticEval[]; chosen: string | null } & Stamp)
   | ({ type: "target_selection"; unit: string; skill: string; targets: string[]; reason: string } & Stamp)
-  | ({ type: "pp_spend"; unit: string; skill: string; pool: "active"; cost: number; before: number; after: number } & Stamp)
+  | ({ type: "pp_spend"; unit: string; skill: string; pool: "active" | "passive"; cost: number; before: number; after: number } & Stamp)
   | ({ type: "roll"; unit: string; target: string; skill: string; kind: RollKind; chance: number; roll: number | null; result: boolean; note?: string } & SoldierRef & Stamp)
   | ({
       type: "damage"; unit: string; target: string; skill: string; power: number; defense: number; base: number; crit: boolean; guard: boolean;
-      amount: number; hp_before: number; hp_after: number;
+      amount: number; hp_before: number; hp_after: number; reductions?: number[];
     } & SoldierRef & Stamp)
   | ({ type: "heal"; unit: string; target: string; skill: string; amount: number; applied: number; hp_before: number; hp_after: number; share?: number; revived?: number } & Stamp)
   | ({ type: "status_applied"; unit: string; status: string; category: string; source: string; remaining: number | null; notes: string[] } & Stamp)
-  | ({ type: "status_expired"; unit: string; status: string; reason: "duration" | "hit" | "death" } & Stamp)
+  | ({ type: "status_expired"; unit: string; status: string; reason: "duration" | "hit" | "death" | "condition" | "used" | "removed" } & Stamp)
+  | ({ type: "status_blocked"; unit: string; status: string; source: string; by: string } & Stamp)
+  | ({ type: "action_delayed"; unit: string; counts: number; due: number | null } & Stamp)
+  | ({ type: "action_moved"; unit: string; source: string; skill: string; counts: number; due: number | null } & Stamp)
+  | ({ type: "action_prevented"; unit: string; status: string } & Stamp)
+  | ({ type: "pp_change"; unit: string; source: string; skill: string; pool: "active" | "passive"; amount: number; before: number; after: number } & Stamp)
+  | ({ type: "death_intercepted"; unit: string; status: string; hp: number; soldier?: number } & Stamp)
   | ({ type: "death"; unit: string; killer: string | null; soldier?: number } & Stamp)
   | ({ type: "squad_attack"; unit: string; attackers: number } & Stamp)
   | ({ type: "idle"; unit: string } & Stamp)
   | ({ type: "trigger"; source: string; handler: string; event: string; subject: string | null; effect: string } & Stamp)
+  | {
+      type: "draft_step"; step: number; actor: Side; action: "ban" | "protect"; source: "human" | "rule_sheet"; side: Side; hero: string; by: string; name: string;
+    }
+  | { type: "draft_result"; side: Side; fielded: string[]; banned: string[]; protected: string[]; leader: string; anchor: string | null; moved: string[] }
+  | ({ type: "edit"; side: Side; hero: string; fields: string[]; applied: boolean; note: string } & Stamp)
   | ({ type: "leader_down"; unit: string; side: Side; squad_removed: boolean; aura_active: boolean } & Stamp)
   | ({ type: "leader_succession"; side: Side; previous: string; leader: string; aura_active: boolean; squad: boolean } & Stamp)
   | ({ type: "aura_applied"; leader: string; aura: string; unit: string; status: string; category: "passive"; effect: string } & Stamp)
   | ({ type: "terrain_applied"; terrain: string; name: string; unit: string; status: string; category: "terrain"; effect: string } & Stamp)
+  | ({ type: "equipment_applied"; unit: string; item: string; name: string; status: string; category: string; effect: string } & Stamp)
+  | ({ type: "equipment_removed"; unit: string; item: string; name: string; status: string; reason: "condition" | "death" } & Stamp)
+  | ({ type: "blessing_applied"; unit: string; name: string; status: string; category: string; effect: string; god: string } & Stamp)
+  | ({ type: "blessing_removed"; unit: string; name: string; status: string; reason: "condition" | "death"; god: string } & Stamp)
   | ({ type: "aura_removed"; leader: string; aura: string; unit: string; status: string; reason: "leader_down" } & Stamp)
+  | ({ type: "passive_blocked"; unit: string; skill: string; reason: string } & Stamp)
+  | ({ type: "passive_ended"; unit: string; skill: string } & Stamp)
+  | ({ type: "damage_reduction"; unit: string; source: string; skill: string; percent: number; applies_to: string; duration: string } & Stamp)
+  | ({ type: "cover"; unit: string; ally: string; attacker: string; skill: string } & Stamp)
   | ({ type: "not_implemented"; unit: string | null; what: string } & Stamp)
   | ({ type: "phase_end"; reason: string; actions: number; skills: number; squad_actions: number; survivors: { challenger: number; defender: number } } & Stamp)
   | { type: "battle_end"; winner: Side; reason: string; phases: number };
@@ -117,6 +136,7 @@ export function renderLog(events: BattleEvent[]): string {
     for (const s of e.skills) skills.set(s.id, s.name);
     for (const s of e.statuses) statuses.set(s.id, s.name);
   }
+  for (const e of events) if (e.type === "draft_step" && !units.has(e.hero)) units.set(e.hero, e.name);
   const U = (id: string) => units.get(id) ?? id;
   const S = (id: string) => skills.get(id) ?? id;
   const ST = (id: string) => statuses.get(id) ?? id;
@@ -125,8 +145,19 @@ export function renderLog(events: BattleEvent[]): string {
   const sol = (e: SoldierRef) => (e.soldier === undefined ? "" : ` soldier #${e.soldier + 1}`);
   const by = (e: SoldierRef) => (e.by === undefined ? "" : ` #${e.by + 1}`);
   const tag = (e: Stamp) => `[p${e.phase} t=${String(e.t).padStart(4, " ")}]`;
+  let draftHeader = false;
   for (const e of events) {
     switch (e.type) {
+      case "draft_step":
+        if (!draftHeader) { out.push("=== Draft ==="); draftHeader = true; }
+        out.push(`  step ${e.step}: ${e.actor} ${e.action === "ban" ? "bans" : "protects"} ${e.name} (${e.side}) [${e.by}]`);
+        break;
+      case "draft_result":
+        out.push(`  ${e.side} fields ${e.fielded.map(U).join(", ")}; leader ${U(e.leader)}${e.anchor ? `; anchor ${U(e.anchor)}` : ""}; banned ${e.banned.map(U).join(", ") || "none"}${e.protected.length ? `; protected ${e.protected.map(U).join(", ")}` : ""}${e.moved.length ? `; moved to the other row (overflow) ${e.moved.map(U).join(", ")}` : ""}`);
+        break;
+      case "edit":
+        out.push(`${tag(e)}   ${e.side} edit: ${U(e.hero)} ${e.fields.join(", ")}${e.applied ? "" : " NOT applied"}${e.note ? ` (${e.note})` : ""}`);
+        break;
       case "battle_setup": {
         out.push(`=== Battle ${e.battle_id} (seeds ${e.seeds.join(", ")}) ===`);
         for (const u of e.units) {
@@ -165,7 +196,7 @@ export function renderLog(events: BattleEvent[]): string {
         out.push(`${tag(e)}   roll ${e.kind} ${U(e.unit)}${by(e)} -> ${U(e.target)}${sol(e)}: chance ${e.chance}%${e.roll === null ? "" : `, rolled ${e.roll}`} => ${e.result ? (e.kind === "hit" ? "HIT" : "yes") : e.kind === "hit" ? "MISS" : "no"}${e.note ? ` (${e.note})` : ""}`);
         break;
       case "damage":
-        out.push(`${tag(e)}   ${U(e.unit)}${by(e)} deals ${e.amount} to ${U(e.target)}${sol(e)} (power ${e.power}, defense ${e.defense}, base ${e.base}${e.crit ? ", crit" : ""}${e.guard ? ", guarded" : ""}) HP ${e.hp_before} -> ${e.hp_after}`);
+        out.push(`${tag(e)}   ${U(e.unit)}${by(e)} deals ${e.amount} to ${U(e.target)}${sol(e)} (power ${e.power}, defense ${e.defense}, base ${e.base}${e.crit ? ", crit" : ""}${e.guard ? ", guarded" : ""}${e.reductions ? `, reduced ${e.reductions.map((r) => `${r}%`).join(" ")}` : ""}) HP ${e.hp_before} -> ${e.hp_after}`);
         break;
       case "heal":
         out.push(`${tag(e)}   ${U(e.unit)} heals ${U(e.target)} for ${e.applied} (${e.amount} before cap${e.share === undefined ? "" : `; ${e.share} per soldier, ${e.revived} revived`}) HP ${e.hp_before} -> ${e.hp_after}`);
@@ -175,6 +206,24 @@ export function renderLog(events: BattleEvent[]): string {
         break;
       case "status_expired":
         out.push(`${tag(e)}   ${U(e.unit)} loses ${ST(e.status)} (${e.reason})`);
+        break;
+      case "status_blocked":
+        out.push(`${tag(e)}   ${U(e.unit)} resists ${ST(e.status)} from ${U(e.source)} (${ST(e.by)})`);
+        break;
+      case "action_delayed":
+        out.push(`${tag(e)}   ${U(e.unit)} is stunned: pending action pushed back ${e.counts} counts${e.due === null ? " (applies to its next schedule)" : ` to ${e.due}`}`);
+        break;
+      case "action_moved":
+        out.push(`${tag(e)}   ${U(e.unit)}'s pending action is ${e.counts > 0 ? "delayed" : "advanced"} ${Math.abs(e.counts)} counts by ${S(e.skill)}${e.due === null ? " (applies to its next schedule)" : ` to ${e.due}`}`);
+        break;
+      case "action_prevented":
+        out.push(`${tag(e)} ${U(e.unit)} cannot act (${ST(e.status)})`);
+        break;
+      case "pp_change":
+        out.push(`${tag(e)}   ${U(e.unit)} ${e.pool} PP ${e.amount > 0 ? "+" : ""}${e.amount} from ${S(e.skill)} (${e.before} -> ${e.after})`);
+        break;
+      case "death_intercepted":
+        out.push(`${tag(e)}   ${U(e.unit)}${sol(e)} would fall; ${ST(e.status)} revives it at ${e.hp} HP`);
         break;
       case "death":
         out.push(`${tag(e)}   ${U(e.unit)}${sol(e)} is ${e.soldier === undefined && e.unit.startsWith("squad_") ? "wiped out" : "defeated"}${e.killer ? ` by ${U(e.killer)}` : ""}`);
@@ -200,8 +249,32 @@ export function renderLog(events: BattleEvent[]): string {
       case "terrain_applied":
         out.push(`${tag(e)}   TERRAIN ${e.name}: ${U(e.unit)} gets ${e.effect} (${e.category})`);
         break;
+      case "equipment_applied":
+        out.push(`${tag(e)}   EQUIPMENT ${e.name}: ${U(e.unit)} gets ${e.effect} (${e.category})`);
+        break;
+      case "equipment_removed":
+        out.push(`${tag(e)}   EQUIPMENT ${e.name} ends on ${U(e.unit)} (${e.reason})`);
+        break;
+      case "blessing_applied":
+        out.push(`${tag(e)}   BLESSING ${e.name}: ${U(e.unit)} gets ${e.effect} (${e.category})`);
+        break;
+      case "blessing_removed":
+        out.push(`${tag(e)}   BLESSING ${e.name} ends on ${U(e.unit)} (${e.reason})`);
+        break;
       case "aura_removed":
         out.push(`${tag(e)}   AURA ${e.aura} (${U(e.leader)}) ends on ${U(e.unit)} (${e.reason})`);
+        break;
+      case "passive_blocked":
+        out.push(`${tag(e)}   ${U(e.unit)}: ${S(e.skill)} does not fire (${e.reason})`);
+        break;
+      case "passive_ended":
+        out.push(`${tag(e)}   ${U(e.unit)}: ${S(e.skill)} ends (condition no longer holds)`);
+        break;
+      case "damage_reduction":
+        out.push(`${tag(e)}   ${U(e.unit)} takes ${e.percent}% less ${e.applies_to} damage (${e.duration.replace(/_/g, " ")}, ${S(e.skill)})`);
+        break;
+      case "cover":
+        out.push(`${tag(e)}   ${U(e.unit)} covers ${U(e.ally)}: ${U(e.attacker)}'s ${S(e.skill)} hits ${U(e.unit)} instead`);
         break;
       case "not_implemented":
         out.push(`${tag(e)}   ${e.unit ? `${U(e.unit)}: ` : ""}${e.what}`);
