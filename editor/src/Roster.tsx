@@ -1,6 +1,7 @@
 // One side of the battle: its heroes (fielded form: `heroes` + `leader`; roster form: `roster` with leader line, anchor, battlefield and
 // draft picks) and, per hero, squad, rows, equipment, sigils and the tactics board. Eligibility is left to the validator.
 import type { ContentInfo } from "../apiTypes";
+import { Info, titleOf, useTips } from "./Hint";
 import { defaultHero, heroesOf, heroesPath, isRosterForm, SLOTS, usedHeroes, type Json, type SideKey } from "./model";
 import { TacticsBoard } from "./Tactics";
 
@@ -9,12 +10,13 @@ interface SideProps { c: ContentInfo; battle: Json; side: SideKey; edit: Edit; s
 
 const name = (c: ContentInfo, id: string) => c.characters.find((x) => x.id === id)?.name ?? id;
 
-function Opt({ id, label }: { id: string; label: string }) {
-  return <option value={id}>{label === id ? id : `${label} (${id})`}</option>;
+function Opt({ id, label, tip }: { id: string; label: string; tip?: string }) {
+  return <option value={id} title={tip}>{label === id ? id : `${label} (${id})`}</option>;
 }
 
 function HeroPanel({ c, battle, side, index, edit, selected, select }: SideProps & { index: number }) {
   const hero = heroesOf(battle, side)[index];
+  const tips = useTips();
   const base = `${heroesPath(battle, side)}[${index}]`;
   const ch = c.characters.find((x) => x.id === hero.char_id);
   const squad = c.soldiers.find((s) => s.id === hero.squad_id);
@@ -30,8 +32,9 @@ function HeroPanel({ c, battle, side, index, edit, selected, select }: SideProps
         <label data-path={`${base}.squad_id`}>squad
           <select value={hero.squad_id} onChange={(e) => set((h) => (h.squad_id = e.target.value))}>
             {!squad && <option value={hero.squad_id}>{hero.squad_id || "(none)"}</option>}
-            {c.soldiers.map((s) => <Opt key={s.id} id={s.id} label={`${s.name}, ${s.class}`} />)}
+            {c.soldiers.map((s) => <Opt key={s.id} id={s.id} label={`${s.name}, ${s.class}`} tip={titleOf(tips.soldier(s.id))} />)}
           </select>
+          <Info tip={tips.soldier(hero.squad_id)} />
         </label>
         <label data-path={`${base}.squad_row`}>squad row
           <select value={hero.squad_row ?? ""} onChange={optional("squad_row")}>
@@ -45,15 +48,23 @@ function HeroPanel({ c, battle, side, index, edit, selected, select }: SideProps
             {c.rows.map((r) => <option key={r}>{r}</option>)}
           </select>
         </label>
+        <label data-path={`${base}.column`}>column
+          <select value={hero.column ?? ""} onChange={(e) => set((h) => { if (e.target.value) h.column = Number(e.target.value); else delete h.column; })}>
+            <option value="">auto</option>
+            {Array.from({ length: c.rules.columns }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+            {hero.column != null && !(Number.isInteger(hero.column) && hero.column >= 1 && hero.column <= c.rules.columns) && <option value={hero.column}>{hero.column} (invalid)</option>}
+          </select>
+        </label>
       </div>
       <div className="fields">
         {SLOTS.map(([key, slot]) => (
           <span key={key} className="slotbox">
             <label data-path={`${base}.equipment.${key}`}>{key}
-              <select value={hero.equipment?.[key] ?? ""} onChange={(e) => set((h) => (h.equipment[key] = e.target.value || null))}>
+              <select value={hero.equipment?.[key] ?? ""} onChange={(e) => set((h) => ((h.equipment ??= {})[key] = e.target.value || null))}>
                 <option value="">(empty)</option>
-                {c.equipment.filter((x) => x.slot === slot || x.id === hero.equipment?.[key]).map((x) => <Opt key={x.id} id={x.id} label={x.name} />)}
+                {c.equipment.filter((x) => x.slot === slot || x.id === hero.equipment?.[key]).map((x) => <Opt key={x.id} id={x.id} label={x.name} tip={titleOf(tips.equipment(x.id))} />)}
               </select>
+              <Info tip={tips.equipment(hero.equipment?.[key])} />
             </label>
             <label data-path={`${base}.sigils.${key}`}>sigil
               <select value={hero.sigils?.[key] ?? ""} onChange={(e) => set((h) => {
@@ -62,8 +73,9 @@ function HeroPanel({ c, battle, side, index, edit, selected, select }: SideProps
                 if (Object.keys(sg).length > 0) h.sigils = sg; else delete h.sigils;
               })}>
                 <option value="">(none)</option>
-                {c.gods.map((g) => <Opt key={g.id} id={g.id} label={`${g.name}: ${g.blessing}`} />)}
+                {c.gods.map((g) => <Opt key={g.id} id={g.id} label={`${g.name}: ${g.blessing}`} tip={titleOf(tips.god(g.id))} />)}
               </select>
+              <Info tip={tips.god(hero.sigils?.[key])} />
             </label>
           </span>
         ))}

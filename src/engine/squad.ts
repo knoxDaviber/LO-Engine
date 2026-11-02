@@ -1,14 +1,16 @@
-// Squad actions (design Section 2.1). A squad has no tactic sheet and no PP: on every scheduled count of its own SPD each living soldier
-// makes one basic attack (10 real hits, each with its own hit/crit/guard rolls from the phase rng, in soldier index order).
+// Squad actions (design Section 2.1, Decision 130: "soldiers attack as one and defend as one"). A squad has no tactic sheet and no PP: on every
+// scheduled count of its own SPD it makes ONE basic attack whose power is the sum of its living soldiers' effective scaling stat (damage.ts
+// computeDamage, stats.ts summedStat) x the basic attack multiplier (1: soldier basic attacks have no multiplier field) x matchup. One hit roll, one crit
+// roll, one guard roll, with the soldier type's rate stats (never summed).
 //
 // Decisions:
-//  - Each soldier picks its target when it attacks: the nearest living enemy, front board row first (the enemy's soldier row counts as a
-//    row), ties by column then unit id. So a target that dies mid-attack is replaced for the following soldiers.
-//  - A hit on an enemy squad is a single-target hit (lowest-HP living soldier), a hit on a hero is an ordinary hit.
-//  - The attack stops when the enemy has no living hero: the battle is over at that point (soldiers are never a victory condition).
+//  - The target is the nearest living enemy, front board row first (the enemy's soldier row counts as a row), ties by column then unit id.
+//  - A hit on an enemy squad is resolved once against its summed defense, applied from its lowest-HP living soldier with overflow; a hit on a
+//    hero is an ordinary hit.
+//  - No attack when the enemy has no living hero: the battle is over at that point (soldiers are never a victory condition).
 //  - Squad attacks never keep a phase alive; the phase controller ignores squads in its exhaustion and idle checks.
-//  - [DEFAULT] A confused squad (ignores_tactics status of its own): each soldier attacks a random living unit drawn from the rng (any side but
-//    the squad itself with random_any, else an enemy). Its attack counts as its first active attack, so the confusion ends after it.
+//  - [DEFAULT] A confused squad (ignores_tactics status of its own) attacks a random living unit drawn from the rng (any side but the squad
+//    itself with random_any, else an enemy). Its attack counts as its first active attack, so the confusion ends after it.
 import type { DamageEffect, ExecCtx, SkillRef } from "./damage";
 import { actionBlocker, executePrevented, finishAction, hitHero, hitSquad } from "./damage";
 import { at } from "./log";
@@ -18,7 +20,7 @@ import { boardRank, livingOf, otherSide, targetsOf } from "./state";
 /** Stand-in skill for soldier basic attacks (they are not content skills): standard guard handling. */
 export const SOLDIER_ATTACK: SkillRef = { id: "soldier_basic_attack", interactions: { guard: "standard", soldiers: "standard" }, shape: "single" };
 
-/** The squad's basic attack as a damage effect: no multiplier, no bonuses, no guard bypass. */
+/** The squad's basic attack as a damage effect: no multiplier (1), no bonuses, no guard bypass. The soldier sum is applied by computeDamage. */
 export function soldierEffect(x: ExecCtx, squad: Unit): DamageEffect {
   const st = x.state.pack.byId.soldiers.get(squad.soldierTypeId!)!;
   const b = st.basic_attack;
@@ -47,14 +49,11 @@ export function executeSquadAction(x: ExecCtx, squad: Unit): void {
     const pool = state.units.filter((u) => u.alive && u !== squad && (anySide || u.side !== squad.side));
     return pool.length ? pool[x.rng.int(pool.length)]! : null;
   };
-  for (const s of attackers) {
-    if (!squad.alive) break; // removed mid-attack (its leader died)
-    if (livingOf(state, otherSide(squad.side)).length === 0) break; // enemy heroes all dead: the battle is over
-    const target = confused.length ? randomTarget() : pickSquadTarget(x, squad);
-    if (!target) break;
+  const target = livingOf(state, otherSide(squad.side)).length === 0 ? null : confused.length ? randomTarget() : pickSquadTarget(x, squad);
+  if (target) {
     touched.add(target);
-    if (target.kind === "squad") hitSquad(x, squad, target, SOLDIER_ATTACK, effect, false, s.index);
-    else hitHero(x, squad, target, SOLDIER_ATTACK, effect, s.index);
+    if (target.kind === "squad") hitSquad(x, squad, target, SOLDIER_ATTACK, effect, false);
+    else hitHero(x, squad, target, SOLDIER_ATTACK, effect);
   }
   for (const inst of confused) {
     if (!squad.statuses.includes(inst)) continue;

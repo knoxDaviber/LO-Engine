@@ -27,8 +27,8 @@ import { EventLog, at, nullSink, r4 } from "./log";
 import type { Rng } from "./rng";
 import { phaseRng } from "./rng";
 import { allBreakdowns } from "./stats";
-import type { BattleState, Side, Unit } from "./state";
-import { createBattleState, livingOf, syncSquad } from "./state";
+import type { BattleOptions, BattleState, Side, Unit } from "./state";
+import { createBattleState, livingOf, syncSquad, withOptions } from "./state";
 import { executeSquadAction } from "./squad";
 import { decideTactic, skillReady, skillSupport } from "./tactics";
 import { nextAction, scheduleInitial } from "./timeline";
@@ -87,8 +87,8 @@ const survivors = (s: BattleState) => ({ challenger: livingOf(s, "challenger").l
  * Builds the state for `phase`: fresh PP and statuses, timeline 0; HP and deaths come from the previous phase's state. Challenger edits
  * up to this phase (src/edits.ts) are applied to the hero entries the state is built from.
  */
-export function beginPhase(pack: Pack, battle: Battle, phase: number, prev: BattleState | null, log: EventSink): { state: BattleState; rng: Rng } {
-  const state = createBattleState(pack, battleAtPhase(battle, phase), phase);
+export function beginPhase(pack: Pack, battle: Battle, phase: number, prev: BattleState | null, log: EventSink, opts: BattleOptions = {}): { state: BattleState; rng: Rng } {
+  const state = createBattleState(pack, battleAtPhase(battle, phase), phase, opts);
   if (prev) {
     for (const u of state.units) {
       const p = prev.units.find((x) => x.id === u.id)!;
@@ -223,8 +223,9 @@ export function setupEvent(pack: Pack, battle: Battle, state: BattleState): Batt
  * carried over, nothing is logged). It uses its own rng from the phase seed, so the phase stream is untouched. Used for the phase-1 setup stats
  * (battle_setup) and by the editor's stacking breakdown.
  */
-export function preBattleState(pack: Pack, battle: Battle, phase = 1): BattleState {
-  const state = createBattleState(pack, battleAtPhase(battle, phase), phase);
+export function preBattleState(pack: Pack, battle: Battle, phase = 1, opts: BattleOptions = {}): BattleState {
+  pack = withOptions(pack, opts);
+  const state = createBattleState(pack, battleAtPhase(battle, phase), phase, opts);
   runPreBattle(state, nullSink, phaseRng(battle, phase));
   return state;
 }
@@ -242,8 +243,10 @@ function logDraft(pack: Pack, d: DraftOutcome, log: EventSink): void {
 /**
  * Runs up to 3 phases. Survivors on both sides after phase 3 means the defender wins (challenger loss). A roster-form input is drafted
  * first (src/draft.ts; throws when the draft has issues, which the validator reports); the draft is logged before battle_setup.
+ * `opts` holds what-if knobs (BattleOptions: a PP override, a damage formula override) that are not part of the battle file.
  */
-export function runBattle(pack: Pack, input: BattleInput): BattleResult {
+export function runBattle(pack: Pack, input: BattleInput, opts: BattleOptions = {}): BattleResult {
+  pack = withOptions(pack, opts);
   const log = new EventLog();
   let battle: Battle;
   let draft: DraftOutcome | null = null;
@@ -258,8 +261,8 @@ export function runBattle(pack: Pack, input: BattleInput): BattleResult {
   let winner: Side | null = null;
   let reason: BattleResult["reason"] = "phase3_timeout";
   for (let phase = 1; phase <= MAX_PHASES; phase++) {
-    if (phase === 1) log.emit(setupEvent(pack, battle, preBattleState(pack, battle, 1))); // the setup stats include the leader auras
-    const { state, rng } = beginPhase(pack, battle, phase, prev, log);
+    if (phase === 1) log.emit(setupEvent(pack, battle, preBattleState(pack, battle, 1, opts))); // the setup stats include the leader auras
+    const { state, rng } = beginPhase(pack, battle, phase, prev, log, opts);
     const res = runPhase(state, rng, log);
     phases.push(res);
     prev = state;

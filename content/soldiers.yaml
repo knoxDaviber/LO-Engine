@@ -1,8 +1,11 @@
 # soldiers.yaml (v2)
 # Soldier types are generic content. A squad is a pairing of a hero and an eligible soldier type.
-# A squad is selected as one target, but each soldier has its own HP; single-target hits land on the lowest-HP living soldier, and row/column/all
-# hit every living soldier. It fills a whole 1x3 soldier row. Soldier skills are a separate
+# A squad is selected as one target, but each soldier has its own HP; every hit lands on the lowest-HP living soldier and overflows to
+# the next. It fills a whole 1x3 soldier row. Soldier skills are a separate
 # stacking category (source_category: soldier) and stack with equipment, active and passive effects.
+# Squads attack and defend as one (Decision 130): power = the sum of the living soldiers' ATK/INT, defense = the sum of their DEF/MDEF.
+# Per-soldier stats (rebalance, Decision 131): HP/ATK/INT/DEF/MDEF/SKL ~0.15 x a P=100 hero of the soldier's class (0.17 for HP/ATK/DEF of the
+# two Heavy types); SPD, CRIT, GUARD, EVA kept; HIT 90 (Bowmen 95).
 
 - id: soldier_001
   name: Heavy Infantry
@@ -14,14 +17,14 @@
   count: 10
   mounted: false
   per_soldier_stats:
-    HP: 50
-    ATK: 30
-    INT: 10
-    DEF: 30
-    MDEF: 10
+    HP: 153
+    ATK: 17
+    INT: 3
+    DEF: 14
+    MDEF: 6
     SPD: 30
-    HIT: 60
-    SKL: 30
+    HIT: 90
+    SKL: 2
     CRIT: 15
     GUARD: 0
     EVA: 0
@@ -56,14 +59,14 @@
   count: 10
   mounted: true
   per_soldier_stats:
-    HP: 40
-    ATK: 30
-    INT: 10
-    DEF: 30
-    MDEF: 10
+    HP: 119
+    ATK: 17
+    INT: 3
+    DEF: 10
+    MDEF: 6
     SPD: 50
-    HIT: 60                           # not given; kept at Heavy Infantry's value
-    SKL: 30                           # not given; kept at Heavy Infantry's value
+    HIT: 90
+    SKL: 3
     CRIT: 15
     GUARD: 0
     EVA: 10
@@ -83,7 +86,7 @@
   designer_notes: { strengths: "", weaknesses: "", synergies: "Pairs with Leon without his SPD penalty." }
   meta:
     unresolved:
-      - "HIT and SKL were not given for Heavy Cavalry; kept at Heavy Infantry's 60 and 30."
+      - "HIT and SKL were not given for Heavy Cavalry; set by the stat rebalance (Decision 131) like the other types."
 
 # ---------------------------------------------------------------- generic kit (one soldier type per class, open to every hero)
 
@@ -96,7 +99,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 45, ATK: 25, INT: 10, DEF: 25, MDEF: 10, SPD: 30, HIT: 60, SKL: 30, CRIT: 10, GUARD: 10, EVA: 0 }
+  per_soldier_stats: { HP: 135, ATK: 15, INT: 3, DEF: 12, MDEF: 6, SPD: 30, HIT: 90, SKL: 2, CRIT: 10, GUARD: 10, EVA: 0 }
   basic_attack:
     damage_type: physical
     range: melee
@@ -116,7 +119,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 40, ATK: 28, INT: 10, DEF: 22, MDEF: 12, SPD: 32, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 113, ATK: 15, INT: 5, DEF: 11, MDEF: 8, SPD: 32, HIT: 90, SKL: 3, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: physical
     range: melee
@@ -136,7 +139,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: true
-  per_soldier_stats: { HP: 35, ATK: 28, INT: 10, DEF: 20, MDEF: 10, SPD: 50, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 105, ATK: 15, INT: 3, DEF: 9, MDEF: 6, SPD: 50, HIT: 90, SKL: 3, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: physical
     range: melee
@@ -156,7 +159,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 30, ATK: 28, INT: 10, DEF: 12, MDEF: 12, SPD: 33, HIT: 70, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 83, ATK: 15, INT: 4, DEF: 7, MDEF: 7, SPD: 33, HIT: 95, SKL: 4, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: physical
     range: ranged
@@ -176,7 +179,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: true
-  per_soldier_stats: { HP: 30, ATK: 25, INT: 10, DEF: 15, MDEF: 15, SPD: 50, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 25 }
+  per_soldier_stats: { HP: 90, ATK: 15, INT: 4, DEF: 6, MDEF: 8, SPD: 50, HIT: 90, SKL: 3, CRIT: 10, GUARD: 0, EVA: 25 }
   basic_attack:
     damage_type: physical
     range: melee
@@ -196,7 +199,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 25, ATK: 5, INT: 28, DEF: 8, MDEF: 25, SPD: 32, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 75, ATK: 2, INT: 15, DEF: 6, MDEF: 12, SPD: 32, HIT: 90, SKL: 3, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: magical
     range: ranged
@@ -216,7 +219,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 30, ATK: 10, INT: 22, DEF: 12, MDEF: 25, SPD: 30, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 83, ATK: 3, INT: 15, DEF: 7, MDEF: 11, SPD: 30, HIT: 90, SKL: 2, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: magical
     range: ranged
@@ -240,7 +243,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 25, ATK: 30, INT: 10, DEF: 10, MDEF: 10, SPD: 35, HIT: 60, SKL: 30, CRIT: 25, GUARD: 0, EVA: 20 }
+  per_soldier_stats: { HP: 75, ATK: 15, INT: 3, DEF: 6, MDEF: 6, SPD: 35, HIT: 90, SKL: 5, CRIT: 25, GUARD: 0, EVA: 20 }
   basic_attack:
     damage_type: physical
     range: melee
@@ -260,7 +263,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 40, ATK: 25, INT: 10, DEF: 22, MDEF: 18, SPD: 32, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 120, ATK: 15, INT: 5, DEF: 9, MDEF: 9, SPD: 32, HIT: 90, SKL: 3, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: physical
     range: melee
@@ -280,7 +283,7 @@
   allowed_soldier_rows: [front, back]
   count: 10
   mounted: false
-  per_soldier_stats: { HP: 50, ATK: 30, INT: 5, DEF: 22, MDEF: 5, SPD: 40, HIT: 60, SKL: 30, CRIT: 10, GUARD: 0, EVA: 0 }
+  per_soldier_stats: { HP: 150, ATK: 15, INT: 5, DEF: 12, MDEF: 7, SPD: 40, HIT: 90, SKL: 3, CRIT: 10, GUARD: 0, EVA: 0 }
   basic_attack:
     damage_type: physical
     range: melee

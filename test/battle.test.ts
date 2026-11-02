@@ -82,9 +82,28 @@ const crowd = (b: any, n: number) => {
 test("E_BATTLE_ROW_FULL: more heroes in a row than board columns", () => {
   assert.ok(run((b) => crowd(b, 4)).includes("E_BATTLE_ROW_FULL")); // 4 in front, 3 columns
   assert.ok(!run((b) => crowd(b, 3)).includes("E_BATTLE_ROW_FULL"));
-  // leader forced to the front row counts toward the front row
-  assert.ok(run((b) => { crowd(b, 4); b.challenger.heroes[3].preferred_row = "back"; b.challenger.heroes[0].preferred_row = "back"; b.challenger.heroes[1].preferred_row = "front"; })
-    .includes("E_BATTLE_ROW_FULL") === false);
+  // the leader is not forced front: with it in the back row, the front row of 3 fits
+  assert.ok(!run((b) => { crowd(b, 4); b.challenger.heroes[0].preferred_row = "back"; }).includes("E_BATTLE_ROW_FULL"));
+});
+
+test("E_BATTLE_SLOT: explicit slots (duplicates, column beyond the board); edits are checked too", () => {
+  const two = (b: any, over0: any, over1: any) => { crowd(b, 2); Object.assign(b.challenger.heroes[0], over0); Object.assign(b.challenger.heroes[1], over1); };
+  const slots = (m: (b: any) => void) => run(m).filter((k) => k === "E_BATTLE_SLOT" || k === "E_BATTLE_ROW_FULL"); // crowd's clones bring unrelated errors
+  assert.ok(run((b) => two(b, { column: 2 }, { column: 2 })).includes("E_BATTLE_SLOT"));
+  assert.ok(!run((b) => two(b, { column: 2 }, { column: 1 })).includes("E_BATTLE_SLOT"));
+  assert.ok(!run((b) => two(b, { column: 2 }, { column: 2, preferred_row: "back" })).includes("E_BATTLE_SLOT"), "same column, other row");
+  assert.ok(run((b) => two(b, { column: 4 }, {})).includes("E_BATTLE_SLOT"), "column beyond rules.board.columns");
+  assert.deepEqual(slots((b) => two(b, { column: 4 }, {})), ["E_BATTLE_SLOT"], "one cause, one error: no E_BATTLE_ROW_FULL");
+  assert.deepEqual(slots((b) => two(b, { column: 4 }, { column: 4 })), ["E_BATTLE_SLOT", "E_BATTLE_SLOT"], "per entry, no extra clash error");
+  assert.deepEqual(slots((b) => { two(b, { column: 1 }, {}); b.challenger.edits = [{ phase: 2, heroes: [{ char_id: "char_002", column: 4 }] }]; }), ["E_BATTLE_SLOT"], "edit column beyond the board");
+  assert.deepEqual(slots((b) => { two(b, { column: 4 }, {}); b.challenger.edits = [{ phase: 2, heroes: [{ char_id: "char_001", tactic_sheet: [] }] }]; }), ["E_BATTLE_SLOT"], "not re-reported by an edit that leaves the column");
+  assert.deepEqual(slots((b) => { two(b, { column: 4 }, {}); b.challenger.edits = [{ phase: 2, heroes: [{ char_id: "char_001", column: null }] }]; }), ["E_BATTLE_SLOT"], "phase 1 still bad; column: null is accepted");
+  assert.deepEqual(slots((b) => { two(b, { column: 2 }, { column: 2 }); b.challenger.edits = [{ phase: 2, heroes: [{ char_id: "char_001", tactic_sheet: [] }] }, { phase: 3, heroes: [] }]; }), ["E_BATTLE_SLOT"], "a clash standing before the edits is reported once");
+  assert.deepEqual(slots((b) => { two(b, { column: 2 }, { column: 1 }); b.challenger.edits = [{ phase: 2, heroes: [{ char_id: "char_002", column: null }] }]; }), [], "column: null = back to auto");
+  assert.ok(run((b) => two(b, { column: 0 }, {})).length > 0, "schema: column >= 1");
+  assert.ok(run((b) => { two(b, { column: 1 }, { column: 2 }); b.challenger.edits = [{ phase: 2, heroes: [{ char_id: "char_002", column: 1 }] }]; }).includes("E_BATTLE_SLOT"));
+  assert.ok(!run((b) => { two(b, { column: 1 }, { column: 2 }); b.challenger.edits = [
+    { phase: 2, heroes: [{ char_id: "char_001", column: 2 }, { char_id: "char_002", column: 1 }] }]; }).includes("E_BATTLE_SLOT"), "a swap in one edit is fine");
 });
 
 test("buildUnits throws on a full row instead of clamping the column", async () => {
@@ -93,6 +112,9 @@ test("buildUnits throws on a full row instead of clamping the column", async () 
   const { pack, battle } = loadReal();
   crowd(battle, 4);
   assert.throws(() => createBattleState(pack, battle), /E_BATTLE_ROW_FULL/);
+  const off = loadReal();
+  off.battle.challenger.heroes[0]!.column = 9;
+  assert.throws(() => createBattleState(off.pack, off.battle), /E_BATTLE_SLOT/);
 });
 
 test("battle hero entries get the sigil checks: unknown god E_REF_MISSING, sigil on an empty slot W_SIGIL_EMPTY_SLOT; sigils are locked between phases", () => {

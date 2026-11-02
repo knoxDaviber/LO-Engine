@@ -13,11 +13,11 @@ test("null condition is true", () => {
 test("hp_percent, hp_current, hp_missing on self and target", () => {
   const s = sampleState();
   const leon = unit(s, LEON), emp = unit(s, EMPEROR);
-  emp.hp = 50; // 25% of 200
+  emp.hp = 50; // ~5% of 950
   assert.equal(ev({ type: "hp_percent", side: "self", op: "=", value: 100 }, { state: s, self: leon }).value, true);
   assert.equal(ev({ type: "hp_percent", side: "target", op: "<", value: 30 }, { state: s, self: leon, target: emp }).value, true);
   assert.equal(ev({ type: "hp_current", side: "target", op: ">=", value: 51 }, { state: s, self: leon, target: emp }).value, false);
-  assert.equal(ev({ type: "hp_missing", side: "target", op: "=", value: 150 }, { state: s, self: leon, target: emp }).value, true);
+  assert.equal(ev({ type: "hp_missing", side: "target", op: "=", value: 900 }, { state: s, self: leon, target: emp }).value, true);
 });
 
 test("side target without a target in context is false with a reason", () => {

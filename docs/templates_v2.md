@@ -50,7 +50,7 @@ factions: []           # faction IDs
 role: ""               # tank / damage / support / other (informational)
 lore: ""
 
-base_stats:            # ALL 11 required. CRIT defaults to 30 in the editor.
+base_stats:            # ALL 11 required. CRIT defaults to 30 in the editor. Size them with the stat guideline (design doc 3.3: factors x P).
   HP: 0
   ATK: 0
   INT: 0
@@ -178,20 +178,12 @@ id: equip_000
 name: ""
 description: ""
 slot: ""                # weapon | armor | accessory
-tags: []                # one tag from equipment_tags (what sort of item this is)
-
-stat_modifiers:         # FLAT, added to base before any percent effects. Negative allowed.
-  HP: 0
-  ATK: 0
-  INT: 0
-  DEF: 0
-  MDEF: 0
-  SPD: 0
-  HIT: 0
-  SKL: 0
-  CRIT: 0
-  GUARD: 0
-  EVA: 0
+tags: []                # exactly ONE equipment type valid for the slot (E_EQUIP_TYPE):
+                        #   weapon: sword | spear | axe | staff | tome | bow | dagger | hammer
+                        #   armor: light_armor | heavy_armor | robe
+                        #   accessory: shield | gloves | boots | ring | amulet | charm | bracelet | earring | cloak | belt
+                        # The item's FLAT stat lines are its type's base (rules.yaml equipment_bases, Decision 133); items never author
+                        # stat lines. What makes a named item special is pp_modifiers and effects.
 
 pp_modifiers:
   active: 0
@@ -203,7 +195,8 @@ effects: []             # conditional / percent / special effects. Source catego
 eligible:
   classes: []           # empty = all
   characters: []        # empty = all
-  required_tags: []     # character equipment_tags that must include this item's tag
+  required_tags: []     # extra character equipment_tags the wearer needs. Weapon, armor and shield types always need the wearer to
+                        # list that type; other accessory categories are open to every hero
 
 rules:
   duplicate_allowed_in_both_accessory_slots: true   # Decision 19: duplicates allowed; flat stats add, identical effects do not stack
@@ -276,7 +269,7 @@ allowed_soldier_rows: [front, back]   # soldier_row values this type may stand i
 count: 10
 mounted: false
 
-per_soldier_stats:          # all 11 required
+per_soldier_stats:          # all 11 required; ~0.15 x a P=100 hero of the class for HP/ATK/INT/DEF/MDEF/SKL (design doc 3.3)
   HP: 0
   ATK: 0
   INT: 0
@@ -289,7 +282,7 @@ per_soldier_stats:          # all 11 required
   GUARD: 0
   EVA: 0
 
-# Soldiers have no tactic sheet and no PP. They basic attack and carry soldier skills. A squad is selected as ONE target, but each soldier has its own HP: single-target hits land on the lowest-HP living soldier, row/column/all hit every living soldier, healing is split evenly across all soldiers (dead revive at their share).
+# Soldiers have no tactic sheet and no PP. They basic attack and carry soldier skills. A squad is selected as ONE target, but each soldier has its own HP. Soldiers attack and defend as one (Decision 130): a squad attack is one hit with the summed ATK (INT) of the living soldiers, and any hit on the squad is resolved once against their summed DEF (MDEF) and lands on the lowest-HP living soldier, overflowing to the next; healing is split evenly across all soldiers (dead revive at their share).
 basic_attack:
   damage_type: physical
   scaling: [{ stat: ATK, coef: 1.0 }]
@@ -357,7 +350,7 @@ Allowed `type` values. Each effect is data; none require engine code.
 - type: advance_action # counts or percent
 ```
 
-Per-hit effects (Regen, on-hit reactives, `modify_pp` on hit) fire once per attacking action regardless of hit count; a squad attack is still 10 hits of damage.
+Per-hit effects (Regen, on-hit reactives, `modify_pp` on hit) fire once per attacking action regardless of hit count; a squad attack is one combined hit (Decision 130).
 
 Any effect may also carry `trigger` (`always`, `pre_battle`, `on_event`, `on_hit`) and `condition` (a condition node). `target: field` means every unit on both sides.
 

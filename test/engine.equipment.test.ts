@@ -33,21 +33,22 @@ test("the equipment step is the first pre-battle step", () => {
   assert.equal(PREBATTLE_STEPS[0]!.name, "equipment");
 });
 
-test("Dragon Scale worked example: bare Leon vs Dragon-Scale Emperor (DEF 100): Charging Assault 5, Thousand Azure Hooves 57", () => {
+test("Dragon Scale worked example: bare Leon vs Dragon-Scale Emperor (DEF 92): Charging Assault 80, Thousand Azure Hooves 166", () => {
   const { pack, u, stat } = setup({ [EMPEROR]: { armor: "equip_002" } });
-  close(stat(EMPEROR, "DEF"), 100); // 50 + 50, a flat line added to base once
-  close(stat(LEON, "ATK"), 70);
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 5);
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 57);
+  close(stat(EMPEROR, "DEF"), 92); // 70 + 22, the heavy armor base (Decision 133) added to base once
+  close(stat(EMPEROR, "MDEF"), 40 + 6); // the heavy armor base MDEF line only
+  close(stat(LEON, "ATK"), 115);
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 80); // 172.5 - 92
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 166); // 258.75 - 92
 });
 
-test("Dragon Scale with Empire's Dominion (Emperor leads, DEF 120): Charging Assault 1, Thousand Azure Hooves 37", () => {
+test("Dragon Scale with Empire's Dominion (Emperor leads, DEF 110.4): Charging Assault 62, Thousand Azure Hooves 148", () => {
   const { pack, u, stat, state } = setup({ [EMPEROR]: { armor: "equip_002" } }, { auras: true });
   assert.equal(state.leaders.defender.leaderId, EMPEROR);
-  close(stat(EMPEROR, "DEF"), 120);
-  close(stat(LEON, "ATK"), 70); // Leon's own aura needs the Emperor in HIS party
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 1);
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 37);
+  close(stat(EMPEROR, "DEF"), 92 * 1.2);
+  close(stat(LEON, "ATK"), 115); // Leon's own aura needs the Emperor in HIS party
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 62);
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 148);
 });
 
 test("Dragon Scale gives +1 Active PP; PP bonuses are capped at rules.pp.max", () => {
@@ -58,35 +59,35 @@ test("Dragon Scale gives +1 Active PP; PP bonuses are capped at rules.pp.max", (
   assert.equal(b.u(EMPEROR).pp.active.max, b.pack.rules.pp.max);
 });
 
-test("duplicate accessories: two Speed Rings = SPD +40", () => {
-  const { stat } = setup({ [LIEF]: { accessory_1: "equip_006", accessory_2: "equip_006" } });
-  close(stat(LIEF, "SPD"), 40 + 40);
+test("duplicate accessories: two Traveller's Boots = SPD +10 (their type base twice)", () => {
+  const { stat } = setup({ [LIEF]: { accessory_1: "equip_023", accessory_2: "equip_023" } });
+  close(stat(LIEF, "SPD"), 40 + 10);
 });
 
 test("equipment vs equipment does not stack: the strongest equipment percent wins, and it multiplies with other categories", () => {
   const pct = (value: number) => ({ type: "modify_stat", stat: "SPD", mode: "percent", value });
-  const { stat, u, pack, ev } = setup({ [LIEF]: { accessory_1: "equip_006", accessory_2: "equip_022" } }, {
-    over: (p) => { item(p, "equip_006").effects = [pct(10)]; item(p, "equip_022").effects = [pct(20)]; },
+  const { stat, u, pack, ev } = setup({ [LIEF]: { accessory_1: "equip_023", accessory_2: "equip_022" } }, {
+    over: (p) => { item(p, "equip_023").effects = [pct(10)]; item(p, "equip_022").effects = [pct(20)]; },
   });
-  close(stat(LIEF, "SPD"), (40 + 20) * 1.2); // Speed Ring flat 20, Charm's 20% wins over the Ring's 10%
+  close(stat(LIEF, "SPD"), (40 + 5) * 1.2); // boots base SPD 5, Charm's 20% wins over the boots' 10%
   const b = statBreakdown(u(LIEF), "SPD", pack);
   assert.deepEqual(b.effects.map((e) => [e.category, e.value, e.outcome]), [["equipment", 10, "suppressed"], ["equipment", 20, "winner"]]);
   assert.equal(ev("equipment_applied").length, 2);
-  // Two identical ring effects (duplicate accessory): one counts.
-  const two = setup({ [LIEF]: { accessory_1: "equip_006", accessory_2: "equip_006" } }, { over: (p) => { item(p, "equip_006").effects = [pct(10)]; } });
-  close(two.stat(LIEF, "SPD"), (40 + 40) * 1.1);
+  // Two identical boots effects (duplicate accessory): one counts.
+  const two = setup({ [LIEF]: { accessory_1: "equip_023", accessory_2: "equip_023" } }, { over: (p) => { item(p, "equip_023").effects = [pct(10)]; } });
+  close(two.stat(LIEF, "SPD"), (40 + 10) * 1.1);
   // Across categories it multiplies: a 20% passive on top.
   const lief = u(LIEF);
   lief.statuses.push({ statusId: "aura:x:0", category: "passive", sourceUnitId: LIEF, remaining: null, skipNextTick: false, seq: 999, inline: { name: "x", modifiers: [{ stat: "SPD", mode: "percent", value: 20 }] } });
-  close(stat(LIEF, "SPD"), 60 * 1.2 * 1.2);
+  close(stat(LIEF, "SPD"), 45 * 1.2 * 1.2);
 });
 
 test("flat equipment effects of one category do not stack either (strongest wins); flat item lines still add", () => {
   const flat = (value: number) => ({ type: "modify_stat", stat: "SPD", mode: "flat", value });
-  const { stat } = setup({ [LIEF]: { accessory_1: "equip_006", accessory_2: "equip_022" } }, {
-    over: (p) => { item(p, "equip_006").effects = [flat(10)]; item(p, "equip_022").effects = [flat(20)]; },
+  const { stat } = setup({ [LIEF]: { accessory_1: "equip_023", accessory_2: "equip_022" } }, {
+    over: (p) => { item(p, "equip_023").effects = [flat(10)]; item(p, "equip_022").effects = [flat(20)]; },
   });
-  close(stat(LIEF, "SPD"), 40 + 20 + 20); // base 40 + Speed Ring line 20 + the stronger flat effect 20 (not +30)
+  close(stat(LIEF, "SPD"), 40 + 5 + 20); // base 40 + boots base 5 + the stronger flat effect 20 (not +30)
 });
 
 test("a dead wearer's equipment modifiers come off (equipment_removed death)", () => {
@@ -100,15 +101,15 @@ test("a dead wearer's equipment modifiers come off (equipment_removed death)", (
 
 test("a conditional equipment effect (Queen's Scepter, HP > 80%) is on exactly while its condition holds", () => {
   const { stat, u, x, ev } = setup({ [JASMINE]: { weapon: "equip_003" } });
-  close(stat(JASMINE, "INT"), (60 + 60) * 1.2);
+  close(stat(JASMINE, "INT"), (100 + 24) * 1.2); // staff base INT 24
   const jas = u(JASMINE);
   jas.hp = Math.floor(jas.maxHp / 2);
   checkEquipment(x);
-  close(stat(JASMINE, "INT"), 120);
+  close(stat(JASMINE, "INT"), 124);
   assert.equal(ev("equipment_removed").length, 1);
   jas.hp = jas.maxHp;
   checkEquipment(x);
-  close(stat(JASMINE, "INT"), 144);
+  close(stat(JASMINE, "INT"), 124 * 1.2);
   assert.equal(ev("equipment_applied").length, 2);
 });
 

@@ -9,7 +9,7 @@
 //  - source rule_sheet (ban): the actor's ban_sheet rules top to bottom (by priority); a rule that already fired is skipped; the first rule
 //    whose filter matches an eligible hero bans the one its select/metric picks. No match: the fallback bans the highest-cost eligible hero.
 //    [DEFAULT] Ties (rules and fallback) break by cost (highest), then id. [DEFAULT] metric is cost | hp | stat:<STAT>, read pre-battle
-//    (base stat plus the entry's equipment lines); `nearest` = front row first (preferred row, leader not forced), then roster order.
+//    (base stat plus the entry's equipment lines); `nearest` = front row first (preferred row), then roster order.
 //    [DEFAULT] A rule_sheet protect protects the highest-cost eligible own hero (variant C has none; the config allows it).
 //  - Each side must end with exactly rules.draft.fielded heroes (E_DRAFT_RESULT otherwise).
 //  - Leader: the highest-ranked fielded hero of the side's leader_line. The fielded heroes are ordered by leader-line rank, so the engine's
@@ -19,6 +19,7 @@
 import { classDefaultRow } from "./formation";
 import type { Battle, BanSheet, Character, ConditionNode, Equipment, RosterBattle, RosterHero, Row, Stat } from "./schema";
 import { STATS } from "./schema";
+import { equipmentStats } from "./equipmentBase";
 import { heroCost } from "./validate/cost";
 import { unlockedBlessings } from "./devotion";
 import type { Pack } from "./validate/pack";
@@ -89,7 +90,7 @@ function candidate(pack: Pack, entry: RosterHero, order: number): Candidate {
     .filter((e): e is Equipment => e !== undefined);
   const skills = ch.skills.map((id) => pack.byId.skills.get(id)).filter((s) => s !== undefined);
   const cost = heroCost(ch, pack.rules, { squad: pack.byId.soldiers.get(entry.squad_id) ?? null, equipment: items, skills, blessings: unlockedBlessings(pack, entry).flatMap((b) => b.effects) });
-  const stat = (s: Stat) => ch.base_stats[s] + items.reduce((n, e) => n + e.stat_modifiers[s], 0);
+  const stat = (s: Stat) => ch.base_stats[s] + items.reduce((n, e) => n + equipmentStats(e, pack.rules.equipment_bases)[s], 0);
   return { entry, ch, cost, order, stat };
 }
 
@@ -241,12 +242,11 @@ export function resolveDraft(pack: Pack, input: RosterBattle): DraftOutcome {
 
 /**
  * Row overflow by leader-line rank (heroes already in rank order): while a row holds more than `columns` heroes, the lowest-ranked
- * non-leader in it gets preferred_row set to the other row. Mutates the entries; returns the moved ids, or null if both rows are full.
+ * non-leader in it gets preferred_row set to the other row (and its explicit column dropped). Mutates the entries; returns the moved ids, or null if both rows are full.
  */
 function resolveOverflow(pack: Pack, heroes: RosterHero[], leader: string): string[] | null {
   const cols = pack.rules.board.columns;
   const rowOf = (h: RosterHero): Row => {
-    if (h.char_id === leader) return "front";
     const ch = pack.byId.characters.get(h.char_id) as Character;
     return h.preferred_row ?? ch.preferred_row ?? classDefaultRow(ch.class);
   };
@@ -258,6 +258,7 @@ function resolveOverflow(pack: Pack, heroes: RosterHero[], leader: string): stri
     if (heroes.filter((h) => rowOf(h) === to).length >= cols) return null;
     const h = [...heroes].reverse().find((x) => rowOf(x) === full && x.char_id !== leader)!;
     h.preferred_row = to;
+    delete h.column; // an explicit column belonged to the old row's slot; it takes the first free column of the new row
     moved.push(h.char_id);
   }
 }

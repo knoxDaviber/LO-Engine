@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  EventLog, applyDamage, applyHeal, applyStatus, beginPhase, checkStatePassives, createBattleState, evaluateCondition, executeSquadAction, runBattle, runEffect, scheduleInitial,
+  EventLog, applyDamage, applyHeal, applySoldierDamage, applyStatus, beginPhase, checkStatePassives, createBattleState, evaluateCondition, executeSquadAction, runBattle, runEffect, scheduleInitial,
   type BattleEvent, type DamageBreakdown, type ExecCtx, type Unit,
 } from "../src/engine";
 import { loadPack } from "../src/load";
@@ -94,7 +94,7 @@ test("Quick Heal resolves after a single-target hit on an ally, healing that all
   assert.ok(types.indexOf("damage") < types.indexOf("trigger"));
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.event, t.subject]), [[JASMINE, "after_hit", EMPEROR]]);
   assert.deepEqual(ev("heal").map((h) => [h.unit, h.target, h.skill]), [[JASMINE, EMPEROR, QUICK_HEAL]]);
-  assert.equal(u(EMPEROR).hp, u(EMPEROR).maxHp); // 1.5 x INT 60 = 90 covers the hit
+  assert.equal(u(EMPEROR).hp, u(EMPEROR).maxHp); // 1.5 x INT 100 = 150 covers the hit
   assert.equal(u(JASMINE).pp.passive.cur, 1);
   strike(u(LEON), u(EMPEROR), ASSAULT, "row"); // an area hit is not a single-target attack
   strike(u(EMPEROR), u(LEON)); // Leon is not Jasmine's ally
@@ -108,14 +108,14 @@ test("Follow-Up and Pursuit strike the unit hit by a landed single-target attack
   assert.deepEqual([u(LEON).pp.passive.cur, u(LIEF).pp.passive.cur], [1, 1]);
 });
 
-test("Counter fires once per 10-hit squad attack (per-hit-once) and strikes the attacking squad", () => {
+test("Counter fires once per squad attack (one combined hit) and strikes the attacking squad", () => {
   const { state, u, ev, x } = setup([[EMPEROR, COUNTER]], { squads: true });
   scheduleInitial(state);
   u(SQ_D).alive = false; // the Emperor is the squad's target
   u(EMPEROR).hp = 5000;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
-  assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 10); // all 10 hits land
+  assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 1); // the one combined hit lands
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.handler, t.event]), [[EMPEROR, "Counter", "after_hit"]]);
   assert.deepEqual(ev("damage").filter((d) => d.skill === COUNTER).map((d) => d.target), [SQ_C]);
   assert.equal(u(EMPEROR).pp.passive.cur, 1);
@@ -136,9 +136,9 @@ test("state passive (Frenzy): spends on activation, ends with its status when th
   const { u, ev, x } = setup([[LIEF, FRENZY]]);
   const lief = u(LIEF);
   lief.pp.passive.cur = 4;
-  applyDamage(x, u(LEON), lief, { id: "s" }, amountOf(lief.maxHp - 80)); // 80 / 150 HP: still above 50%
+  applyDamage(x, u(LEON), lief, { id: "s" }, amountOf(lief.maxHp - 420)); // 420 / 800 HP: still above 50%
   assert.equal(ev("trigger").length, 0);
-  applyDamage(x, u(LEON), lief, { id: "s" }, amountOf(10)); // 70 / 150: below 50%
+  applyDamage(x, u(LEON), lief, { id: "s" }, amountOf(30)); // 390 / 800: below 50%
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.event]), [[LIEF, "while_condition"]]);
   assert.equal(lief.pp.passive.cur, 2);
   assert.ok(lief.statuses.some((s) => s.statusId === "status_004" && s.category === "passive"));
@@ -151,7 +151,7 @@ test("state passive (Frenzy): spends on activation, ends with its status when th
   applyDamage(x, u(LEON), lief, { id: "s" }, amountOf(lief.hp - 30)); // below again: spends again
   assert.equal(lief.pp.passive.cur, 0);
   assert.equal(ev("trigger").length, 2);
-  applyHeal(x, u(JASMINE), lief, { id: "h" }, 100);
+  applyHeal(x, u(JASMINE), lief, { id: "h" }, 500);
   applyDamage(x, u(LEON), lief, { id: "s" }, amountOf(lief.hp - 30)); // third time: no PP left, logged once
   checkStatePassives(x);
   assert.deepEqual(ev("passive_blocked").map((e) => e.reason), ["not enough Passive PP (0 < 2)"]);
@@ -223,4 +223,14 @@ test("full4v4 with every hero's passives on its sheet runs to completion and is 
   assert.ok(a.events.some((e) => e.type === "pp_spend" && e.pool === "passive"));
   assert.ok(!a.events.some((e) => e.type === "not_implemented" && e.what.startsWith("not implemented: passive ")));
   assert.equal(JSON.stringify(run().events), JSON.stringify(a.events));
+});
+
+test("damage to a squad re-checks while_condition statuses (applySoldierDamage calls checkStatePassives, like applyDamage)", () => {
+  const { state, u, x, ev } = setup([], { squads: true });
+  const sq = u(SQ_D);
+  applyStatus(state, sq, "status_002", "active", sq.id);
+  sq.statuses[0]!.whileCond = { cond: { type: "hp_percent", side: "self", op: "=", value: 100 }, owner: sq.id };
+  applySoldierDamage(x, u(LEON), sq, sq.soldiers[0]!, { id: "s" }, amountOf(5));
+  assert.equal(sq.statuses.length, 0);
+  assert.deepEqual(ev("status_expired").map((e) => [e.unit, e.reason]), [[sq.id, "condition"]]);
 });

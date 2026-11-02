@@ -147,8 +147,16 @@
               "light_armor",
               "heavy_armor",
               "robe",
-              "none",
-              "shield"
+              "shield",
+              "gloves",
+              "boots",
+              "ring",
+              "amulet",
+              "charm",
+              "bracelet",
+              "earring",
+              "cloak",
+              "belt"
             ]
           }
         },

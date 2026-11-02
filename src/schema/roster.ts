@@ -52,6 +52,9 @@ export const rosterHeroSchema = z.strictObject({
     .optional(),
   tactic_sheet: z.array(tacticSchema),
   preferred_row: z.enum(ROWS).optional(), // optional: falls back to the character's preferred_row
+  // Slot inside the hero row, 1..rules.board.columns (range checked by the validator, E_BATTLE_SLOT). Omitted = auto: fills the lowest free
+  // column of its row in roster order. Two heroes on the same (row, column) are E_BATTLE_SLOT. Decision 129.
+  column: z.number().int().min(1).optional(),
 });
 export type RosterHero = z.infer<typeof rosterHeroSchema>;
 

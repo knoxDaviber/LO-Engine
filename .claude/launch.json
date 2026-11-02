@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "editor-zip-stage",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; cd /tmp/claude-1000/-home-knox-github-LO-Engine/98e7edbe-05e1-4330-8385-d0607967d58d/scratchpad/stage && npm run editor"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "editor-5180",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; cd '/home/knox/github/LO Engine' && EDITOR_PORT=5180 npm run editor"
+      ],
+      "port": 5180
+    }
+  ]
+}

@@ -4,12 +4,34 @@
 //   multiplier = product over stacking groups of (1 + value/100)
 // A stacking group is (stat, source category, buff|debuff, flat|percent). Inside a group the strongest wins and the rest are
 // suppressed (kept on the unit, they resume when the winner goes away). Unique statuses are exempt: each adds / multiplies on its own.
+// INT/MDEF pairing (Decision 132): skill statuses, auras and soldier skills that modify ATK / DEF also modify INT / MDEF (withPairedStats).
 // Exception (Decision 125): one god's blessing lines (`prayer:<god>:<tier>:<n>`) on the same stat, mode and sign add up into one prayer
 // contribution (Full Moon 2- + 4-piece: ATK +30%) before the strongest-wins; different gods still compete.
 import type { SourceCategory, Stat, Status } from "../schema";
 import { STATS } from "../schema";
 import type { Pack } from "../validate/pack";
 import type { BattleState, StatusInstance, Unit } from "./state";
+
+/**
+ * INT/MDEF pairing (Section 9.1, Decision 132, [DEFAULT] meaning of the designer's "skills or auras boosting ATK or DEF should also apply to INT
+ * and MDEF"): a modifier on ATK from a skill status (active or passive), a leader aura or a soldier skill also applies the same mode and value to
+ * INT, one on DEF also to MDEF, buffs and debuffs alike, unless the same source already has a line on the paired stat. Equipment lines, item
+ * effects, blessings and terrain name their stats explicitly and are never paired. The paired line is an ordinary modifier of the same source
+ * and category, so the 9.1 strongest-wins handles overlaps.
+ */
+export const PAIRED_STATS: Partial<Record<Stat, Stat>> = { ATK: "INT", DEF: "MDEF" };
+/** Source categories of statuses whose modifiers are paired (skills: active / passive; soldier skills). Auras pair when they are built (prebattle.ts). */
+export const PAIRING_CATEGORIES: readonly SourceCategory[] = ["active", "passive", "soldier"];
+
+/** `mods` plus the paired INT / MDEF lines of its ATK / DEF lines (see PAIRED_STATS); a stat the source already names is not paired. */
+export function withPairedStats<M extends { stat: Stat }>(mods: readonly M[]): M[] {
+  const out = [...mods];
+  for (const m of mods) {
+    const p = PAIRED_STATS[m.stat];
+    if (p && !mods.some((x) => x.stat === p)) out.push({ ...m, stat: p });
+  }
+  return out;
+}
 
 export interface StatEffect {
   status: string; // status id
@@ -20,6 +42,8 @@ export interface StatEffect {
   outcome: "winner" | "suppressed";
   /** A god's summed blessing lines (Decision 125): every contributing status id, in application order. */
   parts?: string[];
+  /** Squads: the modifier comes from the leader's status (shared, design 2.1). */
+  shared?: true;
 }
 
 export interface StatBreakdown {
@@ -29,6 +53,8 @@ export interface StatBreakdown {
   effects: StatEffect[];
   multiplier: number;
   result: number;
+  /** Squads: the part of `flat` that comes from the leader's shared statuses (absent when 0). Counted once for the squad total (summedStat). */
+  sharedFlat?: number;
 }
 
 export function statBreakdown(unit: Unit, stat: Stat, pack: Pick<Pack, "byId">): StatBreakdown {
@@ -51,20 +77,25 @@ export function statBreakdown(unit: Unit, stat: Stat, pack: Pick<Pack, "byId">):
   // Terrain is per class, not a buff: the squad gets its own terrain instances (by its soldier class), never its leader's.
   const lead = unit.leaderUnit && unit.leaderUnit.alive ? unit.leaderUnit : null;
   // The leader's own equipment and blessing modifiers are its gear, not a buff: not shared either ([DEFAULT], like its flat lines).
-  const shared = lead ? lead.statuses.filter((l) => l.category !== "terrain" && !l.statusId.startsWith("equip:") && !l.statusId.startsWith("prayer:") && !unit.statuses.some((s) => s.statusId === l.statusId && s.category === l.category)) : [];
+  // Leader auras are not shared either: an aura reaches the squad only through its own targeting (include_soldiers, faction, filter), which
+  // gives the squad its own instance (prebattle.ts auraTargets).
+  const isShareable = (l: StatusInstance) => l.category !== "terrain" && !l.statusId.startsWith("equip:") && !l.statusId.startsWith("prayer:") && !l.statusId.startsWith("aura:");
+  const shared = lead ? lead.statuses.filter((l) => isShareable(l) && !unit.statuses.some((s) => s.statusId === l.statusId && s.category === l.category)) : [];
+  const sharedSet = new Set(shared);
   const ordered = [...unit.statuses, ...shared].sort((a, b) => a.seq - b.seq);
   const godSums = new Map<string, StatEffect>(); // `<god>|<category>|<mode>|<sign>` -> the god's summed effect for this stat
   for (const inst of ordered) {
     const st = pack.byId.statuses.get(inst.statusId);
     if (!st && !inst.inline) continue;
-    for (const m of inst.inline ? inst.inline.modifiers : st!.modifiers) {
+    const mods = inst.inline ? inst.inline.modifiers : PAIRING_CATEGORIES.includes(inst.category) ? withPairedStats(st!.modifiers) : st!.modifiers;
+    for (const m of mods) {
       if (m.stat !== stat) continue;
       const unique = inst.inline ? false : st!.stacking.unique;
       const god = inst.statusId.startsWith("prayer:") ? inst.statusId.split(":")[1] : undefined;
       const godKey = god !== undefined ? `${god}|${inst.category}|${m.mode}|${m.value < 0 ? "-" : "+"}` : undefined;
       const sum = godKey !== undefined ? godSums.get(godKey) : undefined;
       if (sum) { sum.value += m.value; sum.parts!.push(inst.statusId); continue; } // the god's lines add (Decision 125)
-      const e: StatEffect = { status: inst.inline ? inst.statusId : st!.id, category: inst.category, mode: m.mode, value: m.value, unique, outcome: "winner" };
+      const e: StatEffect = { status: inst.inline ? inst.statusId : st!.id, category: inst.category, mode: m.mode, value: m.value, unique, outcome: "winner", ...(sharedSet.has(inst) ? { shared: true as const } : {}) };
       effects.push(e);
       if (godKey !== undefined) { e.parts = [inst.statusId]; godSums.set(godKey, e); }
       if (m.mode === "flat" && unique) flat += m.value;
@@ -83,7 +114,24 @@ export function statBreakdown(unit: Unit, stat: Stat, pack: Pick<Pack, "byId">):
   let multiplier = 1;
   for (const e of effects) if (e.mode === "percent" && e.outcome === "winner") multiplier *= 1 + e.value / 100;
   const base = unit.baseStats[stat];
-  return { stat, base, flat, effects, multiplier, result: Math.max(0, (base + flat) * multiplier) };
+  const sharedFlat = effects.reduce((n, e) => n + (e.shared && e.mode === "flat" && e.outcome === "winner" ? e.value : 0), 0);
+  return { stat, base, flat, effects, multiplier, result: Math.max(0, (base + flat) * multiplier), ...(sharedFlat !== 0 ? { sharedFlat } : {}) };
+}
+
+/** How many units a stat sum covers (Decision 130): a squad's living soldiers (all have the same per-soldier stats), 1 for a hero. */
+export const squadSize = (u: Unit): number => (u.kind === "squad" ? u.soldiers.filter((s) => s.alive).length : 1);
+
+/**
+ * The stat a unit attacks or defends with (Decision 130): a hero's effective stat; for a squad the sum over its living soldiers. [DEFAULT] Flat
+ * lines shared from the leader's statuses count ONCE for the squad total, not per soldier (times the squad's multiplier, as flat lines come
+ * before percentages): n x result - (n - 1) x sharedFlat x multiplier, at least 0.
+ */
+export function summedStat(unit: Unit, stat: Stat, pack: Pick<Pack, "byId">): number {
+  const b = statBreakdown(unit, stat, pack);
+  if (unit.kind !== "squad") return b.result;
+  const n = squadSize(unit);
+  if (n === 0) return 0;
+  return Math.max(0, n * b.result - (n - 1) * (b.sharedFlat ?? 0) * b.multiplier);
 }
 
 export const effectiveStat = (unit: Unit, stat: Stat, pack: Pick<Pack, "byId">): number => statBreakdown(unit, stat, pack).result;

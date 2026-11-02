@@ -195,3 +195,43 @@ test("an item modify_stat with an event-style trigger is rejected (E_EFFECT_TRIG
     assert.ok(codes(raw).includes("E_EFFECT_TRIGGER"), trigger);
   }
 });
+
+// ------------------------------------------------------------------ equipment type standard (Decision 133)
+test("equipment type: an item needs exactly one type valid for its slot (E_EQUIP_TYPE)", () => {
+  const none = fresh(); find(none.equipment, "equip_009").tags = [];
+  assert.ok(codes(none).includes("E_EQUIP_TYPE"));
+  const two = fresh(); find(two.equipment, "equip_009").tags = ["sword", "axe"];
+  assert.ok(codes(two).includes("E_EQUIP_TYPE"));
+  const wrongSlot = fresh(); find(wrongSlot.equipment, "equip_009").tags = ["gloves"];
+  const c = codes(wrongSlot);
+  assert.ok(c.includes("E_SLOT_TAG") && c.includes("E_EQUIP_TYPE"));
+});
+
+test("equipment type: items no longer author stat_modifiers; every type needs a base in rules", () => {
+  const raw = fresh(); find(raw.equipment, "equip_009").stat_modifiers = { ATK: 20 };
+  assert.ok(codes(raw).includes("E_SCHEMA"));
+  const rules = fresh().rules as any;
+  delete rules.equipment_bases.belt;
+  const r = rulesSchema.safeParse(rules);
+  assert.ok(!r.success && r.error.issues.some((i) => i.path.join(".") === "equipment_bases.belt"));
+});
+
+test("equipment type: the item's cost is its type base, weighted", () => {
+  const raw = fresh();
+  const { pack } = validateRaw(raw);
+  const hero = pack!.byId.characters.get("char_005")!;
+  const bare = heroCost(hero, pack!.rules);
+  const w = pack!.rules.cost.stat_weights;
+  assert.equal(heroCost(hero, pack!.rules, { equipment: [pack!.byId.equipment.get("equip_009")!] }), Math.round((bare + 30 * w.ATK + 8 * w.DEF) * 10) / 10);
+});
+
+test("equipment type: weapon, armor and shield types are gated by the hero's equipment_tags; other accessory categories are open", async () => {
+  const { canEquip } = await import("../src/validate/eligibility");
+  const { pack } = validateRaw(fresh());
+  const jasmine = pack!.byId.characters.get("char_003")!; // no shield, no sword
+  const eq = (id: string) => pack!.byId.equipment.get(id)!;
+  assert.equal(canEquip(jasmine, eq("equip_009")), false); // sword
+  assert.equal(canEquip(jasmine, eq("equip_020")), false); // shield
+  assert.equal(canEquip(jasmine, eq("equip_008")), true); // gloves
+  assert.equal(canEquip(jasmine, eq("equip_023")), true); // boots
+});

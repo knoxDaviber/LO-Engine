@@ -22,7 +22,6 @@
       ]
     },
     "tags": {
-      "minItems": 1,
       "type": "array",
       "items": {
         "type": "string",
@@ -38,62 +37,18 @@
           "light_armor",
           "heavy_armor",
           "robe",
-          "none",
-          "shield"
+          "shield",
+          "gloves",
+          "boots",
+          "ring",
+          "amulet",
+          "charm",
+          "bracelet",
+          "earring",
+          "cloak",
+          "belt"
         ]
       }
-    },
-    "stat_modifiers": {
-      "type": "object",
-      "properties": {
-        "HP": {
-          "type": "number"
-        },
-        "ATK": {
-          "type": "number"
-        },
-        "INT": {
-          "type": "number"
-        },
-        "DEF": {
-          "type": "number"
-        },
-        "MDEF": {
-          "type": "number"
-        },
-        "SPD": {
-          "type": "number"
-        },
-        "HIT": {
-          "type": "number"
-        },
-        "SKL": {
-          "type": "number"
-        },
-        "CRIT": {
-          "type": "number"
-        },
-        "GUARD": {
-          "type": "number"
-        },
-        "EVA": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "HP",
-        "ATK",
-        "INT",
-        "DEF",
-        "MDEF",
-        "SPD",
-        "HIT",
-        "SKL",
-        "CRIT",
-        "GUARD",
-        "EVA"
-      ],
-      "additionalProperties": false
     },
     "pp_modifiers": {
       "type": "object",
@@ -879,8 +834,16 @@
               "light_armor",
               "heavy_armor",
               "robe",
-              "none",
-              "shield"
+              "shield",
+              "gloves",
+              "boots",
+              "ring",
+              "amulet",
+              "charm",
+              "bracelet",
+              "earring",
+              "cloak",
+              "belt"
             ]
           }
         }
@@ -932,7 +895,6 @@
     "description",
     "slot",
     "tags",
-    "stat_modifiers",
     "pp_modifiers",
     "effects",
     "eligible",

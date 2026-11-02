@@ -24,7 +24,7 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 - Each hero: base stats, class, factions, Active PP pool, Passive PP pool. Each team entry for that hero adds equipment (Weapon, Armor, Accessory 1, Accessory 2), up to 10 tactics, squad and row (Decision 110).
 - **Party leader:** the leader is the highest-ranked fielded hero in the player's ranked leader line, resolved after the draft (Section 2A) [DECIDED].
   - **Every hero is assigned their own squad by the player** [DECIDED]. Only the leader's squad is deployed (10 soldiers). If the leader is banned, their squad is banned with them and the next hero in the leader line leads and brings their own squad and aura.
-  - **Leader must be in the front row** [DECIDED]. This puts the leader in reach of default front-row targeting, so defenders can counter-build for a leader-focus challenger, and challengers can focus the leader to remove the squad and the aura. Current leader rules are kept [DECIDED]. Two candidates to revisit after the batch sim (Section 14), not decided: (a) the squad guards the leader (single-target attacks on the leader are partly intercepted by soldiers while the squad lives); (b) allowing back-row leaders.
+  - **The leader may stand in the front or the back row** [DECIDED] (Decision 129, replaces the earlier "leader must be front" rule). A back-row leader is harder to reach with default front-row targeting, so watch leader-focus balance in the batch sim (Section 14). Other leader rules are kept [DECIDED]. Candidate to revisit after the batch sim, not decided: the squad guards the leader (single-target attacks on the leader are partly intercepted by soldiers while the squad lives).
   - **Soft leader rule** [DECIDED]: if the leader dies, the squad is removed immediately and the leader's aura ends. The party keeps fighting. Soldiers are never a victory condition.
   - **Leader aura** [DECIDED]: every hero has exactly one unique aura, authored on the hero. It triggers **only when that hero is the party leader**, costs **no PP**, and ends when the leader dies. It is treated as a secondary pre-battle passive. Aura types:
     - **Field:** affects both allies and enemies.
@@ -42,16 +42,16 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 - 10 soldiers, each with their **own HP**; same stats for all in a squad. **A squad is selected as ONE target** [DECIDED]: players and tactics cannot target individual soldiers, and a squad counts as a single target for target selection (single-target, row, column, all). How damage and heals then land on the soldiers is below.
 - **Soldier types are generic content; squads are pairings** [DECIDED]. Special soldier types have eligibility (by hero and/or class), so certain heroes get certain varieties; generic types (one per class) are usable by any hero (Decision 111), and the player picks a hero plus an eligible soldier type to form that hero's squad. A pairing can carry penalties (e.g. Leon's SPD -20 with non-mounted soldiers).
 - **Soldiers have no tactic sheet and no PP.** They basic attack and carry soldier skills [DECIDED].
-- **Soldier skills** [DECIDED]: each soldier type carries its own passive skills, which can empower the soldiers, the leader, or the whole party. A soldier skill may be **always-on or event-triggered**; it costs no PP and is not on any tactic sheet [DECIDED]. They are a **separate stacking category** (`soldier`), so they stack with equipment, active and passive effects (Section 9.1). Soldiers have somewhat different stats per type but are all relatively weak. Projected examples (not yet content): heal power +20%; changes the leader to Flying (Flyer evasion against melee, Section 3.1); recover 20% HP after attacking; revive fallen soldiers at 1 HP after an attack (only while at least one soldier is still alive). These need new effect types. The earlier projected `ground_based` attack tag is subsumed by the skill and soldier-type `range: melee | ranged` declaration (Section 3.1).
+- **Soldier skills** [DECIDED]: each soldier type carries its own passive skills, which can empower the soldiers, the leader, or the whole party. A soldier skill may be **always-on or event-triggered**; it costs no PP and is not on any tactic sheet [DECIDED]. They are a **separate stacking category** (`soldier`), so they stack with equipment, active and passive effects (Section 9.1). Soldiers have somewhat different stats per type and are weak one by one (about 0.15 of a hero, Section 3.3), but a squad attacks and defends as one (below). Projected examples (not yet content): heal power +20%; changes the leader to Flying (Flyer evasion against melee, Section 3.1); recover 20% HP after attacking; revive fallen soldiers at 1 HP after an attack (only while at least one soldier is still alive). These need new effect types. The earlier projected `ground_based` attack tag is subsumed by the skill and soldier-type `range: melee | ranged` declaration (Section 3.1).
 - Default target: nearest unit, front row first [DECIDED].
-- Soldiers act on the same SPD timeline as heroes, as one squad action per scheduled count, with each living soldier attacking [DEFAULT]. **A squad's attack is each living soldier attacking**: 10 real hits, each with its own hit, crit and guard rolls [DECIDED]. Squads have no PP, so they act on their own SPD schedule until the phase ends, and for squads (unlike heroes) higher SPD does mean more attacks per phase (Section 6) [DECIDED]. Each soldier type declares the `range` (melee or ranged) of its basic attack [DECIDED].
+- Soldiers act on the same SPD timeline as heroes, as one squad action per scheduled count [DEFAULT]. **Soldiers attack as one and defend as one** [DECIDED, Decision 130, overturns 70]: a squad action is ONE attack whose power is the sum of the living soldiers' effective ATK (INT for a magical soldier attack) x the basic attack multiplier (1; soldier types have no multiplier field) x matchup, with one hit, one crit and one guard roll. Rate stats (HIT, SKL, CRIT, EVA, GUARD, SPD) are the soldier type's effective values, never summed [DEFAULT]. Target selection is unchanged (nearest, front row first); a target that dies is not replaced within the action. Squads have no PP, so they act on their own SPD schedule until the phase ends, and for squads (unlike heroes) higher SPD does mean more attacks per phase (Section 6) [DECIDED]. Each soldier type declares the `range` (melee or ranged) of its basic attack [DECIDED].
 - **Placement:** the squad occupies an entire 1x3 **soldier row** on the 4x3 board, either in front of the hero rows (body shield) or behind them (extra damage, protected by the party); see Section 10 [DECIDED].
 - Each soldier type declares `allowed_soldier_rows`. Both current types allow either the first or the last board row [DECIDED].
 - Damage to a squad [DECIDED, replaces the earlier shared HP pool]:
-  - **Single-target hit:** lands on the **lowest-HP living soldier**. Excess damage on a killed soldier is discarded (no spill to other soldiers or to the heroes).
-  - **Row, column and all skills** hit every living soldier separately (each soldier is its own damage recipient, with its own hit and guard rolls).
+  - **Any hit, single-target or area** [DEFAULT, Decision 130]: resolved ONCE against the squad's defense = the sum of the living soldiers' effective DEF (MDEF for magical, hybrid = the average of the two sums); EVA and GUARD are the soldier type's values. The damage lands on the **lowest-HP living soldier**; when it kills a soldier, the leftover damage **overflows** to the next lowest-HP living soldier (ties lowest index), and so on until used up or the squad is wiped; it never spills onto the heroes (Decision 128, now for area hits too).
+  - Sums use living soldiers only, so a weakened squad hits softer and defends worse. A flat line shared from the leader's statuses counts once for the squad's sum, not once per soldier [DEFAULT].
   - **Healing a squad is always treated as AoE**: the heal amount is split evenly across all 10 soldiers, dead ones included, and each soldier's share is added to its own HP, capped at its max HP. Dead soldiers revive at their share. Example: heal 60 on 10 soldiers = +6 each; a living soldier at 20 goes to 26, a dead soldier revives at 6.
-  - **Per-hit effects trigger once per attacking action** regardless of hit count (Section 7), so a 10-hit squad attack applies Regen, on-hit reactives and PP reduction once, while still dealing 10 hits of damage [DECIDED].
+  - **Per-hit effects trigger once per attacking action** regardless of hit count (Section 7); a squad attack is one hit, so soldier skills that fire on hit / on attack fire once per squad action [DECIDED].
 - **Squads share their leader's buffs and debuffs** [DECIDED]: any stat buff or debuff applied to the leader also applies to the leader's squad, because they are one squad. Status and buff effects that hit "everyone in a row" or "the party" skip squads unless they say otherwise, so a squad is otherwise buffed only through its leader (Iron Fist's row guard reaches the squad only when the Emperor is leader). **Only stat modifiers propagate** [DECIDED]: death intercepts (Fairy's Grace), Regen and control statuses (Stun, Confusion) stay on the leader.
 - Heroes can filter targeting to heroes only, ignoring soldiers [DECIDED] (see Section 4).
 - Soldier squad wiped: the hero lives. Hero dead: squad removed.
@@ -86,7 +86,7 @@ Result: each side loses exactly 2 and fields exactly 4. There is no self-cut.
 
 **Draft as data:** the sequence above is a config list of steps (`actor`, `action`, `source`), not code. Live PvP would swap `source` to `human` for both sides and add a protect step for the second player. The engine never assumes one side is the defender.
 
-**After the draft** [DEFAULT]: formation is resolved from each hero's preferred row, leader forced to front, with row overflow resolved by leader-line rank. Both sides use the same rule. The challenger may still adjust formation between phases (Section 5.5).
+**After the draft** [DEFAULT]: formation is resolved per slot (Section 10, Decision 129): each hero's preferred row and optional `column`, the leader like everyone else, with row overflow resolved by leader-line rank. Both sides use the same rule. The challenger may still adjust formation between phases (Section 5.5).
 
 ### Cost [DEFAULT, to be calibrated]
 Each hero's team entry has a **cost** that counts the hero's stats, skills and aura plus the entry's equipment, squad and devotion blessings. By default it is computed by a basic algorithm over raw stats, PP, skill multipliers, effect types and so on [DECIDED]; the algorithm and weights are placeholders replaced by gauntlet results once available. Any hero, skill or item may carry an authored `cost_override` that replaces its computed price [DECIDED] (official content only). Cost does three jobs: caps, the fallback-ban ordering, and tiebreaks.
@@ -127,6 +127,24 @@ HP, ATK, INT, DEF, MDEF, SPD, HIT, SKL, CRIT, GUARD, EVA.
 - **CRIT** is the single source of truth for crit chance; the defender's **GUARD** is crit's opposed stat, the way EVA opposes HIT (Section 8) [DECIDED]. New heroes default to 30 in the editor [DECIDED baseline]. Sheets without a CRIT value (Leon) are a validation error, not a silent default.
 - **SKL** (hidden reliability) feeds hit, evasion, guard and crit through one centralized function, with class-dependent weights [DECIDED concept]. [DEFAULT for prototype] no per-class SKL weights: SKL feeds the Section 8 formulas at flat coefficients; per-class weights deferred. The party-pooled redistribution idea is deferred until the basics balance.
 - **SPD bands** [DEFAULT] (Decision 121): walking classes ~38-42, Monster 47, Cavalry/Flyer 55; soldiers walking 30-35, mounted 50, Risen 40.
+- **Stat guideline** [DECIDED rules, DEFAULT factors] (Decision 131), relative to a hero's primary stat **P** (ATK, or INT for casters): HP 5-10 x P by class (tanky melee high, casters and assassins low); ATK 1 x P (casters keep a low ATK); INT 1 x P if the hero uses it, else low; DEF and MDEF 0.4-0.8 x P; SKL 0.1-0.3 x P; SPD foot 30-50, mounted (cavalry, flyer) 50-70; HIT 100; CRIT / GUARD / EVA keep their baselines (CRIT 30; class GUARD/EVA leanings). Generic heroes have P = 100. Per-class factors [DEFAULT, tunable]:
+
+  | class | P stat | HP | DEF | MDEF | SKL | SPD | low stat |
+  |---|---|---|---|---|---|---|---|
+  | Infantry | ATK | 9 | 0.8 | 0.4 | 0.15 | 38 | INT 20 |
+  | Lancer | ATK | 7.5 | 0.7 | 0.5 | 0.2 | 40 | INT 30 |
+  | Cavalry | ATK | 7 | 0.6 | 0.4 | 0.2 | 55 | INT 20 |
+  | Archer | ATK | 5.5 | 0.45 | 0.45 | 0.25 | 41 | INT 25 |
+  | Flyer | ATK | 6 | 0.4 | 0.55 | 0.2 | 55 | INT 25 |
+  | Mage | INT | 5 | 0.4 | 0.8 | 0.2 | 39 | ATK 15 |
+  | Assassin | ATK | 5 | 0.4 | 0.4 | 0.3 | 42 | INT 20 |
+  | Holy | INT | 5.5 | 0.45 | 0.75 | 0.15 | 38 | ATK 20 |
+  | Aquatic | ATK | 8 | 0.6 | 0.6 | 0.2 | 40 | INT 30 |
+  | Monster | ATK | 10 | 0.8 | 0.45 | 0.2 | 47 | INT 30 |
+
+  Infantry and Monster are the tankiest, Archer / Assassin / Mage the frailest; Monster's lead (Decision 118) now comes from HP, DEF/MDEF and SPD, since ATK is fixed at 1 x P. CRIT, GUARD and EVA kept from the earlier sheets (Assassin CRIT 45).
+  Named heroes keep their relative identity: **Leon P 115** (HP 800, ATK 115, DEF 70, MDEF 46, SKL 35, SPD 50), **The Emperor P 100** (HP 950, ATK 100, DEF 70, MDEF 40, SKL 22, SPD 30), **Jasmine P 100 on INT** (HP 550, INT 100, ATK 20, DEF 40, MDEF 70, SKL 15), **Lief P 90** (HP 800, ATK 90, INT 40, DEF 70, MDEF 46, SKL 22); SPD, CRIT, GUARD and EVA unchanged.
+  Soldiers: per-soldier HP/ATK/INT/DEF/MDEF/SKL = round(0.15 x the P=100 hero of the soldier's class) [DEFAULT]; the two Heavy types use 0.17 for HP/ATK/DEF (they also keep their ATK/DEF +30% skill). SPD, CRIT, GUARD, EVA stay rate-like (unchanged); HIT 90 (Bowmen 95).
 - **Modifier order** [DEFAULT]: base → flat → percentage (strongest wins within a source category, multiplied across categories, Section 9.1) → conditional → floor/cap.
 
 ---
@@ -204,7 +222,7 @@ Survivors after phase 3 with no side wiped: **the challenger loses** [DECIDED]. 
 
 ### 5.5 Challenger edits between phases [DECIDED]
 The challenger may adjust between phases. [DEFAULT scope]:
-- Allowed: tactic sheets (order, conditions, targeting, enable/disable), soldier squad row, hero rows (leader stays front), naming a new leader if the old one died.
+- Allowed: tactic sheets (order, conditions, targeting, enable/disable), soldier squad row, hero slots (row and column; the leader may stand anywhere), naming a new leader if the old one died.
 - Not allowed: roster, equipment, skill pool, base stats.
 - Defenders are frozen snapshots. To give defenders a way to adapt, the `current phase` condition exists for everyone, so a defender can pre-commit phase-dependent tactics.
 - The server assigns the seed per phase and does not reveal it, so the challenger cannot pre-simulate the next phase.
@@ -233,17 +251,20 @@ The challenger may adjust between phases. [DEFAULT scope]:
 - **Passives spend PP when their condition triggers them, and the passive then becomes *used*** [DECIDED]. If there is not enough Passive PP when the condition is met, the passive does not fire (logged).
 - **"Used" means** [DECIDED]: each trigger spends the skill's PP cost once. A one-event passive (Quick Guard) guards one attack per spend. A state passive (Berserk) spends on activation and stays on until its condition ends; if the condition ends and returns, it spends again.
 - Leader auras are exempt from all of the above: free, no PP, no "used" state.
-- **Per-hit effects trigger once per attacking action**, regardless of hit count [DECIDED]. This covers Regen ("per hit taken"), on-hit reactive passives, and PP reduction such as Longinus (-1 Passive PP to the unit hit). A multi-hit attack (a squad's 10 hits, a row skill hitting one unit twice) still deals damage per hit, but these effects fire once per attacking action per affected unit.
+- **What-if PP for simulation** [DEFAULT tooling, not a rule]: the engine takes an optional PP override (`runBattle(pack, input, { pp: { active?, passive? } })`, `npm run sim -- --pp-active=N --pp-passive=N`, `npm run batch -- --pp-active=2,3,4 --pp-passive=2,3` for a sweep, and a PP control on the editor's battle page). It replaces every hero's base PP before gear PP is added; the cap becomes max(`rules.pp.max`, override + gear). It is never part of a battle file.
+- **Per-hit effects trigger once per attacking action**, regardless of hit count [DECIDED]. This covers Regen ("per hit taken"), on-hit reactive passives, and PP reduction such as Longinus (-1 Passive PP to the unit hit). A multi-hit attack (a row skill hitting one unit twice) still deals damage per hit, but these effects fire once per attacking action per affected unit.
 
 ---
 
 ## 8. Damage Resolution [DEFAULT formulas, all constants tunable]
 
-Order: select target (a single-target hit on a squad resolves to its lowest-HP living soldier, Section 2.1) → hit check (HIT vs EVA, SKL-adjusted) → damage (`power × multiplier × matchup − defense`, minimum 1) → crit check → guard/reductions → apply to HP/soldiers → statuses/reactions → rescheduling.
+Order: select target (a hit on a squad is resolved once against the summed defense of its living soldiers and lands on its lowest-HP living soldier, Section 2.1) → hit check (HIT vs EVA, SKL-adjusted) → damage (`power × multiplier × matchup − defense`, minimum 1) → crit check → guard/reductions → apply to HP/soldiers → statuses/reactions → rescheduling.
 
 - **Damage is floored to an integer** [DECIDED], consistent with the worked examples below (157.5 - 100 -> 57; 157.5 - 50 -> 107).
 - **Minimum damage** [DECIDED]: any hit that lands deals at least 1 damage, even when the attacker's power is below the target's defense. The tick matters for on-hit mechanics.
-- **Damage formula** [DEFAULT, still being tuned]: `max(1, power x skill_multiplier x matchup - defense)`. Power is the skill's scaled stat value after all buffs, debuffs and stat conversions. The matchup factor combines the class advantage and skill bonuses (they multiply). Defense is the target's relevant defense after all modifiers. A high-DEF unit can only be hurt by high-power, high-multiplier or class-advantaged skills. Worked example, a bare Leon (cavalry) attacking a Dragon-Scale Emperor (infantry, DEF 50 + 50 = 100): Charging Assault is 70 x 1.2 x 1.25 = 105, so 5 damage; Thousand Azure Hooves is 70 x 1.8 x 1.25 = 157, so 57. If the Emperor is also the leader (Empire's Dominion, DEF x 1.2 = 120), Charging Assault falls back to 1 and Hooves to 37.
+- **Damage formula** [DEFAULT, still being tuned]: `max(1, power x skill_multiplier x matchup - defense)`. Power is the skill's scaled stat value after all buffs, debuffs and stat conversions. The matchup factor combines the class advantage and skill bonuses (they multiply). Defense is the target's relevant defense after all modifiers. A high-DEF unit can only be hurt by high-power, high-multiplier or class-advantaged skills. Worked example (Section 3.3 numbers), a bare Leon (cavalry, ATK 115) attacking a Dragon-Scale Emperor (infantry, DEF 70 + 22 heavy armor base = 92, Section 12.1): Charging Assault is 115 x 1.2 x 1.25 = 172.5, so 80 damage; Thousand Azure Hooves is 115 x 1.8 x 1.25 = 258.75, so 166. If the Emperor is also the leader (Empire's Dominion, DEF x 1.2 = 110.4), Charging Assault falls to 62 and Hooves to 148.
+- **Formula choice** [DEFAULT `subtract` until the designer chooses]: the base step (power vs defense) is selectable in `rules.yaml` (`damage.formula`); matchup, crit, guard/reductions and minimum damage are unchanged by it. `subtract`: `max(1, power - defense)` (above). `ratio`: `power x K / (K + defense)`, K = `ratio_k` (default 100; defense K halves the damage). `scaled_subtract`: `max(power x floor_pct/100, power - defense x def_weight)` (defaults 20 and 1; subtraction that never falls below a share of power). Squads use the same formula with their summed defense. The batch simulator sweeps formulas as a what-if (`--formula=subtract,ratio:150,scaled_subtract:20`; the editor has a matching select), never saved.
+- **Squads** [DEFAULT, Decision 130]: a squad's power is the sum over its living soldiers (attacking), its defense the sum over its living soldiers (defending); see Section 2.1.
 - **GUARD is the chance to guard** [DECIDED]: when a guard activates it reduces damage by 50%. GUARD UP adds 50 to the GUARD stat.
 - Defense stat follows the skill's damage type (physical → DEF, magical → MDEF). Skills may override.
 - Crit multiplier 1.5×.
@@ -275,11 +296,13 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 - This applies to every pair: passive vs passive, active vs active, equipment vs equipment and soldier vs soldier never stack; passive, active, equipment, soldier and prayer effects all stack with each other [DECIDED]. Stacking is uncapped [DECIDED], so the combat log and the editor must show a per-stat breakdown (which effect won, which was suppressed) [DECIDED].
 - **Unique statuses stack** [DECIDED]: a status flagged `unique` (Berserk, Dark Dragon's Ire) is exempt from the same-category strongest-wins rule and multiplies with everything. Unique is authored per status; it is usually, not always, set.
 - A status that several skills apply is the same status id, but each application carries its applier's category (Defense Down from Hegemony is passive, from Dark Dragon's Dirge it is active), so a passive-applied and an active-applied copy coexist and multiply. Reapplying within one category refreshes it.
-- **Duplicate accessories are allowed** [DECIDED]: flat stat lines add (two Speed Rings = SPD +40), but identical effects from the same category do not stack.
+- **Duplicate accessories are allowed** [DECIDED]: flat stat lines add (two Spiky Gloves = ATK +24), but identical effects from the same category do not stack.
 - A skill or effect can opt out with an explicit `stacks_with` / `stackable` flag ("unless mentioned otherwise").
 - [DEFAULT] The suppressed weaker effect is not deleted. It resumes if the stronger one expires or is removed.
 - [DEFAULT] "Strongest wins" is evaluated per stat, so a skill that buffs ATK and DEF is not cancelled in full by a bigger ATK-only buff.
-- [DEFAULT] Flat stat lines on equipment (HP +40, ATK +20) are added to base stats before any of this. Only conditional or percentage equipment effects (e.g. Queen's Scepter +20% INT) count as an "equipment buff".
+- [DEFAULT] Flat stat lines on equipment (the item type's base, Section 12.1) are added to base stats before any of this. Only conditional or percentage equipment effects (e.g. Queen's Scepter +20% INT) count as an "equipment buff".
+- **INT/MDEF pairing** [DEFAULT meaning of a designer rule, Decision 132]: "skills or auras boosting ATK or DEF should also apply to INT and MDEF". A `modify_stat` on ATK from a skill (an active or passive status, i.e. a status in the active / passive / soldier source category), a leader aura or a soldier skill also applies the same mode and value to INT; one on DEF also to MDEF. Buffs and debuffs alike. Not for equipment stat lines, item effects, blessings or terrain (they name their stats explicitly). When the same source already has a line on the paired stat (Berserk), no second one is added. The paired line is a normal breakdown entry of the same source and category, so the strongest-wins rule above handles overlaps.
+- **Known [DEFAULT], squads:** a leader's status shared with its squad keeps its source category, so a leader-shared `soldier`-category status competes (strongest wins) with the squad's own soldier skills in the soldier group. Leader auras are not shared with the squad: an aura reaches the squad only through its own targeting (`include_soldiers`, faction, filter). Flat lines shared from the leader count once for the squad's summed ATK/INT/DEF/MDEF (Decision 130), not once per soldier.
 - **Debuffs follow the same rule** [DECIDED]: passive, active, equipment, soldier and prayer debuff categories, strongest wins within each, multiplied across. Buffs and debuffs on the same stat multiply together (Berserk +50% ATK against an ATK debuff).
 
 ---
@@ -306,7 +329,7 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 Rules [DEFAULT] (Decision 125):
 - A blessing HP +20% (unconditional) raises max HP; no other status HP modifier changes max HP.
 - **Single-target attack** = the hero's own active damage skill of shape single (the same `single` flag as `unit_hit_by_single_target_attack`); condition leaf `action_is_single_target` (authored only). Conditional lines on it are on for every roll of that attack and off after it.
-- **Reflect** (`reflect_damage`): floor(percent of the HP the wearer lost to the attacking unit's hits in that action (overkill and a Fairy's Grace save count only the HP it had), summed: a 10-hit squad attack counts every hit), dealt to the attacker after the action, once. No hit/crit/guard roll, ignores DEF, not a hit (fires no events), can kill (Fairy's Grace still intercepts); on a squad it lands on the lowest-HP living soldier. Only hits whose own event satisfies the condition count; the action that kills the wearer is still reflected; less than 1 damage is dropped.
+- **Reflect** (`reflect_damage`): floor(percent of the HP the wearer lost to the attacking unit's hits in that action (overkill and a Fairy's Grace save count only the HP it had), summed over every hit of that action), dealt to the attacker after the action, once. No hit/crit/guard roll, ignores DEF, not a hit (fires no events), can kill (Fairy's Grace still intercepts); on a squad it lands on the lowest-HP living soldier. Only hits whose own event satisfies the condition count; the action that kills the wearer is still reflected; less than 1 damage is dropped.
 - **Gift**: once per attacking action of another unit that targeted the wearer with a single-target hit (landed or not), after the action.
 - **Ignore GUARD** (`ignore_guard`): while active, the wearer's hits skip the guard roll, also over a skill's guaranteed guard.
 
@@ -317,7 +340,7 @@ Rules [DEFAULT] (Decision 125):
 - **The board is 4 rows x 3 columns** [DECIDED]. Heroes can only stand in the middle 2x3: a front hero row and a back hero row (4 fielded heroes in 6 slots). The outer two rows are **soldier rows**: a squad fills an entire 1x3 soldier row, either in front of the hero rows or behind them, never both. Top to bottom: [soldier row, front] / hero front / hero back / [soldier row, back].
 - Because a squad fills its whole row, it sits in every column. A column skill passes through it and a row skill aimed at that row hits it; a squad is selected as one target but every living soldier is hit separately [DECIDED] (Section 2.1).
 - **The player defines the squad's row when building the squad** [DECIDED]: `squad_row` (front or back) is an optional field on the roster entry; if omitted it falls back to the soldier type's `default_soldier_row` (same defaults as heroes: melee/tanky front, ranged/frail back). Either way it must be one of the soldier type's allowed rows. The leader's `squad_row` applies. If the leader is banned, the next leader's squad and its row are used [DEFAULT].
-- Any hero in any row (except the leader: front) [DECIDED].
+- **Slots, not just rows** [DECIDED] (Decision 129): the hero grid is 2 rows x 3 columns = **6 separate slots** (3 front, 3 back). Any hero, the leader included, may stand in any of them. A roster entry may carry an optional `column` (1..`rules.board.columns`) next to `preferred_row`: with a `column` the hero claims exactly that (row, column); without one (**auto**) it fills the lowest free column of its row in roster order. Two heroes on the same slot are an error (`E_BATTLE_SLOT`), as is a column beyond the board. `preferred_row` and `column` are editable between phases (Section 5.5). Formation order (timeline tie-break) runs front-left to right-back: front row by column, then back row by column. The soldier rows stay separate from this grid.
 - **Default preferred row** [DEFAULT, per-hero override]: ranged and low-DEF units (Archer, Mage, Holy) default to the back row; melee and high-HP units (Infantry, Lancer, Cavalry, Monster, Aquatic [DECIDED]) default to the front row [DEFAULT]. Assassin and Flyer also default to the back row [DECIDED]. The editor pre-fills `preferred_row` from this rule and the author can change it.
 - Default targeting: front row first, then back when the front has no valid targets [DECIDED].
 - Column and row skills must declare shape and damage distribution as separate fields.
@@ -348,8 +371,30 @@ Rules [DEFAULT] (Decision 125):
 ## 12. Authoring and the Editor
 
 - Mechanics are stored as structured data (JSON/YAML). Markdown is for lore only. Free-text fields like "1.2x" or "Armour/Armor" are what produce validation errors.
-- Enumerated tags for equipment types: weapons `sword`, `spear`, `axe`, `staff`, `tome`, `bow`, `dagger`, `hammer`; shields are accessories tagged `shield`; armor `light_armor`, `heavy_armor`, `robe`. A class can use several weapon types (Decision 120).
+- Enumerated tags for equipment types: weapons `sword`, `spear`, `axe`, `staff`, `tome`, `bow`, `dagger`, `hammer`; armor `light_armor`, `heavy_armor`, `robe`; accessory categories `shield`, `gloves`, `boots`, `ring`, `amulet`, `charm`, `bracelet`, `earring`, `cloak`, `belt`. A class can use several weapon types (Decision 120). Every item has exactly one type valid for its slot (`E_EQUIP_TYPE`). A hero must list weapon, armor and shield types in `restrictions.equipment_tags` to wear them; the other accessory categories are open to every hero.
 - The editor shows the per-stat stacking breakdown (Section 9.1) alongside the tactics board.
+
+### 12.1 Equipment type standard [DECIDED rule, DEFAULT values] (Decision 133)
+Designer rule: all equipment of one type has the same base stats; types differ from each other (all swords share a base and differ only by their effects; swords differ from daggers; heavy armor differs from light armor). Accessories come in categories, one category = one stat block. Inspiration: Unicorn Overlord, Langrisser. Basic stat-increase items for now; damage is balanced later through skills.
+- An item's flat stat lines are its type's base, `rules.yaml equipment_bases` (every type required). Items never author stat lines; what makes a named item special is its `pp_modifiers` and `effects`. Cost prices the base like any stat line.
+- **Exception rule**: bases stay on HP, ATK, INT, DEF and MDEF. Another stat appears only as a type identity that balances against a smaller primary line: dagger CRIT (assassin crit), heavy armor SPD -5 (weight), shield GUARD (guard), boots SPD (mobility).
+- Starting table [DEFAULT], scaled to a P = 100 hero (Section 3.3):
+
+| type | base | type | base |
+|---|---|---|---|
+| sword | ATK 30, DEF 8 | heavy_armor | HP 150, DEF 22, MDEF 6, SPD -5 |
+| axe | ATK 40 | light_armor | HP 100, DEF 14, MDEF 10 |
+| spear | ATK 32, HP 50 | robe | HP 70, DEF 6, MDEF 20 |
+| hammer | ATK 34, DEF 6, MDEF 6 | shield | HP 40, DEF 12, GUARD 5 |
+| bow | ATK 32 | gloves | ATK 12 |
+| dagger | ATK 24, CRIT 10 | boots | HP 30, SPD 5 |
+| staff | INT 24, MDEF 12, HP 30 | ring | INT 12 |
+| tome | INT 34 | amulet | MDEF 14, HP 20 |
+| | | charm | HP 60 |
+| | | bracelet | DEF 12 |
+| | | earring | ATK 6, INT 6 |
+| | | cloak | DEF 6, MDEF 10 |
+| | | belt | HP 40, DEF 6 |
 - A schema-driven in-game editor generates dropdowns for stats, tags, conditions and references, and validates IDs, duplicates and missing fields before a battle.
 - Build order for the editor: **tactics board first**, then skills, equipment, characters.
 
@@ -441,7 +486,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 31 | Hero-ID conditions in tactics | DECIDED | Forbidden; class/faction conditions only |
 | 32 | Defender ban rules | DEFAULT | Hidden rule sheet (two-slot limit, see 71), fallback bans highest cost, ties by cost then ID |
 | 33 | Cost | DEFAULT | Computed by a basic algorithm (raw stats, PP, skill multipliers, effect types, ...); per-hero/skill/item `cost_override`; cap on hero, roster, and tighter on protected/anchor (see 72) |
-| 34 | Post-draft formation | DEFAULT | Preferred rows, leader forced front, same rule both sides |
+| 34 | Post-draft formation | DEFAULT | Preferred rows (plus `column`, Decision 129), same rule both sides; the leader is no longer forced front |
 | 35 | Live PvP | DEFERRED | Left possible; draft is a config step list |
 | 36 | Bans scope | DECIDED | Apply to the tower, and to PvP if/when it is built |
 | 37 | Soldier placement | DECIDED | 4x3 board; heroes only in the middle 2x3; a squad fills a whole 1x3 row at the front or back |
@@ -449,8 +494,8 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 39 | Squad pairing | DECIDED | Generic soldier types; the player pairs a hero with an eligible type; pairings can carry stat penalties |
 | 40 | Leader auras authored | DECIDED | Emperor: Empire +20% ATK/DEF. Lief: Lancers +20% ATK/DEF. Jasmine: all allies recover 30% max HP after she acts. Leon: with The Emperor fielded, +30% ATK/DEF/SPD to both |
 | 41 | Hero-ID conditions in authored content | DEFAULT | Allowed in auras, faction and equipment effects; forbidden in tactics and ban sheets |
-| 42 | Squad targeting | DECIDED | A squad is selected as one target; no individual soldier targeting by players. A single-target hit lands on the lowest-HP living soldier; row/column/all hit every living soldier separately (see 43) |
-| 43 | Squad HP | DECIDED | Each soldier has its own HP (overturns the shared pool). Single-target excess damage is discarded (no spill). Healing is always AoE: split evenly across all 10 soldiers including dead ones, which revive at their share, capped at max HP |
+| 42 | Squad targeting | DECIDED | A squad is selected as one target; no individual soldier targeting by players. A single-target hit lands on the lowest-HP living soldier; row/column/all hit every living soldier separately (see 43; revised by 130: any hit on a squad is resolved once) |
+| 43 | Squad HP | DECIDED | Each soldier has its own HP (overturns the shared pool). Single-target excess damage no longer discarded: revised by Decision 128 (overflow). Healing is always AoE: split evenly across all 10 soldiers including dead ones, which revive at their share, capped at max HP |
 | 44 | Soldier skills | DECIDED | Own passive skills, always-on or event-triggered, no PP, no tactic sheet; separate stacking category `soldier` |
 | 45 | Turn | DECIDED | One active skill use by the affected unit |
 | 46 | Unique statuses | DECIDED | Stack and multiply (Berserk, Dark Dragon's Ire) |
@@ -476,8 +521,8 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 66 | Damage rounding | DECIDED | Damage is floored to an integer |
 | 67 | SPD role | DECIDED | SPD = initiative: changes hero action order, not count (fixed PP, phase ends when all exhausted). Value is kill races and landing effects first. Squads act on their own SPD schedule, so for squads SPD means more attacks |
 | 68 | Turtling | DECIDED (known risk) | Keep "survivors after phase 3 = challenger loss" and rely on bans. The anchor is unbannable, so defenders will make their best wall the anchor. Batch simulator must report timeout rate |
-| 69 | Per-hit effects | DECIDED | Regen, on-hit reactives and PP reduction (Longinus) trigger once per attacking action regardless of hit count; squads still deal 10 hits of damage |
-| 70 | Squad attack | DECIDED | Each living soldier attacks (10 real hits) |
+| 69 | Per-hit effects | DECIDED | Regen, on-hit reactives and PP reduction (Longinus) trigger once per attacking action regardless of hit count; squads still deal 10 hits of damage (revised by 130: a squad attack is one hit) |
+| 70 | Squad attack | DECIDED (overturned by 130) | Each living soldier attacks (10 real hits) |
 | 71 | Player tactic and ban rows | DECIDED | One activation condition and one targeting condition, each optionally with a second ANDed; no nesting, OR or NOT in player sheets. Ban rules: one filter, optional second ANDed, plus selector. Authored content keeps full trees (enforced) |
 | 72 | Cost override | DECIDED | `cost_override` on a hero, skill or item replaces the computed cost (official only) |
 | 73 | Squad healing | DECIDED | Always treated as AoE; see 43 |
@@ -535,6 +580,12 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 125 | Devotion (3c) | DECIDED (placeholder content), DEFAULT rules | Placeholder pantheon: the Seven Lucky Gods (`content/gods.yaml`). Sigils chosen by the player per equipment slot (`sigils` on the roster entry; counts only on a filled slot, W_SIGIL_EMPTY_SLOT). The 7 blessings of Section 9A. [DEFAULT]: reflect = floor(percent of the HP lost to the attacking unit's hits in that action), after the action (also when it killed the wearer), no rolls, ignores DEF, not a hit, can kill, on a squad the lowest-HP soldier; Gift heals once per attacking action that targeted the wearer single-target; single-target = own active damage skill of shape single (`action_is_single_target`); a god's two tiers add on the same stat (designer decision), different gods follow strongest-wins; blessing HP percent raises max HP; pricing per effect (`effect_price` for non-stat effects) |
 | 126 | Class traits (3d) | DECIDED values, DEFAULT placement | Flyer EVA x1.5 (`flyer_melee_eva_bonus: 50`) against melee hits only, applied after 9.1 stacking; Aquatic SPD +30% (`aquatic_water_spd_bonus: 30`, terrain category) on water terrain; terrains get a `water` flag (default false), Swamp is water and loses its aquatic +15% line |
 | 127 | Editor tech stack (Step 5) | DECIDED | Local web app: Vite + React + TypeScript, plain CSS, served locally by `npm run editor`; no hosting, no accounts. A Vite plugin mounts a JSON API (`editor/api.ts`) that runs the repo's zod schema, validator and engine in Node (the server is authoritative, the browser never runs the engine). Milestone 1 = tactics board + run sim; skills, equipment and character editors come later |
+| 128 | Soldier damage overflow | DECIDED | Overturns the no-spill part of Decision 43. A single-target hit that kills a soldier carries its raw leftover (no new rolls or defense) to the next lowest-HP living soldier (ties lowest index), repeating until the damage is used up or the squad is wiped; it never reaches the leader or heroes. Area hits are unchanged (each soldier separate, no carry; revised by 130: area hits are resolved once and overflow too). A Fairy's Grace save on the last soldier ends the overflow. Log: one `damage` event per soldier (`spill` on carried ones), one `after_hit` per hit with the total HP removed |
+| 129 | Slot-based formation | DECIDED | The hero grid is 2x3 separate slots, not just front/back rows. Optional roster-entry field `column` (1..`rules.board.columns`, omitted = auto: lowest free column of the row in roster order); explicit columns claim exactly (row, column); duplicate slot = `E_BATTLE_SLOT`; `column` is editable between phases. Leaders may stand in either row (overturns "leader must be front"; `heroRow` no longer forces it). Squads stay in the separate soldier rows. Draft row overflow moves the lowest-ranked non-leader to the other row and drops its explicit column. The editor board shows the fixed 2x3 grid and writes `preferred_row` + `column` on drag (swap on an occupied slot) |
+| 130 | Squads attack and defend as one | DECIDED (DEFAULT details) | Overturns 70 and the area-hit part of 43/128. "Soldiers attack as one and defend as one: combine their ATK when attacking and their defence when defending." A squad action is ONE attack: power = sum of the living soldiers' effective ATK (INT for a magical attack) x basic attack multiplier (1) x matchup; one hit, crit and guard roll with the soldier type's rate stats (never summed). Any hit on a squad (single or area) is resolved once against the sum of the living soldiers' DEF (MDEF; hybrid = average of the two sums), EVA/GUARD are the soldier type's, and the damage goes through the overflow chain (lowest-HP soldier first, never to heroes). Sums use living soldiers only; flat lines shared from the leader's statuses count once for the sum, not per soldier [DEFAULT]. Heals unchanged. Soldier on-hit / on-attack skills fire once per squad action. Batch report: one squad action per squad turn |
+| 131 | Stat guideline (rebalance) | DECIDED rules, DEFAULT factors | Stats relative to a primary stat P (ATK, INT for casters): HP 5-10 x P, ATK 1 x P, INT 1 x P if used, DEF/MDEF 0.4-0.8 x P, SKL 0.1-0.3 x P, SPD foot 30-50 / mounted 50-70, HIT 100, CRIT/GUARD/EVA baselines kept. Generic heroes P = 100 (factor table in Section 3.3); Leon P 115, The Emperor P 100, Jasmine P 100 (INT), Lief P 90. Soldiers ~0.15 x a P=100 hero of their class (Heavy types 0.17 for HP/ATK/DEF), rate stats unchanged, HIT 90 (Bowmen 95). Damage formula, skills, equipment and rules constants unchanged |
+| 132 | INT/MDEF pairing | DEFAULT (meaning of a designer rule) | "Skills or auras boosting ATK or DEF should also apply to INT and MDEF": a modify_stat on ATK (DEF) from a skill status (active / passive / soldier category), a leader aura or a soldier skill also applies to INT (MDEF), same mode and value, buffs and debuffs alike, unless that source already names the paired stat. Not for equipment lines, item effects, blessings or terrain. Shown as a normal breakdown entry of the same category (Section 9.1) |
+| 133 | Equipment type standard | DECIDED rule, DEFAULT values | "All equipment of one type has the same base stats; types differ from each other." An item has exactly one type (weapon type, armor type or accessory category: shield, gloves, boots, ring, amulet, charm, bracelet, earring, cloak, belt; replaces `none`); its flat stat lines are `rules.equipment_bases[type]` and items no longer author `stat_modifiers`. Named items differ by pp_modifiers and effects. Bases stay on HP/ATK/INT/DEF/MDEF except type identities (dagger CRIT, heavy armor SPD -5, shield GUARD, boots SPD). Table in Section 12.1. Existing items re-typed; their old stat lines dropped (kept in `meta.pre_standard_stats`) |
 
 ---
 
@@ -561,7 +612,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - Class-filtered aura (Lief) buffs only Lancers; Leon's aura applies only when The Emperor is fielded, and only when Leon is leader.
 - Event-triggered aura (Jasmine) fires after her action completes, costs no PP, and stops when she is no longer leader.
 - A squad fills a whole 1x3 soldier row and never a hero slot; heroes cannot be placed in the soldier rows; a banned hero's squad leaves the board with them.
-- A hero's `preferred_row` default follows the class rule; overrides are respected; the leader is always front.
+- A hero's `preferred_row` default follows the class rule; overrides are respected; the leader may stand in either row; an explicit `column` claims that exact slot, and no column fills the lowest free one (Decision 129).
 - Leon's SPD -20 applies when paired with a non-mounted soldier type and not with a mounted one.
 - A squad is selected as one target and individual soldiers cannot be selected; a row, column or all skill hits every living soldier separately.
 - A landed hit never deals less than 1 damage, and damage follows floor(max(1, power x multiplier x matchup - DEF)) with no variance (same inputs, same hit and crit outcome: identical damage).
@@ -571,21 +622,21 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - Hegemony resolves before the triggering attack and removes only the attacker's buffs; Quick Heal resolves after a single-target hit.
 - Confusion from the Strange Box affects every unit including the wearer, and ends after each unit's first active attack.
 - Thousand Azure Hooves gives the caster SPD UP (+15%) for 1 turn after the action, and the next action is scheduled sooner.
-- Squad HP is per soldier: a single-target hit lands on the lowest-HP living soldier and excess damage is discarded (no spill to other soldiers or heroes); ties go to the lowest soldier index.
+- Squad HP is per soldier: a single-target hit lands on the lowest-HP living soldier and a kill overflows the leftover to the next lowest-HP soldier (never to the heroes, Decision 128); ties go to the lowest soldier index.
 - Healing a squad splits the amount evenly across all 10 soldiers, dead included: heal 60 gives +6 each, a living soldier at 20 goes to 26, a dead soldier revives at 6, and every soldier is capped at max HP.
 - Stat buffs and debuffs on the leader also apply to the leader's squad; a row-wide or party-wide effect skips the squad unless the skill says otherwise.
 - Stun delays the target's pending action by the fixed `stun_pushback_counts`, independent of SPD; the stunned unit loses no action and no PP.
 - SPD does not give a hero more skill uses per phase (two parties with different SPD and equal PP spend the same PP), it only decides order; a squad with higher SPD makes more attacks per phase.
 - A unit killed before its scheduled action loses its unspent PP (kill race).
 - A column skill hits every living soldier of a squad separately, whichever column it is in.
-- Per-hit effects (Regen, on-hit reactives, Longinus PP reduction) trigger once per attacking action: a squad's 10-hit attack applies them once but deals 10 hits of damage.
+- Per-hit effects (Regen, on-hit reactives, Longinus PP reduction) trigger once per attacking action; a squad attack is one combined hit (Decision 130).
 - A player tactic row with nesting, OR, NOT or more than two ANDed conditions per slot is rejected (E_TACTIC_SHAPE); a defender ban rule likewise allows one filter, an optional second ANDed, plus the selector.
 - A Flyer has much higher EVA against melee attacks than ranged ones; hit% stays within 70..100 and crit% within 0..100.
 - Skill and soldier `range` (melee / ranged) is required on damage skills and soldier types.
 - Prayer-category effects multiply with passive, active, equipment and soldier effects; 2 and 4 same-god sigils unlock the 2-piece and 4-piece blessing tiers (when devotion is built).
 - The combat log shows a per-stat breakdown naming the winning and suppressed effects.
 - The batch simulator output includes challenger win rate and timeout rate.
-- Class advantage and skill bonuses apply to power x multiplier before defense is subtracted. Slice test (bare Leon vs bare Emperor, DEF 50): Charging Assault 70 x 1.2 x 1.25 = 105 - 50 = 55; Thousand Azure Hooves 157.5 - 50 -> 107. Step-3 test (Dragon Scale, DEF 100): 5 and 57; as leader with Empire's Dominion (DEF 120): 1 and 37.
+- Class advantage and skill bonuses apply to power x multiplier before defense is subtracted. Slice test (bare Leon vs bare Emperor, DEF 50): Charging Assault 70 x 1.2 x 1.25 = 105 - 50 = 55; Thousand Azure Hooves 157.5 - 50 -> 107. Step-3 test (Section 3.3 stats, Leon ATK 115 vs a Dragon-Scale Emperor, DEF 92): 80 and 166; as leader with Empire's Dominion (DEF 110.4): 62 and 148.
 - crit% = clamp(CRIT - defender GUARD + (attacker SKL - defender SKL)/4, 0, 100): raising the defender's GUARD lowers crit chance; GUARD still rolls its own guard (clamp 0..75) independently.
 - Area statuses (row, party, field) skip soldiers unless the effect sets `include_soldiers: true`.
 - `squad_row` is optional on a roster entry (falls back to the soldier type's `default_soldier_row`) and the resolved row must be one of the soldier type's allowed rows.

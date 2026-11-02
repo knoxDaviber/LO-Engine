@@ -1,3 +1,4 @@
+import { equipmentStats } from "../equipmentBase";
 import type { Character, Effect, Equipment, Rules, Skill, SoldierType } from "../schema";
 
 const STAT_KEYS = ["HP", "ATK", "INT", "DEF", "MDEF", "SPD", "HIT", "SKL", "CRIT", "GUARD", "EVA"] as const;
@@ -5,7 +6,7 @@ const STAT_KEYS = ["HP", "ATK", "INT", "DEF", "MDEF", "SPD", "HIT", "SKL", "CRIT
 /**
  * Computed by default, overridable:
  * hero part = weighted base stats + aura price + an official aura's cost_adjustment, or hero.cost_override when set. Each skill adds
- * its cost_override or the flat skill_price, each item its cost_override or its weighted stat_modifiers, a squad a flat price, each effect of an
+ * its cost_override or the flat skill_price, each item its cost_override or its type's weighted base stats (rules.equipment_bases), a squad a flat price, each effect of an
  * unlocked blessing tier (devotion, src/devotion.ts) its `effectPrice`.
  * Every number is a placeholder in rules.yaml until the gauntlet calibrates them.
  */
@@ -20,7 +21,10 @@ export function heroCost(hero: Character, rules: Rules, opts: { squad?: SoldierT
   for (const s of opts.skills ?? []) total += s.cost_override ?? rules.cost.skill_price;
   for (const e of opts.equipment ?? []) {
     if (e.cost_override != null) total += e.cost_override;
-    else for (const k of STAT_KEYS) total += e.stat_modifiers[k] * w[k];
+    else {
+      const flat = equipmentStats(e, rules.equipment_bases);
+      for (const k of STAT_KEYS) total += flat[k] * w[k];
+    }
   }
   if (opts.squad) total += rules.cost.squad_price;
   for (const e of opts.blessings ?? []) total += effectPrice(e, hero, rules);

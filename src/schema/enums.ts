@@ -10,15 +10,23 @@ export type UnitClass = (typeof CLASSES)[number];
 export const EQUIPMENT_SLOTS = ["weapon", "armor", "accessory"] as const;
 export type EquipmentSlot = (typeof EQUIPMENT_SLOTS)[number];
 
-export const EQUIPMENT_TAGS = ["sword", "spear", "staff", "bow", "dagger", "tome", "hammer", "axe", "light_armor", "heavy_armor", "robe", "none", "shield"] as const;
+/** Equipment types: every item has exactly one, valid for its slot, and takes its flat stat lines from `rules.equipment_bases[type]` (Decision 133). */
+export const EQUIPMENT_TAGS = [
+  "sword", "spear", "staff", "bow", "dagger", "tome", "hammer", "axe",
+  "light_armor", "heavy_armor", "robe",
+  "shield", "gloves", "boots", "ring", "amulet", "charm", "bracelet", "earring", "cloak", "belt",
+] as const;
 export type EquipmentTag = (typeof EQUIPMENT_TAGS)[number];
 
-/** Which tags may appear on an item of each slot. Catches an armor tagged "sword" and similar slips. */
+/** Which types may appear on an item of each slot. Catches an armor tagged "sword" and similar slips. */
 export const SLOT_TAGS: Record<EquipmentSlot, readonly EquipmentTag[]> = {
   weapon: ["sword", "spear", "staff", "bow", "dagger", "tome", "hammer", "axe"],
   armor: ["light_armor", "heavy_armor", "robe"],
-  accessory: ["none", "shield"],
+  accessory: ["shield", "gloves", "boots", "ring", "amulet", "charm", "bracelet", "earring", "cloak", "belt"],
 };
+
+/** Types a hero must list in `restrictions.equipment_tags` to wear: weapons, armor and shields. Other accessory categories are open to everyone. */
+export const HERO_GATED_TAGS: readonly EquipmentTag[] = [...SLOT_TAGS.weapon, ...SLOT_TAGS.armor, "shield"];
 
 export const SKILL_CATEGORIES = ["active", "passive"] as const;
 export const PP_POOLS = ["active", "passive"] as const;
@@ -28,7 +36,7 @@ export const RANGES = ["melee", "ranged"] as const;
 export const DAMAGE_TYPES = ["physical", "magical", "hybrid"] as const;
 export const TARGET_SIDES = ["self", "ally", "enemy", "any"] as const;
 export const TARGET_SHAPES = ["single", "row", "column", "all", "self", "event_unit", "caster_row", "attacker"] as const;
-export const DAMAGE_DISTRIBUTIONS = ["per_target"] as const; // AoE damage is per target; a squad is selected as one target but row/column/all hit every living soldier
+export const DAMAGE_DISTRIBUTIONS = ["per_target"] as const; // AoE damage is per target; a squad is one target and any hit on it is resolved once (Decision 130)
 export const SKILL_FALLBACKS = ["re_evaluate", "skip"] as const;
 export const GUARD_MODES = ["standard", "ignores", "guaranteed"] as const;
 export const SOLDIER_MODES = ["standard", "skip_soldiers", "soldiers_only"] as const;

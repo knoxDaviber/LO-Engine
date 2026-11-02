@@ -123,7 +123,7 @@ test("pre-battle step of a pre_battle passive follows design 9: grants, Immunity
 
 // ------------------------------------------------------------------ Regen, removes_on_hit
 
-test("Regen heals once per attacking action that hits (a 10-hit squad attack heals once); reapplying extends it", () => {
+test("Regen heals once per attacking action that hits (a squad attack is one hit); reapplying extends it", () => {
   const { state, x, u, ev } = fight({ squads: true });
   scheduleInitial(state);
   u(SQ_D).alive = false; // the Emperor is the squad's target
@@ -135,7 +135,7 @@ test("Regen heals once per attacking action that hits (a 10-hit squad attack hea
   assert.equal(emp.statuses[0]!.remaining, 2); // on_reapply: extend
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
-  assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 10);
+  assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 1);
   assert.deepEqual(ev("heal").map((h) => [h.target, h.amount, h.skill]), [[EMPEROR, 1500, "buff_001"]]);
   assert.deepEqual(ev("trigger").map((t) => [t.handler, t.subject]), [["heals_on_hit", EMPEROR]]);
 });
@@ -217,7 +217,7 @@ test("a while_condition status from an active skill ends when the skill's activa
   assert.ok(lief.statuses.some((s) => s.statusId === "status_002"));
   checkStatePassives(x);
   assert.ok(lief.statuses.some((s) => s.statusId === "status_002")); // still below 50%
-  applyHeal(x, u(JASMINE), lief, { id: "h" }, 100);
+  applyHeal(x, u(JASMINE), lief, { id: "h" }, 400); // 450 / 800: above 50%
   assert.ok(!lief.statuses.some((s) => s.statusId === "status_002"));
   assert.deepEqual(ev("status_expired").map((e) => [e.status, e.reason]), [["status_002", "condition"]]);
 });

@@ -27,7 +27,7 @@
 // party_has_hero means a living hero of the side at that moment.
 // Not implemented (logged, never dropped): aura effects other than modify_stat on always auras, anything but heal on event auras, trigger events
 // other than self_action_completed, a faction_buff without faction_id, effects carrying their own trigger/condition on always auras.
-import type { Character, Effect } from "../schema";
+import type { Character, Effect, Stat } from "../schema";
 import { evaluateCondition } from "./conditions";
 import type { ExecCtx } from "./damage";
 import { runEffect } from "./damage";
@@ -37,7 +37,7 @@ import { checkStatePassives, runPreBattlePassives } from "./passives";
 import { checkEquipment, runPreBattleEquipment } from "./equipment";
 import type { Rng } from "./rng";
 import { createRng } from "./rng";
-import { immunityOf } from "./stats";
+import { PAIRED_STATS, immunityOf } from "./stats";
 import type { BattleState, Side, StatusInstance, Unit } from "./state";
 import { otherSide, targetsOf } from "./state";
 
@@ -91,6 +91,13 @@ export function auraTargets(state: BattleState, la: LeaderAura): Unit[] {
   return out;
 }
 
+/** The inline modifiers of one aura modify_stat effect: its line plus the paired INT / MDEF line (Decision 132) unless the aura names that stat. */
+function auraModifiers(aura: Aura, e: Extract<Effect, { type: "modify_stat" }>): { stat: Stat; mode: "flat" | "percent"; value: number }[] {
+  const line = { stat: e.stat, mode: e.mode, value: e.value };
+  const p = PAIRED_STATS[e.stat];
+  return p && !aura.effects.some((x) => x.type === "modify_stat" && x.stat === p) ? [line, { ...line, stat: p }] : [line];
+}
+
 /** True when a modify_stat effect of the aura belongs to the debuff step. */
 const isDebuff = (aura: Aura, e: Extract<Effect, { type: "modify_stat" }>): boolean => aura.type === "enemy_debuff" || e.value < 0;
 
@@ -124,10 +131,10 @@ function grantAlways(c: PreBattleCtx, debuffs: boolean): void {
         }
         const inst: StatusInstance = {
           statusId: `${AURA_PREFIX}${leader.id}:${i}`, category: "passive", sourceUnitId: leader.id, remaining: null, skipNextTick: false, seq: state.statusSeq++,
-          inline: { name: aura.name, modifiers: [{ stat: e.stat, mode: e.mode, value: e.value }] },
+          inline: { name: aura.name, modifiers: auraModifiers(aura, e) },
         };
         t.statuses.push(inst);
-        log.emit({ type: "aura_applied", ...at(state), leader: leader.id, aura: aura.name, unit: t.id, status: inst.statusId, category: "passive", effect: fmt(e) });
+        log.emit({ type: "aura_applied", ...at(state), leader: leader.id, aura: aura.name, unit: t.id, status: inst.statusId, category: "passive", effect: inst.inline!.modifiers.map(fmt).join(", ") });
       }
     });
   }

@@ -6,7 +6,7 @@ const id = z.string().regex(ID_PATTERN);
 const seeds = z.array(z.number().int().min(0).max(2 ** 32 - 1)).length(3); // one per phase; E_BATTLE_SEEDS if wrong
 
 /** Fields a challenger may change between phases (design 5.5). Everything else on a hero entry (squad, equipment, ...) is locked. */
-export const EDITABLE_HERO_FIELDS = ["tactic_sheet", "preferred_row", "squad_row"] as const;
+export const EDITABLE_HERO_FIELDS = ["tactic_sheet", "preferred_row", "column", "squad_row"] as const;
 const EDIT_HERO_KEYS = ["char_id", ...EDITABLE_HERO_FIELDS];
 const EDIT_KEYS = ["phase", "leader", "heroes"];
 
@@ -17,9 +17,13 @@ const lockedKeys = (allowed: readonly string[]) => (v: Record<string, unknown>, 
   }
 };
 
-/** One hero's between-phase changes: only the editable fields. */
+/** One hero's between-phase changes: only the editable fields. `column`: 1..rules.board.columns (upper bound checked by the validator,
+ * E_BATTLE_SLOT), or null = back to auto (the lowest free column of its row). */
 export const editHeroSchema = z
-  .looseObject({ char_id: id, tactic_sheet: z.array(tacticSchema).optional(), preferred_row: z.enum(ROWS).optional(), squad_row: z.enum(ROWS).optional() })
+  .looseObject({
+    char_id: id, tactic_sheet: z.array(tacticSchema).optional(), preferred_row: z.enum(ROWS).optional(), column: z.number().int().min(1).nullable().optional(),
+    squad_row: z.enum(ROWS).optional(),
+  })
   .superRefine(lockedKeys(EDIT_HERO_KEYS));
 
 /** Changes made before `phase` (2 or 3). They carry over to later phases. `leader` names a new leader when the current one died (else ignored). */

@@ -112,6 +112,7 @@ test("phase 3 ending with both sides alive is a challenger loss; every phase run
 test("a wipe ends the battle at once and the other side wins", () => {
   const { pack, battle } = setup(false);
   sheetOf(battle, JASMINE).tactic_sheet = []; // no Fairy's Grace (Last Chance), so somebody dies
+  for (const id of [EMPEROR, JASMINE]) (pack.byId.characters.get(id) as any).base_stats.HP = 150; // frail enough to die within 3 phases
   const r = runBattle(pack, battle);
   assert.equal(r.reason, "wipe");
   assert.equal(r.phases.at(-1)!.reason, "wipe");

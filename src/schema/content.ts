@@ -47,7 +47,6 @@ function statBlock<T extends z.ZodType>(v: T) {
   return z.strictObject({ HP: v, ATK: v, INT: v, DEF: v, MDEF: v, SPD: v, HIT: v, SKL: v, CRIT: v, GUARD: v, EVA: v });
 }
 export const baseStats = statBlock(z.number().min(0));
-export const statModifiers = statBlock(z.number());
 export const ppModifiers = z.strictObject({ active: z.number().int(), passive: z.number().int() });
 
 // ---------------------------------------------------------------- status
@@ -132,8 +131,7 @@ export const equipmentSchema = z.strictObject({
   name,
   description: text,
   slot: z.enum(EQUIPMENT_SLOTS),
-  tags: z.array(z.enum(EQUIPMENT_TAGS)).min(1),
-  stat_modifiers: statModifiers,
+  tags: z.array(z.enum(EQUIPMENT_TAGS)), // exactly one type valid for the slot (E_EQUIP_TYPE); its flat stat lines are rules.equipment_bases[type]
   pp_modifiers: ppModifiers,
   effects: z.array(effectSchema),
   eligible: z.strictObject({

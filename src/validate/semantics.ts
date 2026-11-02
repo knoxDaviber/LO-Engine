@@ -153,6 +153,11 @@ function checkEquipment(c: Collector, pack: Pack, tier: Tier): void {
     e.tags.forEach((t, i) => {
       if (!allowed.includes(t)) c.error("E_SLOT_TAG", `tag '${t}' does not belong on a ${e.slot} (allowed: ${allowed.join(", ")})`, { ...loc, path: `tags[${i}]` });
     });
+    // Equipment type standard (Decision 133): exactly one type, which gives the item its base stats.
+    const types = e.tags.filter((t) => allowed.includes(t));
+    if (types.length !== 1) {
+      c.error("E_EQUIP_TYPE", `a ${e.slot} needs exactly one equipment type (${allowed.join(", ")}); found ${types.length ? types.join(", ") : "none"}`, { ...loc, path: "tags" });
+    }
     e.eligible.characters.forEach((id, i) => {
       if (!pack.byId.characters.has(id)) c.error("E_REF_MISSING", `eligible character '${id}' does not exist`, { ...loc, path: `eligible.characters[${i}]` });
     });

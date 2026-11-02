@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { aggregate, runMatchup, runSeeds } from "../src/batchReport";
+import { aggregate, renderSweep, runMatchup, runSeeds, runSweep } from "../src/batchReport";
 import type { BattleEvent } from "../src/engine";
 import { loadReal } from "./engineHelpers";
 
@@ -71,9 +71,43 @@ test("same base seed gives the same report on sample.yaml; rates sum to 1", () =
 });
 
 test("batch CLI rejects unknown options and non-decimal values with exit 2", () => {
-  for (const extra of [["--josn"], ["--json=1"], ["--runs", "5"], ["--runs=0x10"], ["--seed=1e2"], ["--runs= 5"]]) {
+  for (const extra of [["--josn"], ["--json=1"], ["--runs", "5"], ["--runs=0x10"], ["--seed=1e2"], ["--runs= 5"], ["--pp-active=2,,3"], ["--pp-active=11"], ["--pp-passive=2,2"], ["--pp-active"]]) {
     const r = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", ...extra], { cwd: process.cwd(), encoding: "utf-8" });
     assert.equal(r.status, 2, extra.join(" "));
     assert.match(r.stderr, /usage: npm run batch/);
+  }
+});
+
+test("PP sweep: one report per (active, passive) combination with the same run seeds; summary table plus the first full report", () => {
+  const { pack, battle } = loadReal({ squads: true, auras: true });
+  const sw = runSweep(pack, battle, "sample.yaml", 3, 1, [2, 4], [undefined]);
+  assert.deepEqual(sw.combinations.map((c) => c.pp), [{ active: 2, passive: null }, { active: 4, passive: null }]);
+  assert.deepEqual(sw.combinations[1]!.report, runMatchup(pack, battle, "sample.yaml", 3, 1, { pp: { active: 4 } }));
+  const text = renderSweep([sw], 1);
+  assert.match(text, /PP sweep, 3 runs per combination/);
+  assert.match(text, /pp active\s+pp passive\s+chal win\s+timeout\s+phases\s+actions\/phase\s+deaths chal\s+deaths def/);
+  assert.equal((text.match(/full report for pp active/g) ?? []).length, 1);
+  const r = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", "--runs=2", "--pp-active=2,3", "--json"], { cwd: process.cwd(), encoding: "utf-8" });
+  assert.equal(r.status, 0, r.stderr);
+  const j = JSON.parse(r.stdout);
+  assert.equal(j.sweeps[0].combinations.length, 2);
+  assert.equal(j.sweeps[0].combinations[1].pp.active, 3);
+});
+
+test("formula sweep: every (formula, pp) combination with the same run seeds; formula column in the table", () => {
+  const { pack, battle } = loadReal({ squads: true, auras: true });
+  const sw = runSweep(pack, battle, "sample.yaml", 2, 1, [2, 3], [undefined], [{ label: "subtract", option: { formula: "subtract" } }, { label: "ratio:150", option: { formula: "ratio", ratio_k: 150 } }]);
+  assert.deepEqual(sw.combinations.map((c) => `${c.formula}/${c.pp.active}`), ["subtract/2", "subtract/3", "ratio:150/2", "ratio:150/3"]);
+  assert.deepEqual(sw.combinations[3]!.report, runMatchup(pack, battle, "sample.yaml", 2, 1, { pp: { active: 3 }, formula: { formula: "ratio", ratio_k: 150 } }));
+  assert.deepEqual(sw.combinations[0]!.report, runMatchup(pack, battle, "sample.yaml", 2, 1, { pp: { active: 2 } }));
+  const text = renderSweep([sw], 1);
+  assert.match(text, /formula \/ PP sweep/);
+  assert.match(text, /formula\s+pp active\s+pp passive/);
+  const r = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", "--runs=1", "--formula=subtract,ratio", "--json"], { cwd: process.cwd(), encoding: "utf-8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout).sweeps[0].combinations.map((c: any) => c.formula), ["subtract", "ratio"]);
+  for (const extra of [["--formula=ratio,ratio"], ["--formula=x"], ["--formula"], ["--runs=1", "--runs=2"], ["--seed=1", "--seed=2"], ["--formula=ratio", "--formula=subtract"], ["--pp-passive=2", "--pp-passive=3"]]) {
+    const b = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", ...extra], { cwd: process.cwd(), encoding: "utf-8" });
+    assert.equal(b.status, 2, extra.join(" "));
   }
 });

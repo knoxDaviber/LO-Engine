@@ -1,12 +1,13 @@
 // Battle state types and construction. Plain data; functions elsewhere take the state and mutate it explicitly.
-import type { Battle, Character, ConditionNode, Effect, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
+import type { Battle, Character, ConditionNode, DamageFormulaName, Effect, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
 import { STATS } from "../schema";
-import { resolvePlacements, resolveSquadPlacement, rowOverflows } from "../formation";
+import { columnsOffBoard, resolvePlacements, resolveSquadPlacement, rowOverflows, slotConflicts } from "../formation";
+import { equipmentStats } from "../equipmentBase";
 import { heroCost } from "../validate/cost";
 import type { Blessing } from "../devotion";
 import { unlockedBlessings } from "../devotion";
 import type { Pack } from "../validate/pack";
-import { statBreakdown } from "./stats";
+import { PAIRED_STATS, statBreakdown } from "./stats";
 import { EventBus } from "./events";
 import type { SideLeader } from "./leader";
 import { pairingPenalties } from "./leader";
@@ -148,26 +149,53 @@ export interface BattleState {
   equipment: EquipmentState;
 }
 
+/** A damage formula override: the name plus the parameters to replace (absent = the rules.yaml value). */
+export interface FormulaOption { formula: DamageFormulaName; ratio_k?: number; floor_pct?: number; def_weight?: number }
+
+/**
+ * What-if knobs for simulation (never part of a battle file). `pp` replaces every hero's base PP before gear PP is added; `formula` replaces
+ * rules.damage's formula and the parameters it names for the run (`withOptions`).
+ */
+export interface BattleOptions {
+  pp?: { active?: number; passive?: number };
+  formula?: FormulaOption;
+}
+
+/** The pack a run uses: the same pack, or a shallow copy whose rules.damage carries the formula override. */
+export function withOptions(pack: Pack, opts: BattleOptions): Pack {
+  const f = opts.formula;
+  if (!f) return pack;
+  const defined = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined));
+  return { ...pack, rules: { ...pack.rules, damage: { ...pack.rules.damage, ...defined } } };
+}
+
 const zeroStats = (): Record<Stat, number> => Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>;
 
-function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["buildNotes"]): Unit[] {
+function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["buildNotes"], opts: BattleOptions): Unit[] {
   const s = battle[side];
   const overflow = rowOverflows(pack, s);
   if (overflow.length > 0) {
     throw new Error(`${side} row ${overflow.join(", ")} holds more than ${pack.rules.board.columns} heroes (E_BATTLE_ROW_FULL)`);
+  }
+  const off = columnsOffBoard(pack, s);
+  if (off.length > 0) throw new Error(`${side} ${off.join(", ")}: column beyond the board's ${pack.rules.board.columns} columns (E_BATTLE_SLOT)`);
+  const clash = slotConflicts(pack, s);
+  if (clash.length > 0) {
+    throw new Error(`${side} ${clash.map((x) => `${x.row} column ${x.column} (${x.charIds.join(", ")})`).join("; ")} claimed by more than one hero (E_BATTLE_SLOT)`);
   }
   const placed = resolvePlacements(pack, s);
   const units = placed.map((pl) => {
     const h = s.heroes[pl.order]!;
     const ch = pack.byId.characters.get(h.char_id) as Character;
     const equipFlat = zeroStats();
-    let ppA = ch.pp.active;
-    let ppP = ch.pp.passive;
+    let ppA = opts.pp?.active ?? ch.pp.active; // a PP override replaces the base, gear PP still adds
+    let ppP = opts.pp?.passive ?? ch.pp.passive;
     const worn = [h.equipment.weapon, h.equipment.armor, h.equipment.accessory_1, h.equipment.accessory_2];
     for (const eqId of worn) {
       const eq = eqId ? pack.byId.equipment.get(eqId) : undefined;
       if (!eq) continue;
-      for (const st of STATS) equipFlat[st] += eq.stat_modifiers[st];
+      const flat = equipmentStats(eq, pack.rules.equipment_bases); // the item type's base (Decision 133)
+      for (const st of STATS) equipFlat[st] += flat[st];
       ppA += eq.pp_modifiers.active;
       ppP += eq.pp_modifiers.passive;
     }
@@ -191,13 +219,16 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     // The leader's squad is the only deployed one, so only the leader carries pairing penalties (Leon's SPD -20 with non-mounted soldiers).
     const pairedType = h.char_id === s.leader ? pack.byId.soldiers.get(h.squad_id) : undefined;
     const innate = pairedType ? pairingPenalties(ch, pairedType, notes) : [];
+    // [DEFAULT] A PP override lifts the cap to override + gear when that is above rules.pp.max.
+    const capA = opts.pp?.active === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppA);
+    const capP = opts.pp?.passive === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppP);
     const unit: Unit = {
       id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
       baseStats: { ...ch.base_stats }, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
       pp: {
-        active: { cur: Math.min(ppA, pack.rules.pp.max), max: Math.min(ppA, pack.rules.pp.max) },
-        passive: { cur: Math.min(ppP, pack.rules.pp.max), max: Math.min(ppP, pack.rules.pp.max) },
+        active: { cur: Math.min(ppA, capA), max: Math.min(ppA, capA) },
+        passive: { cur: Math.min(ppP, capP), max: Math.min(ppP, capP) },
       },
       statuses: [], alive: true,
       tactics: [...h.tactic_sheet].sort((a, b) => a.priority - b.priority),
@@ -233,7 +264,9 @@ function buildSquad(pack: Pack, side: Side, battle: Battle, heroes: Unit[], note
   const leader = pack.byId.characters.get(sp.leaderCharId) as Character;
   const id = `squad_${sp.leaderCharId}`;
   const innate: InnateModifier[] = [];
-  st.passive_effects.forEach((p, pi) =>
+  st.passive_effects.forEach((p, pi) => {
+    // INT/MDEF pairing (Decision 132): an always-on ATK / DEF line also applies to INT / MDEF unless this soldier skill names that stat.
+    const named = new Set(p.effects.flatMap((e) => (e.type === "modify_stat" && isAlwaysOn(e) ? [e.stat] : []))); // only the lines that are built
     p.effects.forEach((e, ei) => {
       const label = `${st.id} skill ${pi + 1}.${ei + 1}`;
       if (isReactiveTrigger(e) && p.target === "self_squad") {
@@ -244,11 +277,14 @@ function buildSquad(pack: Pack, side: Side, battle: Battle, heroes: Unit[], note
         notes.push({ unit: id, what: `not implemented: soldier skill effect ${e.type}` });
       } else {
         const mod = { id: label, stat: e.stat, mode: e.mode, value: e.value, category: e.source_category ?? "soldier" } as const;
-        if (p.target === "self_squad") innate.push({ ...mod });
-        else skills.targeted.push({ label, target: p.target, mod });
+        const paired = PAIRED_STATS[e.stat];
+        for (const m of paired && !named.has(paired) ? [mod, { ...mod, stat: paired }] : [mod]) {
+          if (p.target === "self_squad") innate.push({ ...m });
+          else skills.targeted.push({ label, target: p.target, mod: m });
+        }
       }
-    }),
-  );
+    });
+  });
   const stats = { ...st.per_soldier_stats } as Record<Stat, number>;
   const squad: Unit = {
     id, kind: "squad", soldiers: [], innate, leaderId: sp.leaderCharId, soldierTypeId: st.id, side, charId: sp.leaderCharId,
@@ -273,12 +309,12 @@ export function syncSquad(squad: Unit): void {
 }
 
 /** Builds the state for a validated battle at the start of `phase` (full HP/PP; later phases are restored by the phase controller). */
-export function createBattleState(pack: Pack, battle: Battle, phase = 1): BattleState {
+export function createBattleState(pack: Pack, battle: Battle, phase = 1, opts: BattleOptions = {}): BattleState {
   const buildNotes: BattleState["buildNotes"] = [];
   const units: Unit[] = [];
   const squadSkills: { squad: Unit; skills: SquadSkills }[] = [];
   for (const side of ["challenger", "defender"] as const) {
-    const heroes = buildUnits(pack, side, battle, buildNotes);
+    const heroes = buildUnits(pack, side, battle, buildNotes, opts);
     units.push(...heroes);
     const own: SquadSkills = { reactive: [], targeted: [] };
     const squad = buildSquad(pack, side, battle, heroes, buildNotes, own);

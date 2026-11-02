@@ -223,7 +223,7 @@ test("Longinus (modify_pp on_attack, once_per_attack): a two-hit attack takes 1 
   assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.before, e.after]).at(-1), [EMPEROR, 0, 0]);
 });
 
-test("Longinus per-hit-once: as an on_hit reaction to a 10-hit squad attack on a hero it takes 1 Passive PP, once", () => {
+test("Longinus per-hit-once: as an on_hit reaction to a squad attack on a hero it takes 1 Passive PP, once", () => {
   const { state, x, u, ev } = setup(undefined, { squads: true });
   // A squad is no hero: the per-hit-once rule is shown on the bus with the effect run as an on_hit reaction of the attacking squad.
   state.bus.subscribe({
@@ -234,7 +234,7 @@ test("Longinus per-hit-once: as an on_hit reaction to a 10-hit squad attack on a
   u(EMPEROR).hp = 5000;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
-  assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 10);
+  assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 1);
   assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.after]), [[EMPEROR, 1]]);
 });
 

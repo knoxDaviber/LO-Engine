@@ -13,8 +13,11 @@ async function call<T>(method: "GET" | "POST", url: string, body?: unknown): Pro
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const json = await res.json();
-  if (!res.ok) throw new RequestError(json.error ?? res.statusText, json.issues ?? [], res.status);
+  const text = await res.text();
+  let json: any = null;
+  try { json = text ? JSON.parse(text) : null; } catch { /* not JSON (proxy / crash page) */ }
+  if (!res.ok) throw new RequestError(json?.error ?? (res.statusText || `request failed (${res.status})`), json?.issues ?? [], res.status);
+  if (json === null) throw new RequestError(`${res.statusText || "empty or non-JSON response"} (${res.status})`, [], res.status);
   return json as T;
 }
 

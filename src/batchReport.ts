@@ -3,11 +3,13 @@
 // [DEFAULT] choices:
 //  - Run seeds: hash(base seed, file basename, run index), one per phase, via an FNV-1a string hash and the splitmix32 finalizer.
 //  - Per-unit averages (damage, healing, actions) and the death rate are per run the unit was fielded in; fielded / banned rates are per run.
-//  - Damage dealt = the `amount` of the unit's damage events (overkill included); healing = the `applied` of its heal events.
+//  - Damage dealt = the sum of the `amount` of the unit's damage events; healing = the `applied` of its heal events. On a hero target that is the
+//    full hit (overkill included); on a squad target each soldier gets its own event with the HP actually removed from it (overflow included),
+//    so damage beyond the squad's remaining HP is not counted.
 //  - A hero action is a tactic evaluation or a prevented action (as phase_end.actions); a squad action is a squad_attack.
 //  - Hero deaths count `death` events of heroes (not soldiers, not squad wipes); a hero is fielded when it is in battle_setup.
 import { basename } from "node:path";
-import { runBattle, type BattleEvent } from "./engine";
+import { runBattle, type BattleEvent, type BattleOptions, type FormulaOption } from "./engine";
 import type { BattleInput } from "./schema";
 import type { Pack } from "./validate/pack";
 
@@ -128,9 +130,9 @@ export function aggregate(matchup: string, runs: BattleEvent[][]): MatchupReport
 }
 
 /** Runs one matchup `runs` times with derived seeds (the roster form drafts every run) and aggregates the logs. */
-export function runMatchup(pack: Pack, input: BattleInput, file: string, runs: number, base: number): MatchupReport {
+export function runMatchup(pack: Pack, input: BattleInput, file: string, runs: number, base: number, opts: BattleOptions = {}): MatchupReport {
   const logs: BattleEvent[][] = [];
-  for (let i = 0; i < runs; i++) logs.push(runBattle(pack, { ...input, seeds: runSeeds(base, file, i) } as BattleInput).events);
+  for (let i = 0; i < runs; i++) logs.push(runBattle(pack, { ...input, seeds: runSeeds(base, file, i) } as BattleInput, opts).events);
   return aggregate(basename(file), logs);
 }
 
@@ -155,6 +157,47 @@ export function renderReport(reports: MatchupReport[], base: number): string {
       rows.push([u.side, u.kind === "squad" ? `${u.name} (squad)` : u.name, u.id, pct(u.fielded_rate), pct(u.banned_rate), num(u.avg_damage), num(u.avg_healing), u.kind === "squad" ? "-" : pct(u.death_rate), num(u.avg_actions)]);
     }
     out.push(...table(rows, [false, false, false, true, true, true, true, true, true]).map((l) => `  ${l}`), "");
+  }
+  return out.join("\n");
+}
+
+/** One (formula, PP) combination of a sweep (null = the content values) and its report. Same run seeds for every combination. */
+export interface SweepRow { formula: string | null; pp: { active: number | null; passive: number | null }; report: MatchupReport }
+export interface MatchupSweep { matchup: string; combinations: SweepRow[] }
+
+/** A formula of a sweep: its label (`ratio:150`) and the engine override. */
+export interface SweepFormula { label: string; option: FormulaOption }
+
+/**
+ * Runs a matchup once per (formula, active, passive) combination, formula outer, then active. A `[undefined]` list means "content values" only
+ * for that knob.
+ */
+export function runSweep(pack: Pack, input: BattleInput, file: string, runs: number, base: number, actives: (number | undefined)[], passives: (number | undefined)[], formulas: (SweepFormula | undefined)[] = [undefined]): MatchupSweep {
+  const combinations: SweepRow[] = [];
+  for (const f of formulas) for (const active of actives) for (const passive of passives) {
+    const opts: BattleOptions = { pp: { active, passive }, ...(f ? { formula: f.option } : {}) };
+    combinations.push({ formula: f?.label ?? null, pp: { active: active ?? null, passive: passive ?? null }, report: runMatchup(pack, input, file, runs, base, opts) });
+  }
+  return { matchup: basename(file), combinations };
+}
+
+/** Per matchup: one summary row per combination (a formula column when formulas were swept), then the full report of the first combination. */
+export function renderSweep(sweeps: MatchupSweep[], base: number): string {
+  const out: string[] = [];
+  const pp = (v: number | null) => (v === null ? "content" : String(v));
+  for (const s of sweeps) {
+    const withFormula = s.combinations.some((c) => c.formula !== null);
+    out.push(`=== ${s.matchup}: ${withFormula ? "formula / " : ""}PP sweep, ${s.combinations[0]!.report.runs} runs per combination (base seed ${base}) ===`);
+    const head = ["pp active", "pp passive", "chal win", "timeout", "phases", "actions/phase", "deaths chal", "deaths def"];
+    const rows = [withFormula ? ["formula", ...head] : head];
+    for (const { formula, pp: c, report: m } of s.combinations) {
+      const row = [pp(c.active), pp(c.passive), pct(m.challenger_win_rate), pct(m.timeout_rate), num(m.avg_phases), num(m.avg_actions_per_phase), num(m.avg_hero_deaths.challenger), num(m.avg_hero_deaths.defender)];
+      rows.push(withFormula ? [formula ?? "content", ...row] : row);
+    }
+    out.push(...table(rows, rows[0]!.map((_, i) => !(withFormula && i === 0))).map((l) => `  ${l}`), "");
+    const first = s.combinations[0]!;
+    out.push(`  full report for pp active ${pp(first.pp.active)}, passive ${pp(first.pp.passive)}${withFormula ? `, formula ${first.formula ?? "content"}` : ""}:`);
+    out.push(renderReport([first.report], base));
   }
   return out.join("\n");
 }

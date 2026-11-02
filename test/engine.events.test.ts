@@ -35,7 +35,7 @@ const withSoldierSkill = (effect: any, target = "self_squad") => (p: Pack) => {
 };
 const SKILL_ID = "soldier_001 skill 2.1";
 
-test("an on_hit soldier skill fires once per 10-hit squad attack, while all 10 hits still land", () => {
+test("an on_hit soldier skill fires once per squad attack (one combined hit, Decision 130)", () => {
   const { state, x, u, ev } = setup(withSoldierSkill({ type: "heal", percent_max_hp: 10, trigger: "on_hit" }));
   scheduleInitial(state);
   u(SQ_D).alive = false; // heroes are the targets
@@ -43,39 +43,37 @@ test("an on_hit soldier skill fires once per 10-hit squad attack, while all 10 h
   sq.soldiers[0]!.hp = 10;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, sq);
-  assert.equal(ev("damage").length, 10); // 10 real hits on the Emperor
+  assert.equal(ev("damage").length, 1); // one combined hit on the Emperor
   assert.ok(ev("damage").every((e) => e.target === EMPEROR));
   const trig = ev("trigger");
-  assert.deepEqual(trig.map((t) => [t.source, t.event, t.subject, t.effect]), [[SQ_C, "after_hit", EMPEROR, "heal"]]); // once, not 10 times
+  assert.deepEqual(trig.map((t) => [t.source, t.event, t.subject, t.effect]), [[SQ_C, "after_hit", EMPEROR, "heal"]]);
   assert.equal(ev("heal").length, 1); // and its effect ran through the effect executor once
   assert.equal(ev("heal")[0]!.unit, SQ_C);
-  assert.equal(sq.soldiers[0]!.hp, 15); // 10% of 500 = 50, split 5 each
+  assert.equal(sq.soldiers[0]!.hp, 25); // 10% of 1530 = 153, split 15 each
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, sq); // the next attack is a new action: one more trigger
   assert.equal(ev("trigger").length, 2);
 });
 
-test("per-hit-once is per affected unit: a target that changes mid-attack triggers once for each defender", () => {
+test("a squad attack has one target: when it kills it, the attack does not move on to the next enemy", () => {
   const { state, x, u, ev } = setup(withSoldierSkill({ type: "heal", percent_max_hp: 10, trigger: "on_hit" }));
   scheduleInitial(state);
   u(SQ_D).alive = false;
   u(EMPEROR).hp = 1;
-  u(JASMINE).hp = 1000;
   executeSquadAction(x, u(SQ_C));
-  assert.deepEqual(ev("damage").map((e) => e.target), [EMPEROR, ...Array(9).fill(JASMINE)]);
-  assert.deepEqual(ev("trigger").map((t) => t.subject), [EMPEROR, JASMINE]);
+  assert.deepEqual(ev("damage").map((e) => e.target), [EMPEROR]);
+  assert.equal(u(EMPEROR).alive, false);
+  assert.deepEqual(ev("trigger").map((t) => t.subject), [EMPEROR]);
 });
 
 test("an on_attack soldier skill fires once after the squad's attack, on every unit it hit", () => {
   const { state, x, u, ev } = setup(withSoldierSkill({ type: "apply_status", status_id: "debuff_002", chance_percent: 100, target: "targets", include_soldiers: false, trigger: "on_attack" }));
   scheduleInitial(state);
   u(SQ_D).alive = false;
-  u(EMPEROR).hp = 1;
-  u(JASMINE).hp = 1000;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
   assert.deepEqual(ev("trigger").map((t) => [t.event, t.subject]), [["after_action", SQ_C]]);
-  assert.deepEqual(ev("status_applied").map((e) => [e.unit, e.category]), [[JASMINE, "soldier"]]); // the dead Emperor is skipped
+  assert.deepEqual(ev("status_applied").map((e) => [e.unit, e.category]), [[EMPEROR, "soldier"]]);
 });
 
 test("reactions do not trigger reactions: an on_hit damage effect does not loop", () => {
@@ -86,7 +84,7 @@ test("reactions do not trigger reactions: an on_hit damage effect does not loop"
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
   assert.equal(ev("trigger").length, 1);
-  assert.equal(ev("damage").length, 11); // 10 soldier hits plus the one reaction hit
+  assert.equal(ev("damage").length, 2); // the squad's hit plus the one reaction hit
 });
 
 test("handlers run by order then registration, deterministically; a dead owner and a failing match do not fire", () => {
@@ -136,9 +134,9 @@ test("until_next_hit statuses tick once per attacking action on a squad, through
   const skill = { id: "s", interactions: { guard: "standard", soldiers: "standard" } } as Pick<Skill, "id" | "interactions">;
   const eff: DamageEffect = { type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 0.01 }], multiplier: 1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [], hit_bonus_percent: 0 };
   state.bus.beginAction();
-  hitSquad(x, u(LEON), sq, skill, eff, true); // area: 10 soldiers hit
-  assert.equal(ev("damage").length, 10);
-  assert.equal(sq.statuses[0]!.remaining, 2); // once, not 10 times
+  hitSquad(x, u(LEON), sq, skill, eff, true); // area: one combined hit
+  assert.equal(ev("damage").length, 1);
+  assert.equal(sq.statuses[0]!.remaining, 2);
   assert.deepEqual(ev("trigger").map((t) => t.handler), ["until_next_hit"]);
   state.bus.beginAction();
   hitSquad(x, u(LEON), sq, skill, eff, false);

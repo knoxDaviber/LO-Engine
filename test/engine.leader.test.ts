@@ -126,12 +126,12 @@ test("a pairing condition the engine cannot evaluate is logged and does not appl
 test("leader statuses (stat modifiers) apply to the squad too; non-leader statuses do not; no double counting", () => {
   const { state, pack, u } = setup();
   const sq = u(SQ_C);
-  assert.equal(effectiveStat(sq, "DEF", pack), 39);
+  assert.ok(Math.abs(effectiveStat(sq, "DEF", pack) - 14 * 1.3) < 1e-9);
   applyStatus(state, u(LEON), "buff_004", "active", LEON); // DEF UP +20%, active
-  assert.ok(Math.abs(effectiveStat(sq, "DEF", pack) - 30 * 1.3 * 1.2) < 1e-9);
-  assert.ok(Math.abs(effectiveStat(u(LEON), "DEF", pack) - 50 * 1.2) < 1e-9);
+  assert.ok(Math.abs(effectiveStat(sq, "DEF", pack) - 14 * 1.3 * 1.2) < 1e-9);
+  assert.ok(Math.abs(effectiveStat(u(LEON), "DEF", pack) - 70 * 1.2) < 1e-9);
   applyStatus(state, u(LIEF), "buff_004", "active", LIEF);
-  assert.ok(Math.abs(effectiveStat(sq, "DEF", pack) - 30 * 1.3 * 1.2) < 1e-9); // Lief is not the leader
+  assert.ok(Math.abs(effectiveStat(sq, "DEF", pack) - 14 * 1.3 * 1.2) < 1e-9); // Lief is not the leader
   applyStatus(state, sq, "buff_004", "active", LEON); // the same status already on the squad is not counted twice
   assert.equal(statBreakdown(sq, "DEF", pack).effects.filter((e) => e.status === "buff_004").length, 1);
   // flat equipment and the leader's own pairing penalty are not statuses: they stay on the hero
@@ -168,17 +168,19 @@ test("soldier skills targeting the leader or the party become modifiers on those
     st.passive_effects.push({ name: "l", target: "leader", effects: [{ type: "modify_stat", stat: "ATK", mode: "percent", value: 10, source_category: "soldier" }] });
     st.passive_effects.push({ name: "p", target: "party", effects: [{ type: "modify_stat", stat: "DEF", mode: "flat", value: 7 }] });
   });
-  assert.ok(Math.abs(effectiveStat(u(LEON), "ATK", pack) - 77) < 1e-9); // leader only
-  assert.equal(effectiveStat(u(LIEF), "ATK", pack), 50);
-  assert.equal(effectiveStat(u(LEON), "DEF", pack), 57); // party: all heroes of the side
-  assert.equal(effectiveStat(u(LIEF), "DEF", pack), 57);
-  assert.equal(effectiveStat(u(EMPEROR), "DEF", pack), 50 + 7); // the Emperor's own squad has the same skills
-  assert.equal(effectiveStat(u(SQ_C), "DEF", pack), 39); // the squad itself is not a "party" member here
+  assert.ok(Math.abs(effectiveStat(u(LEON), "ATK", pack) - 126.5) < 1e-9); // leader only
+  assert.ok(Math.abs(effectiveStat(u(LEON), "INT", pack) - 33) < 1e-9); // paired with the ATK line (Decision 132)
+  assert.equal(effectiveStat(u(LIEF), "ATK", pack), 90);
+  assert.equal(effectiveStat(u(LEON), "DEF", pack), 77); // party: all heroes of the side
+  assert.equal(effectiveStat(u(LEON), "MDEF", pack), 53); // a flat DEF line pairs too
+  assert.equal(effectiveStat(u(LIEF), "DEF", pack), 77);
+  assert.equal(effectiveStat(u(EMPEROR), "DEF", pack), 70 + 7); // the Emperor's own squad has the same skills
+  assert.ok(Math.abs(effectiveStat(u(SQ_C), "DEF", pack) - 14 * 1.3) < 1e-9); // the squad itself is not a "party" member here
   // the Emperor's squad dies: its party skill ends for Jasmine, Leon's keeps going
   const emp = state.units.find((v) => v.id === EMPEROR)!;
   const x: ExecCtx = { state, rng: scripted([]), log: new EventLog() };
   applyDamage(x, u(LEON), emp, { id: "s" }, KILL);
-  assert.equal(effectiveStat(u(JASMINE), "DEF", pack), 20); // no party skill left on the defender side
-  assert.equal(effectiveStat(u(LIEF), "DEF", pack), 57);
+  assert.equal(effectiveStat(u(JASMINE), "DEF", pack), 40); // no party skill left on the defender side
+  assert.equal(effectiveStat(u(LIEF), "DEF", pack), 77);
   scheduleInitial(state);
 });

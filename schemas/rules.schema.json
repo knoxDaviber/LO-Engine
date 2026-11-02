@@ -12,11 +12,40 @@
         "crit_multiplier": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "formula": {
+          "default": "subtract",
+          "type": "string",
+          "enum": [
+            "subtract",
+            "ratio",
+            "scaled_subtract"
+          ]
+        },
+        "ratio_k": {
+          "default": 100,
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "floor_pct": {
+          "default": 20,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "def_weight": {
+          "default": 1,
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
         "min_damage",
-        "crit_multiplier"
+        "crit_multiplier",
+        "formula",
+        "ratio_k",
+        "floor_pct",
+        "def_weight"
       ],
       "additionalProperties": false
     },
@@ -389,6 +418,71 @@
       ],
       "additionalProperties": false
     },
+    "equipment_bases": {
+      "type": "object",
+      "propertyNames": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "sword",
+              "spear",
+              "staff",
+              "bow",
+              "dagger",
+              "tome",
+              "hammer",
+              "axe",
+              "light_armor",
+              "heavy_armor",
+              "robe",
+              "shield",
+              "gloves",
+              "boots",
+              "ring",
+              "amulet",
+              "charm",
+              "bracelet",
+              "earring",
+              "cloak",
+              "belt"
+            ]
+          },
+          {
+            "not": {}
+          }
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "HP",
+                "ATK",
+                "INT",
+                "DEF",
+                "MDEF",
+                "SPD",
+                "HIT",
+                "SKL",
+                "CRIT",
+                "GUARD",
+                "EVA"
+              ]
+            },
+            {
+              "not": {}
+            }
+          ]
+        },
+        "additionalProperties": {
+          "type": "number"
+        }
+      }
+    },
     "cost": {
       "type": "object",
       "properties": {
@@ -530,6 +624,7 @@
     "phase",
     "draft",
     "limits",
+    "equipment_bases",
     "cost"
   ],
   "additionalProperties": false

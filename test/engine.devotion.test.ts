@@ -99,15 +99,15 @@ test("Full Moon: the 4-piece is on exactly while HP > 80%; its ATK +20% adds to 
   assert.equal(prayer(jas).length, 5);
 });
 
-test("Mirror: a 10-hit squad attack reflects 30% of its total damage once, onto the attacking squad's lowest-HP soldier, as a non-hit", () => {
+test("Mirror: a squad attack (one combined hit) reflects 30% of its damage once, onto the attacking squad's lowest-HP soldier, as a non-hit", () => {
   const { state, u, log, ev } = setup({ [EMPEROR]: all4("god_001") }, { squads: true });
   state.units = state.units.filter((v) => v.id !== `squad_${EMPEROR}`); // Leon's squad attacks the Emperor (front row)
   const squad = u(`squad_${LEON}`);
-  const rng = scripted(Array.from({ length: 10 }, () => [0.5, 0.99, 0.99]).flat()); // every hit lands, no crit, no guard
+  const rng = scripted([0.5, 0.99, 0.99]); // the hit lands, no crit, no guard
   const x: ExecCtx = { state, rng, log };
   executeSquadAction(x, squad);
   const taken = ev("damage").filter((e) => e.unit === squad.id && e.target === EMPEROR);
-  assert.equal(taken.length, 10);
+  assert.equal(taken.length, 1);
   const total = taken.reduce((n, e) => n + e.amount, 0);
   const reflect = ev("damage").filter((e) => e.unit === EMPEROR);
   assert.equal(reflect.length, 1);
@@ -134,12 +134,12 @@ test("Mirror reflects onto a hero attacker after a single-target attack, and not
   assert.equal(area.ev("damage").filter((e) => e.unit === EMPEROR).length, 0);
 });
 
-test("Gift: heals 30% max HP once per attacking action that targeted the wearer with single-target hits (a 10-hit squad attack heals once)", () => {
+test("Gift: heals 30% max HP once per attacking action that targeted the wearer with single-target hits (a squad attack too)", () => {
   const { state, u, log, ev } = setup({ [EMPEROR]: all4("god_004") }, { squads: true });
   state.units = state.units.filter((v) => v.id !== `squad_${EMPEROR}`);
   const emp = u(EMPEROR);
-  emp.hp = 50;
-  const x: ExecCtx = { state, rng: scripted(Array.from({ length: 10 }, () => [0.5, 0.99, 0.99]).flat()), log };
+  emp.hp = 500;
+  const x: ExecCtx = { state, rng: scripted([0.5, 0.99, 0.99]), log };
   executeSquadAction(x, u(`squad_${LEON}`));
   const heals = ev("heal").filter((e) => e.target === EMPEROR);
   assert.equal(heals.length, 1);

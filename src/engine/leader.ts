@@ -1,5 +1,5 @@
 // Leader rules (design Section 2, roadmap 2.4). Aura content lives in prebattle.ts (2.5); leader death ends the aura through removeAuras.
-//  - Leader front row: formation.ts (already). Leader stat modifiers reach the squad through `Unit.leaderUnit` in stats.ts (statuses only).
+//  - Leader row: the leader may stand in either row (formation.ts, Decision 129). Leader stat modifiers reach the squad through `Unit.leaderUnit` in stats.ts (statuses only).
 //  - Soft leader rule: when the leader dies its squad is removed at once (all soldiers dead, off the timeline, its soldier skills end),
 //    the side's `auraActive` flag goes false, and the battle goes on. Soldiers are never a victory condition.
 //  - Succession: between phases, a dead leader is replaced and the aura flag comes back; the squad does not (no respawn).

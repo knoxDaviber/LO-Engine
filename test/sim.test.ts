@@ -30,7 +30,7 @@ test("log shape: setup first with breakdowns and seeds, phase markers, every eve
   assert.equal(ev[0]!.type, "battle_setup");
   const setup = ev[0] as Extract<(typeof ev)[number], { type: "battle_setup" }>;
   assert.deepEqual(setup.seeds, [101, 202, 303]);
-  assert.equal(setup.units[0]!.stats.ATK.result, 70);
+  assert.equal(setup.units[0]!.stats.ATK.result, 115);
   assert.equal(ev.at(-1)!.type, "battle_end");
   const types = new Set(ev.map((e) => e.type));
   for (const t of ["phase_start", "schedule", "tactic_evaluation", "target_selection", "roll", "damage", "pp_spend", "status_applied", "idle", "phase_end", "action_delayed"]) assert.ok(types.has(t as any), t);
@@ -49,4 +49,27 @@ test("sim CLI prints a text log, JSON with --json, and refuses an invalid battle
   const r = spawnSync("npx", ["tsx", "src/sim.ts", bad], { cwd, encoding: "utf-8" });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /E_BATTLE_SEEDS/);
+});
+
+test("sim CLI --pp-active / --pp-passive override every hero's base PP; bad values exit 2", () => {
+  const cwd = process.cwd();
+  const json = JSON.parse(execFileSync("npx", ["tsx", "src/sim.ts", "content/battles/sample.yaml", "--json", "--pp-active=4", "--pp-passive=0"], { cwd, encoding: "utf-8" }));
+  assert.ok(json[0].units.every((u: any) => u.pp_active === 4 && u.pp_passive === 0));
+  for (const extra of [["--pp-active=11"], ["--pp-active=2,3"], ["--pp-active"], ["--pp-passive=x"], ["--pp"]]) {
+    const r = spawnSync("npx", ["tsx", "src/sim.ts", "content/battles/sample.yaml", ...extra], { cwd, encoding: "utf-8" });
+    assert.equal(r.status, 2, extra.join(" "));
+    assert.match(r.stderr, /usage: npm run sim/);
+  }
+});
+
+test("sim CLI --formula overrides the damage formula; bad specs exit 2", () => {
+  const cwd = process.cwd();
+  const run = (...extra: string[]) => JSON.parse(execFileSync("npx", ["tsx", "src/sim.ts", "content/battles/sample.yaml", "--json", ...extra], { cwd, encoding: "utf-8" }));
+  assert.deepEqual(run("--formula=subtract"), run());
+  assert.notDeepEqual(run("--formula=ratio:150"), run());
+  for (const extra of [["--formula"], ["--formula=div"], ["--formula=ratio:0"], ["--formula=ratio,subtract"], ["--formula=subtract:1"], ["--formula=scaled_subtract:101"], ["--formula=ratio:1e2"], ["--formula=ratio:" + "9".repeat(400)], ["--formula=ratio", "--formula=subtract"], ["--pp-active=2", "--pp-active=3"]]) {
+    const r = spawnSync("npx", ["tsx", "src/sim.ts", "content/battles/sample.yaml", ...extra], { cwd, encoding: "utf-8" });
+    assert.equal(r.status, 2, extra.join(" "));
+    assert.match(r.stderr, /usage: npm run sim/);
+  }
 });

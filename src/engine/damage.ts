@@ -5,7 +5,9 @@
 //   matchup = class factor (1 + advantage/disadvantage percent) * product of the skill's bonus_vs_class factors for the defender's class
 //             * product of its bonus_on_terrain factors for the battle's battlefield. A class_advantage pair's own damage_percent, when set,
 //             replaces advantage_damage_percent for that pair (the disadvantage side keeps the global percent).
-//   base    = floor(max(min_damage, power - defense))       defense = DEF (physical), MDEF (magical), average of both (hybrid)
+//   base    = floor(max(min_damage, formula(power, defense)))  defense = DEF (physical), MDEF (magical), average of both (hybrid)
+//             formula = rules.damage.formula (baseDamage): subtract power - defense (default); ratio power * K / (K + defense);
+//             scaled_subtract max(power * floor_pct/100, power - defense * def_weight). A BattleOptions.formula override replaces it (state.ts).
 //   crit    = floor(base * crit_multiplier)                 applied after defense, to the already floored damage
 //   guard   = floor(crit_result * factor)                   factor = max(1 - cap/100, product of (1 - reduction/100)) over the guard (when it
 //                                                           activates) and the defender's reduce_damage effects for this attack (Quick Guard)
@@ -13,9 +15,12 @@
 // Roll order (fixed, always from the phase rng): hit, then crit, then guard. A miss stops the sequence (no crit/guard draw).
 // prevents_evasion makes the hit land without drawing. `ignores_guard` / interactions.guard "ignores" skips the guard draw;
 // "guaranteed" guards without drawing. A roll succeeds when rng.next() * 100 < chance.
-// Squads (design Section 2.1): a squad is ONE target but each soldier has its own HP. A single-target hit lands on the lowest-HP living
-// soldier (ties lowest index, excess damage discarded); row/column/all hits (any shape but single) hit every living soldier separately, in
-// index order, each with its own hit/crit/guard rolls. Heals on a squad are always split evenly over all soldiers, dead ones included.
+// Squads (design Sections 2.1 and 8, Decision 130: "soldiers attack as one and defend as one"): a squad is ONE target but each soldier has its
+// own HP. Attacking, its power scales with the SUM of its living soldiers' effective stat (stats.ts summedStat; flat lines shared from the leader count once);
+// defending, its defense is the sum of its living soldiers' DEF / MDEF (hybrid: the average of the two sums). Rate stats (HIT, SKL, CRIT, EVA,
+// GUARD) are the soldier type's per-soldier values, never summed. Any hit on a squad (single or area) is rolled and computed ONCE; the damage
+// lands on the lowest-HP living soldier (ties lowest index) and the raw leftover overflows to the next lowest-HP soldier, and so on until used
+// up or the squad is wiped, never onto the hero (Decision 128). Heals on a squad are always split evenly over all soldiers, dead ones included.
 // Cover (Decision 116): a before_hit handler may set `redirect` on a single-target hit aimed at a hero; rollOutcome then logs `cover` and
 // resolves the hit against the covering unit (one more before_hit is emitted for it, which cannot redirect again).
 // Status flags run here (roadmap 3a; design Section 9):
@@ -49,7 +54,7 @@
 // Devotion (roadmap 3c): an active blessing ignore_guard of the attacker makes its hits ignore GUARD (equipment.ts ignoresGuard). executeSkill
 // sets `bus.singleAttack` for a single-target damage skill (action_is_single_target) and re-checks the conditional item/blessing modifiers
 // right away, so they count for that attack's rolls.
-import type { Effect, Skill, SourceCategory, ConditionNode } from "../schema";
+import type { Effect, Skill, SourceCategory, ConditionNode, Rules } from "../schema";
 import type { Pack } from "../validate/pack";
 import type { BusPayloads, EventCtx, HitMeta, Reduction } from "./events";
 import { eventAttacker, eventUnit } from "./events";
@@ -57,7 +62,7 @@ import type { EventSink, SoldierRef } from "./log";
 import { at, r4 } from "./log";
 import type { Rng } from "./rng";
 import { evaluateCondition } from "./conditions";
-import { applyStatus, completeAction, effectiveStat } from "./stats";
+import { applyStatus, completeAction, effectiveStat, summedStat } from "./stats";
 import type { StatusInstance } from "./state";
 import type { TacticDecision } from "./tactics";
 import { recordSkillUse } from "./tactics";
@@ -149,10 +154,10 @@ export function evasionBlocker(defender: Unit, pack: Pick<Pack, "byId">): Status
 }
 export const cannotEvade = (defender: Unit, pack: Pick<Pack, "byId">): boolean => evasionBlocker(defender, pack) !== undefined;
 
-/** Defense value for a damage type. Hybrid = average of DEF and MDEF. */
+/** Defense value for a damage type. Hybrid = average of DEF and MDEF. A squad defends with the sums over its living soldiers. */
 export function defenseFor(defender: Unit, type: DamageEffect["damage_type"], pack: Pick<Pack, "byId">): number {
-  const def = effectiveStat(defender, "DEF", pack);
-  const mdef = effectiveStat(defender, "MDEF", pack);
+  const def = summedStat(defender, "DEF", pack);
+  const mdef = summedStat(defender, "MDEF", pack);
   return type === "physical" ? def : type === "magical" ? mdef : (def + mdef) / 2;
 }
 
@@ -161,10 +166,18 @@ export function reductionFactor(percents: number[], capPercent: number): number 
   return Math.max(1 - capPercent / 100, percents.reduce((f, p) => f * (1 - p / 100), 1));
 }
 
+/** Base damage (after defense, floored, at least min_damage) under rules.damage.formula. Squads use it with their summed defense. */
+export function baseDamage(power: number, defense: number, d: Rules["damage"]): number {
+  const raw = d.formula === "ratio" ? (power * d.ratio_k) / (d.ratio_k + Math.max(0, defense))
+    : d.formula === "scaled_subtract" ? Math.max((power * d.floor_pct) / 100, power - defense * d.def_weight)
+    : power - defense;
+  return fl(Math.max(d.min_damage, raw));
+}
+
 /** Deterministic: the same attacker, defender, effect and outcome always give the same damage. No variance. */
 export function computeDamage(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx, outcome: HitOutcome): DamageBreakdown {
   const { rules } = ctx.pack;
-  const scaled = effect.scaling.reduce((n, t) => n + t.coef * effectiveStat(attacker, t.stat, ctx.pack), 0);
+  const scaled = effect.scaling.reduce((n, t) => n + t.coef * summedStat(attacker, t.stat, ctx.pack), 0); // a squad attacks as one
   const matchup = matchupFactor(attacker, defender, effect, ctx);
   const power = scaled * effect.multiplier * matchup;
   const defense = defenseFor(defender, effect.damage_type, ctx.pack);
@@ -173,7 +186,7 @@ export function computeDamage(attacker: Unit, defender: Unit, effect: DamageEffe
   const miss: DamageBreakdown = { landed: false, scaled, matchup, power, defense, base: 0, crit: false, guard: false, guardFactor: 1, amount: 0 };
   if (!outcome.hit) return miss;
   const min = rules.damage.min_damage;
-  const base = fl(Math.max(min, power - defense));
+  const base = baseDamage(power, defense, rules.damage);
   let amount = outcome.crit ? fl(base * rules.damage.crit_multiplier) : base;
   const reductions = ctx.reductions ?? [];
   const percents = [...(guard ? [rules.guard.damage_reduction_percent] : []), ...reductions];
@@ -343,51 +356,71 @@ export function lowestHpSoldier(squad: Unit): Soldier | null {
   return best;
 }
 
-/** Applies landed damage to one soldier. Damage beyond its HP is discarded (no spill). A squad with no living soldier is defeated and leaves the timeline. */
+/**
+ * Applies landed damage to a squad, starting at `soldier`. Every hit OVERFLOWS (Decision 128; area hits too since Decision 130): when the soldier
+ * dies with damage left over, the raw leftover (d.amount minus the HP it had; no new rolls) carries to the next lowest-HP living soldier (ties
+ * lowest index), and so on until it is used up or the squad is wiped. Nothing ever reaches the leader or the heroes. Each soldier hit gets its own
+ * `damage` event (amount = what was applied to it, `spill: true` on carried ones) and deaths are logged per soldier; the bus `after_hit` is
+ * emitted ONCE with amount = the raw damage of the hit (d.amount, as for a hero hit) and lost = the total HP removed from soldiers (a killed
+ * soldier counts only the HP it had; soldier = the first one hit). `meta.single` only describes the hit's shape for the event. A last soldier
+ * saved by intercepts_death (Fairy's Grace) ends the overflow. A squad with no living soldier is defeated and leaves the timeline.
+ */
 export function applySoldierDamage(x: ExecCtx, attacker: Unit, squad: Unit, soldier: Soldier, skill: Pick<Skill, "id">, d: DamageBreakdown, by?: number, meta: DamageMeta = { single: true }): void {
-  const before = soldier.hp;
-  soldier.hp = Math.max(0, soldier.hp - d.amount);
-  x.log.emit({
-    type: "damage", ...at(x.state), unit: attacker.id, target: squad.id, skill: skill.id, power: r4(d.power), defense: r4(d.defense), base: d.base,
-    crit: d.crit, guard: d.guard, amount: d.amount, hp_before: before, hp_after: soldier.hp, ...refs({ soldier: soldier.index, by }), ...reduced(d),
-  });
-  const guard = soldier.hp === 0 && !squad.soldiers.some((s) => s !== soldier && s.alive) ? deathGuard(x.state, squad) : null;
-  if (guard) { // the squad's last soldier is saved
-    soldier.hp = Math.max(1, fl((guard.percent / 100) * soldier.maxHp));
-    x.log.emit({ type: "death_intercepted", ...at(x.state), unit: squad.id, status: guard.inst.statusId, hp: soldier.hp, soldier: soldier.index });
-    useStatus(x, squad, guard.inst);
-  }
-  if (soldier.hp > 0) syncSquad(squad);
-  else {
-    soldier.alive = false;
-    syncSquad(squad);
-    if (squad.alive) x.log.emit({ type: "death", ...at(x.state), unit: squad.id, killer: attacker.id, soldier: soldier.index });
-    else { // the last soldier's death is the squad's wipe: one event, without a soldier index
-      unschedule(x.state, squad);
-      x.log.emit({ type: "death", ...at(x.state), unit: squad.id, killer: attacker.id });
-      endSquadSkills(x.state, squad); // its leader/party soldier skills end with it
-      x.state.bus.emit(x, "on_death", { unit: squad, killer: attacker });
+  let cur: Soldier | null = soldier;
+  let remaining = d.amount;
+  let removed = 0;
+  let spill = false;
+  do {
+    const before: number = cur.hp;
+    const applied = Math.min(before, remaining);
+    cur.hp = Math.max(0, before - applied);
+    x.log.emit({
+      type: "damage", ...at(x.state), unit: attacker.id, target: squad.id, skill: skill.id, power: r4(d.power), defense: r4(d.defense), base: d.base,
+      crit: d.crit, guard: d.guard, amount: applied, hp_before: before, hp_after: cur.hp, ...refs({ soldier: cur.index, by }), ...reduced(d), ...(spill ? { spill: true } : {}),
+    });
+    removed += Math.min(before, applied);
+    const guard = cur.hp === 0 && !squad.soldiers.some((s) => s !== cur && s.alive) ? deathGuard(x.state, squad) : null;
+    if (guard) { // the squad's last soldier is saved
+      cur.hp = Math.max(1, fl((guard.percent / 100) * cur.maxHp));
+      x.log.emit({ type: "death_intercepted", ...at(x.state), unit: squad.id, status: guard.inst.statusId, hp: cur.hp, soldier: cur.index });
+      useStatus(x, squad, guard.inst);
     }
-  }
+    let died = false;
+    if (cur.hp > 0) syncSquad(squad);
+    else {
+      died = true;
+      cur.alive = false;
+      syncSquad(squad);
+      if (squad.alive) x.log.emit({ type: "death", ...at(x.state), unit: squad.id, killer: attacker.id, soldier: cur.index });
+      else { // the last soldier's death is the squad's wipe: one event, without a soldier index
+        unschedule(x.state, squad);
+        x.log.emit({ type: "death", ...at(x.state), unit: squad.id, killer: attacker.id });
+        endSquadSkills(x.state, squad); // its leader/party soldier skills end with it
+        x.state.bus.emit(x, "on_death", { unit: squad, killer: attacker });
+      }
+    }
+    remaining -= applied;
+    cur = died && remaining > 0 ? lowestHpSoldier(squad) : null;
+    spill = true;
+  } while (cur);
   const { noEvent, ...hm } = meta;
-  if (!noEvent) x.state.bus.emit(x, "after_hit", { attacker, defender: squad, skillId: skill.id, ...hm, amount: d.amount, killed: !squad.alive, lost: Math.min(before, d.amount), ...refs({ soldier: soldier.index, by }) });
+  if (!noEvent) x.state.bus.emit(x, "after_hit", { attacker, defender: squad, skillId: skill.id, ...hm, amount: d.amount, killed: !squad.alive, lost: removed, ...refs({ soldier: soldier.index, by }) });
+  checkStatePassives(x); // as applyDamage: while_condition passives and statuses re-check after damage
 }
 
 /**
- * One damage effect against a squad. `area` (any shape but single): every living soldier is hit separately in index order, each with its own
- * rolls. Otherwise one hit on the lowest-HP living soldier. `by` is the attacking soldier's index when the attacker is a squad.
+ * One damage effect against a squad (Decision 130: it defends as one). Single or area (`area`: any shape but single), the hit is rolled and
+ * computed once against the squad's summed defense, then applied from the lowest-HP living soldier with overflow (applySoldierDamage).
  */
-export function hitSquad(x: ExecCtx, attacker: Unit, squad: Unit, skill: SkillRef, effect: DamageEffect, area: boolean, by?: number): void {
-  const victims = area ? squad.soldiers.filter((s) => s.alive) : [lowestHpSoldier(squad)];
-  const meta = { ...hitMeta(skill, effect), single: !area };
-  for (const s of victims) {
-    if (!s || !s.alive) continue;
-    const outcome = rollOutcome(x, attacker, squad, { ...skill, shape: area ? "all" : "single" }, effect, { soldier: s.index, by }); // cover never redirects a hit on a squad
-    const d = computeDamage(attacker, squad, effect, hitCtx(x.state, skill, squad, effect, attacker), outcome);
-    if (!d.landed) continue;
-    markReductionsHit(x.state, squad, effect);
-    applySoldierDamage(x, attacker, squad, s, skill, d, by, meta);
-  }
+export function hitSquad(x: ExecCtx, attacker: Unit, squad: Unit, skill: SkillRef, effect: DamageEffect, area: boolean): void {
+  if (!squad.alive) return;
+  const outcome = rollOutcome(x, attacker, squad, { ...skill, shape: area ? "all" : "single" }, effect); // cover never redirects a hit on a squad
+  const d = computeDamage(attacker, squad, effect, hitCtx(x.state, skill, squad, effect, attacker), outcome);
+  if (!d.landed) return;
+  const first = lowestHpSoldier(squad);
+  if (!first) return;
+  markReductionsHit(x.state, squad, effect);
+  applySoldierDamage(x, attacker, squad, first, skill, d, undefined, { ...hitMeta(skill, effect), single: !area });
 }
 
 /** One damage hit on a hero (single or area), following a cover redirect. */

@@ -1,0 +1,96 @@
+/* Design tokens. Light is the default; dark follows the OS unless the viewer chose a theme (data-theme on <html>, set by the nav toggle).
+   Legacy names (--bg --panel --line --muted --accent --err --warn --ok) stay valid for older rules and formation.css. */
+:root {
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --panel-2: #f0f2f5;
+  --line: #dde1e7;
+  --text: #1c2330;
+  --muted: #6a7384;
+  --accent: #2f5fd0;
+  --accent-contrast: #ffffff;
+  --accent-soft: #e6edfc;
+  --err: #c0392b;
+  --err-soft: #fbe9e6;
+  --warn: #a8690a;
+  --warn-soft: #fbf0dc;
+  --ok: #23804f;
+  --ok-soft: #e3f4ea;
+  --side-challenger: #2f5fd0;
+  --side-defender: #b8432f;
+  --code-bg: #161b26;
+  --code-text: #d7dce6;
+  --shadow: 0 1px 2px rgb(20 30 50 / 0.06), 0 4px 14px rgb(20 30 50 / 0.07);
+  --overlay: rgb(255 255 255 / 0.6);
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13.5px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --rail-width: 188px;
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #12151c;
+    --panel: #1a1f29;
+    --panel-2: #222836;
+    --line: #2f3646;
+    --text: #e4e8f0;
+    --muted: #97a0b3;
+    --accent: #7ea2f5;
+    --accent-contrast: #0e1422;
+    --accent-soft: #23304d;
+    --err: #f08a7c;
+    --err-soft: #3a2323;
+    --warn: #e5b663;
+    --warn-soft: #382d18;
+    --ok: #62c08b;
+    --ok-soft: #1c3226;
+    --side-challenger: #7ea2f5;
+    --side-defender: #f0917f;
+    --code-bg: #0c0f15;
+    --code-text: #d7dce6;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.35);
+    --overlay: rgb(18 21 28 / 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12151c;
+  --panel: #1a1f29;
+  --panel-2: #222836;
+  --line: #2f3646;
+  --text: #e4e8f0;
+  --muted: #97a0b3;
+  --accent: #7ea2f5;
+  --accent-contrast: #0e1422;
+  --accent-soft: #23304d;
+  --err: #f08a7c;
+  --err-soft: #3a2323;
+  --warn: #e5b663;
+  --warn-soft: #382d18;
+  --ok: #62c08b;
+  --ok-soft: #1c3226;
+  --side-challenger: #7ea2f5;
+  --side-defender: #f0917f;
+  --code-bg: #0c0f15;
+  --code-text: #d7dce6;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.35);
+  --overlay: rgb(18 21 28 / 0.6);
+}

@@ -1,6 +1,6 @@
 import { resolveDraft } from "../draft";
 import { sideAtPhase } from "../edits";
-import { rowOverflows } from "../formation";
+import { rowOverflows, slotConflicts } from "../formation";
 import { battleSchema, isRosterForm, rosterBattleSchema, type Battle } from "../schema";
 import type { Collector, Tier } from "../types";
 import type { Pack } from "./pack";
@@ -67,6 +67,9 @@ function validateFieldedBattle(raw: unknown, pack: Pack, c: Collector, opts: { f
     for (const row of rowOverflows(pack, b[side])) {
       c.error("E_BATTLE_ROW_FULL", `${side} ${row} row holds more than ${pack.rules.board.columns} heroes`, { file, path: `${side}.heroes` });
     }
+    for (const x of slotConflicts(pack, b[side])) {
+      c.error("E_BATTLE_SLOT", `${side} ${x.row} column ${x.column} is claimed by ${x.charIds.join(", ")}`, { file, path: `${side}.heroes` });
+    }
   }
   checkEdits(b, pack, c, opts);
 }
@@ -86,7 +89,19 @@ function validateRosterBattle(raw: unknown, pack: Pack, c: Collector, opts: { fi
   if (c.issues.filter((i) => i.severity === "error").length > before) return; // the draft needs two valid rosters
   const d = resolveDraft(pack, b);
   for (const i of d.issues) c.error(i.code, i.message, { file, path: i.path });
-  if (d.battle) checkEdits(d.battle, pack, c, opts);
+  if (d.battle) {
+    // Same slot/row checks as the fielded form, on the drafted sides (what the engine's createBattleState would throw on).
+    for (const side of SIDES) {
+      const s = d.battle[side];
+      for (const row of rowOverflows(pack, s)) {
+        c.error("E_BATTLE_ROW_FULL", `${side} ${row} row holds more than ${pack.rules.board.columns} heroes`, { file, path: `${side}.roster.heroes` });
+      }
+      for (const x of slotConflicts(pack, s)) {
+        c.error("E_BATTLE_SLOT", `${side} ${x.row} column ${x.column} is claimed by ${x.charIds.join(", ")}`, { file, path: `${side}.roster.heroes` });
+      }
+    }
+    checkEdits(d.battle, pack, c, opts);
+  }
 }
 
 /** Challenger edits between phases (design 5.5), against the fielded sides: allowed fields only (E_EDIT_LOCKED comes from the schema). */
@@ -116,11 +131,23 @@ function checkEdits(b: Battle, pack: Pack, c: Collector, opts: { file: string; t
         const k = ids.indexOf(eh.char_id);
         const loc = { file, id: eh.char_id, path: `${at}.heroes[${j}]` };
         if (k < 0) return void c.error("E_EDIT_HERO", `edit hero '${eh.char_id}' is not a fielded ${side} hero`, loc);
-        checkRosterHero(now.heroes[k]!, loc, pack, c, tier); // the entry as edited: tactic sheet, squad row
+        // The entry as edited: tactic sheet, squad row, column range. A column this edit does not set was reported where it was set.
+        const h = now.heroes[k]!;
+        checkRosterHero(eh.column != null || h.column === undefined ? h : { ...h, column: undefined }, loc, pack, c, tier);
       });
       if (now.heroes.every((h) => pack.byId.characters.has(h.char_id))) {
+        // Only what this edit introduces: a full row or clash already standing before it was reported there (one cause, one error).
+        const prev = sideAtPhase(s, e.phase - 1);
+        const wasFull = new Set(rowOverflows(pack, prev));
+        const clashKey = (x: { row: string; column: number; charIds: string[] }) => `${x.row}:${x.column}:${x.charIds.join(",")}`;
+        const wasClash = new Set(slotConflicts(pack, prev).map(clashKey));
         for (const row of rowOverflows(pack, now)) {
+          if (wasFull.has(row)) continue;
           c.error("E_BATTLE_ROW_FULL", `after the phase ${e.phase} edit, ${side} ${row} row holds more than ${pack.rules.board.columns} heroes`, { file, path: at });
+        }
+        for (const x of slotConflicts(pack, now)) {
+          if (wasClash.has(clashKey(x))) continue;
+          c.error("E_BATTLE_SLOT", `after the phase ${e.phase} edit, ${side} ${x.row} column ${x.column} is claimed by ${x.charIds.join(", ")}`, { file, path: at });
         }
       }
     });

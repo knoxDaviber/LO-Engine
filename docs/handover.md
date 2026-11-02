@@ -1,4 +1,4 @@
-# Session handover (2026-11-01)
+# Session handover (updated 2026-11-03)
 
 Read this first, then `CLAUDE.md` (working rules, commands, architecture). Design intent is in `docs/design_doc_v2.md`,
 progress in `docs/roadmap.md`.
@@ -6,53 +6,61 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Last commit:** `7852bd2` (terrain). Everything below is **uncommitted** in the working tree. `git status` shows it all.
-- **Checks at handover:** typecheck clean (root and editor), 303/303 tests pass, `npm run validate` 0 errors and 0 warnings,
-  all four sims run (`sample`, `full4v4`, `city4v4`, `draft_city`) with no `not implemented` lines.
+- **Checks at handover:** typecheck clean (root and editor), 356/356 tests pass, `npm run validate` 0 errors and 0 warnings,
+  all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
+- **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
 
-### Done this session (uncommitted)
-| Roadmap | What | Notes |
-|---|---|---|
-| 3a | Passives, statuses, full condition library, cover, stun pushback 15 [DEFAULT] | Passives run only when enabled on the tactic sheet |
-| 3b | Equipment effects | Equipment vs equipment never stacks |
-| 3c | Devotion: `content/gods.yaml`, player-chosen sigils per gear slot, 7 blessings | Placeholder pantheon: the Seven Lucky Gods. Decision 125 |
-| 3d | Flyer EVA x1.5 vs melee, Aquatic SPD +30% on water terrain (Swamp is water) | Decision 126 |
-| 3e | Draft (6 to 4) and between-phase edits | Decision 124 |
-| 4.2 | Batch simulator `npm run batch -- <files> [--runs=N] [--seed=S] [--json]` | `src/batch.ts`, `src/batchReport.ts`, `src/cliBattle.ts` |
-| 5 (m1) | Local editor `npm run editor` -> http://127.0.0.1:5173 | Vite + React, Decision 127. Tactics board, roster, validation, stacking breakdown, run sim, save |
-
-Designer decisions taken this session: Archer > Flyer and Holy > Monster are +50%; a god's own 2-piece and 4-piece **add**,
-different gods follow strongest-wins (9.1 exception); blessings as written by the designer (Mirror, Full Moon, Plate, Gift,
-Breeze, Meteor, Rush); Gift heals even on a miss; Rush overrides guaranteed guard; Mirror reflects 30% of HP actually lost,
-including on the killing blow; editor = local web app, milestone 1 = tactics board + run sim.
+### Done (uncommitted)
+| Roadmap / decision | What |
+|---|---|
+| 3a-3e | Passives, statuses, condition library, equipment, devotion (gods.yaml, sigils), Flyer/Aquatic traits, draft and edits |
+| 4.2 | Batch simulator, now with what-if sweeps: `--pp-active=2,3,4 --pp-passive=2 --formula=subtract,ratio:100,...` |
+| 5 (m1) + overhaul | Editor (designer's zip applied): Battle / Units / Log pages, sprite formation board, 2x3 slot drag with fading "+", hover hints, pins, themes, PP and formula what-if controls |
+| Sprites | 10 class sheets in `editor/public/sprites/` (`npm run sprites`, originals in gitignored `art/raw/`) |
+| 128 | Soldier damage overflow (never to heroes) |
+| 129 | 2x3 slot formation, optional `column`, leader in either row |
+| 130 | Squads attack and defend as one (summed ATK / summed DEF of living soldiers) |
+| 131 | Stat rebalance around primary stat P (generic P = 100; HP 5-10x, DEF/MDEF 0.4-0.8x, SKL 0.1-0.3x, HIT 100; soldiers ~0.15x) |
+| 132 | ATK/DEF modifiers from skills, auras, soldier skills also apply to INT/MDEF |
+| Section 8 | Damage formula selectable in `rules.yaml` (`subtract` default, `ratio`, `scaled_subtract`) |
+| 133 | Equipment type standard: one type tag per item, flat stats from `rules.equipment_bases` (design doc 12.1); items keep only effects/PP. Open calls: Speed Ring is now an INT ring (rename, re-type to boots, or add a SPD effect?); Prayer's Guardian has no effect left; Chainmail stays light armour |
 
 ## Todo queue (in order)
 
-1. **Housekeeping before committing:** `node_modules` is tracked by git and now contains Vite/React. Add it to `.gitignore`,
-   `git rm -r --cached node_modules`, and fix CLAUDE.md's Environment note ("no node_modules in the repo"). Then the user
-   commits (commit only when asked).
-2. **Editor visual overhaul (designer request, next big task).** See the brief below.
-3. **4.3 balance pass**, from batch data (`npm run batch -- content/battles/*.yaml --runs=100`):
-   - 3 of 4 matchups time out 100% (defender wins). Cause: ~2 Active PP per hero with 2-PP skills = few actions per phase,
-     DEF high relative to ATK. Timeout tiebreak candidate is Decision 115.
-   - Some squads never act (Infantry's Footmen in both City battles, Jasmine's squad in full4v4); Jasmine gets ~0.1
-     actions/phase. Investigate: slow squad SPD vs phase ending on hero PP exhaustion, or a bug.
-   - The draft is identical every run (human picks and rule-sheet bans don't depend on the seed), so banned rates are 0/100%.
-   - Calibrate cost weights (`rules.cost`, incl. new `effect_price: 10` [DEFAULT] for non-stat blessing effects), Jasmine's
-     aura `cost_adjustment`, roll constants, GUARD dual role, leader focus.
-4. **Parked design items (designer to decide):**
-   - "Flipped" vice sigils: each god gets an optional vice 4-piece; recommended a per-hero choice per god (not per sigil).
-     Use vice faces to fill gaps (healing, AoE, PP, squads; HIT/SKL/GUARD/EVA unused) rather than mirror existing ones.
-   - Distinct 2-pieces: currently only 4 unique 2-piece bonuses (HP+20% x2, ATK+10% x2, DEF+10% x2). Suggested: Mirror MDEF
-     +10%, Breeze EVA +10, Rush HIT +10, Plate GUARD +10, Full Moon INT +10%.
-5. **Editor follow-ups (smaller):** edit between-phase `edits` and the defender `ban_sheet` in the UI; roster-form "new
-   battle" template; skill / equipment / character editors (roadmap Step 5 order).
-6. **Batch sim nits (low):** two files with the same basename get the same seeds and header; a draft the validator missed
-   throws a stack trace instead of a message.
+1. **Pick the damage model (designer).** After the rebalance every battle times out under every formula and PP 2-4.
+   Formula comparison (full kits, engine stats): when power is well above defense all formulas agree within ~15%; in close
+   matchups `subtract` gives 1-7 damage (hundreds of hits), `ratio:100` 15-35 hits, `scaled_subtract` in between. Even
+   `ratio` kills too slowly for ~6-12 skill uses per battle, so damage per hit must also rise (skill multipliers and/or HP
+   factors). Battle files are lightly kitted (`sample`, `full4v4` bare; City battles 2-3 sigil wearers per side): consider
+   fully kitted test battles before judging. Rerun:
+   `npm run batch -- content/battles/*.yaml --runs=100 --formula=subtract,ratio:100,ratio:150,scaled_subtract:20,scaled_subtract:35 --pp-active=2,3,4`.
+2. **Default PP** (designer: decide after the formula), then sweep PP 2-5 under the chosen formula.
+3. **Two-sided blessings (designer notes, 2026-11-03).** Each god gets a DEF and an ATK enchantment; new 2-pieces:
+   Mirror HP+20%, Full Moon DEF/MDEF+10%, Plate GUARD+10, Gift HP+20%, Breeze ATK/INT+10%, Meteor CRIT+10, Rush EVA+10.
+   Given: Mirror DEF reflect 30% (single-target); Full Moon DEF: HP>80% DEF/MDEF+20%, ATK: HP>80% ATK/INT+20%; Plate DEF
+   -10% damage taken; Gift DEF: when attacked, 50% chance to heal 30% max HP after the attack (once per enemy action);
+   Breeze ATK: HP>80% SPD+20%; Meteor ATK: crit damage +30%; Rush ATK: ignore GUARD on single-target attacks. Blank in the
+   short list (Mirror ATK, Plate ATK, Gift ATK, Breeze DEF, Meteor DEF, Rush DEF): the designer's long document proposes
+   each (Mirror ATK: next attack +30% after being attacked; Plate ATK: +20% vs enemies with GUARD; Gift ATK: heal 20% on a
+   kill; Breeze DEF: HP>80% EVA+20%; Meteor DEF: -30% crit damage taken; Rush DEF: counter for 50% ATK after a dodge);
+   confirm before building. Soldier effects, AP/PP refunds and extra gods (Clock, Crystal, Ice, Tree of Life) are later.
+   The sigil choice must record the side (schema change).
+4. **Housekeeping before committing:** `node_modules` is still tracked by git even though `.gitignore` lists it:
+   `git rm -r --cached node_modules`; fix CLAUDE.md's Environment note. `.claude/launch.json` has local editor entries.
+   Then the user commits (commit only when asked).
+5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
+   roll constants, GUARD dual role, leader focus (back-row leaders now allowed), timeout tiebreak (Decision 115). The draft
+   is identical every run (picks don't depend on the seed).
+6. **Editor follow-ups:** edit between-phase `edits` and the defender `ban_sheet` in the UI; roster-form "new battle"
+   template; skill / equipment / character editors (roadmap Step 5 order). Equipment flat stat lines were not rescaled by
+   the rebalance (they are now relatively small).
+7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a
+   stack trace.
 
 Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6).
 
-## Brief: editor visual overhaul (todo 2)
+## Brief: editor visual overhaul (done via the designer zip, applied 2026-11-03; kept for reference)
 
 Goal: the editor should be far more visual and helpful. Keep the existing API (`editor/api.ts`) and engine untouched unless
 a new read-only endpoint is genuinely needed; the server stays authoritative.

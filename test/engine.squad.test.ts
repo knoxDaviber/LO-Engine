@@ -1,10 +1,10 @@
-// Squads (roadmap 2.1/2.2, design Sections 2.1, 8, 10 and 17): per-soldier HP, one-target selection, single-target vs area hits,
-// heal split, own SPD schedule, never keeping a phase alive, soldier-category stacking, area statuses.
+// Squads (roadmap 2.1/2.2, design Sections 2.1, 8, 10 and 17; Decision 130): per-soldier HP, one-target selection, attacking and defending as
+// one (summed ATK / DEF, one roll set per hit), overflow, heal split, own SPD schedule, never keeping a phase alive, soldier-category stacking, area statuses.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   EventLog, applyHeal, applyStatus, beginPhase, createBattleState, decideTactic, effectiveStat, executeSkill, executeSquadAction, hitSquad,
-  lowestHpSoldier, runBattle, runPhase, scheduleInitial, statBreakdown, syncSquad, type BattleEvent, type DamageEffect, type ExecCtx, type Unit,
+  lowestHpSoldier, runBattle, runPhase, scheduleInitial, statBreakdown, summedStat, syncSquad, type BattleEvent, type DamageEffect, type ExecCtx, type Unit,
 } from "../src/engine";
 import type { Battle, Skill } from "../src/schema";
 import type { Pack } from "../src/validate/pack";
@@ -44,29 +44,30 @@ test("a side gets exactly its leader's squad as one unit with 10 soldiers of the
   assert.deepEqual(squads.map((s) => s.id), [SQ_C, SQ_D]); // only the leaders' squads, though Lief and Jasmine have a squad_id too
   const sq = u(SQ_C);
   assert.equal(sq.soldiers.length, 10);
-  assert.ok(sq.soldiers.every((s) => s.hp === 50 && s.maxHp === 50));
-  assert.equal(sq.hp, 500);
-  assert.equal(sq.maxHp, 500);
+  assert.ok(sq.soldiers.every((s) => s.hp === 153 && s.maxHp === 153));
+  assert.equal(sq.hp, 1530);
+  assert.equal(sq.maxHp, 1530);
   assert.equal(sq.class, "infantry"); // the squad's class follows its soldier type
 });
 
-test("single-target hit lands on the lowest-HP living soldier, ties lowest index, excess damage discarded", () => {
-  const { x, u, skill, dmg, ev } = setup();
+test("a hit on a squad is resolved once against the summed DEF of its living soldiers; lowest-HP soldier first, ties lowest index, overflow", () => {
+  const { x, u, skill, dmg, ev } = setup((p) => { (p.byId.characters.get(LEON) as any).base_stats.ATK = 200; });
   const sq = u(SQ_D);
   const leon = u(LEON);
   sq.soldiers[3]!.hp = 20;
   sq.soldiers[5]!.hp = 20;
   syncSquad(sq);
-  const ca = skill("skl_cav_active_001"); // Charging Assault, 105 power vs DEF 39: 66, far more than a soldier has
+  const ca = skill("skl_cav_active_001"); // Charging Assault, 200 x 1.2 x 1.25 = 300 power vs 10 x DEF 18.2 = 182: 118
   hitSquad(x, leon, sq, ca, dmg("skl_cav_active_001"), false);
-  assert.deepEqual(hps(sq), [50, 50, 50, 0, 50, 20, 50, 50, 50, 50]); // soldier 3 (index tie with 5 goes to the lower index) dies, nobody else is touched
-  assert.equal(sq.hp, 500 - 60 - 20); // soldier 3 lost its 20 HP, the 46 excess damage is discarded
-  hitSquad(x, leon, sq, ca, dmg("skl_cav_active_001"), false);
-  assert.deepEqual(hps(sq), [50, 50, 50, 0, 50, 0, 50, 50, 50, 50]); // next lowest: soldier 5
-  hitSquad(x, leon, sq, ca, dmg("skl_cav_active_001"), false);
-  assert.deepEqual(hps(sq), [0, 50, 50, 0, 50, 0, 50, 50, 50, 50]); // all equal: lowest index
+  assert.deepEqual(hps(sq), [75, 153, 153, 0, 153, 0, 153, 153, 153, 153]); // soldier 3 (index tie with 5 goes to the lower index) dies, the 98 left over go to the lowest HP: soldier 5 (20) dies, 78 more reach soldier 0
+  assert.equal(sq.hp, 1530 - 2 * 133 - 118);
+  assert.equal(ev("damage")[0]!.defense, 182);
+  hitSquad(x, leon, sq, ca, dmg("skl_cav_active_001"), false); // 8 living: defense 145.6, 154 damage; soldier 0 (75 HP) dies, 79 overflow to soldier 1
+  assert.deepEqual(hps(sq), [0, 74, 153, 0, 153, 0, 153, 153, 153, 153]);
+  assert.equal(ev("roll").filter((e) => e.kind === "hit").length, 2); // one hit roll per hit, whatever the soldier count
   const hits = ev("damage").filter((e) => e.target === SQ_D);
-  assert.deepEqual(hits.map((e) => e.soldier), [3, 5, 0]);
+  assert.deepEqual(hits.map((e) => e.soldier), [3, 5, 0, 0, 1]);
+  assert.deepEqual(hits.map((e) => !!e.spill), [false, true, true, false, true]);
   assert.equal(hits[0]!.hp_before, 20);
   assert.equal(hits[0]!.hp_after, 0);
   assert.deepEqual(ev("death").map((e) => e.soldier), [3, 5, 0]);
@@ -74,15 +75,14 @@ test("single-target hit lands on the lowest-HP living soldier, ties lowest index
 });
 
 test("a squad is selected as ONE target (the default target when it stands in front) and a hit goes through the tactic path", () => {
-  const { state, battle, x, u, ev } = setup((_p, b) => { sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001")]; });
+  const { state, battle, x, u, ev } = setup((p, b) => { (p.byId.characters.get(LEON) as any).base_stats.ATK = 200; sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001")]; });
   const leon = u(LEON);
   const d = decideTactic(state, leon, x.rng);
   assert.deepEqual(d.targets.map((t) => t.id), [SQ_D]); // nearest, front board row first: the soldier row in front of the Emperor
   executeSkill(x, leon, d);
-  assert.equal(ev("damage").length, 1); // single-target: one hit on one soldier
-  assert.equal(ev("damage")[0]!.soldier, 0);
-  assert.equal(u(SQ_D).hp, 500 - 50); // 66 damage on a 50 HP soldier, the 16 excess is gone
-  assert.equal(u(EMPEROR).hp, 200);
+  assert.deepEqual(ev("damage").map((e) => e.soldier), [0]); // single-target: one hit, 118 damage on a 153 HP soldier
+  assert.equal(u(SQ_D).hp, 1530 - 118);
+  assert.equal(u(EMPEROR).hp, 950);
   void battle;
 });
 
@@ -96,7 +96,7 @@ test("a back squad is the last target; soldier-kind conditions select or skip th
   assert.deepEqual(d.targets.map((t) => t.id), [EMPEROR]); // the hero rows come first when the squad stands behind
 });
 
-test("a column skill hits every living soldier separately, whichever column it is in", () => {
+test("a column skill hits the squad once (it defends as one), whichever column it is in", () => {
   const { state, x, u, ev } = setup((_p, b) => { sheetOf(b, LIEF).tactic_sheet = [tactic("skl_lancer_active_001", { targeting: { main: { type: "class_is", side: "enemy", value: "holy" }, sub: null } })]; });
   u(JASMINE).column = 3; // anchor in column 3: the squad is in every column, so it is in this one too
   u(SQ_D).soldiers[2]!.alive = false;
@@ -106,29 +106,31 @@ test("a column skill hits every living soldier separately, whichever column it i
   assert.deepEqual(d.targets.map((t) => t.id).sort(), [JASMINE, SQ_D]);
   executeSkill(x, lief, d);
   const onSquad = ev("damage").filter((e) => e.target === SQ_D);
-  assert.deepEqual(onSquad.map((e) => e.soldier), [0, 1, 3, 4, 5, 6, 7, 8, 9]); // every living soldier once, in index order
-  assert.equal(ev("roll").filter((e) => e.target === SQ_D && e.kind === "hit").length, 9); // each with its own hit roll
+  assert.deepEqual(onSquad.map((e) => e.soldier), [0]); // one hit, on the lowest-HP living soldier
+  assert.equal(onSquad[0]!.defense, 163.8); // the 9 living soldiers' DEF summed (14 x 1.3 each)
+  assert.equal(ev("roll").filter((e) => e.target === SQ_D && e.kind === "hit").length, 1); // one hit roll
   assert.equal(ev("damage").filter((e) => e.target === JASMINE).length, 1);
 });
 
-test("a row skill aimed at a squad hits all of its soldiers; the Dirge row through the hero row skips the squad", () => {
+test("a row skill aimed at a squad hits it once; the Dirge row through the hero row skips the squad", () => {
   const { state, x, u, ev } = setup((_p, b) => { sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002")]; });
   const emp = u(EMPEROR);
   const d = decideTactic(state, emp, x.rng);
   assert.deepEqual(d.targets.map((t) => t.id), [SQ_C]); // nearest = the challenger squad's own soldier row
   executeSkill(x, emp, d);
-  assert.equal(ev("damage").filter((e) => e.target === SQ_C).length, 10);
+  assert.equal(ev("damage").filter((e) => e.target === SQ_C).length, 1); // 150 power vs 182 summed DEF: the minimum, on one soldier
+  assert.equal(ev("roll").filter((e) => e.target === SQ_C && e.kind === "hit").length, 1);
   const heroRow = setup((_p, b) => { sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002", { targeting: { main: { type: "unit_kind", is: "hero" }, sub: null } })]; });
   const d2 = decideTactic(heroRow.state, heroRow.u(EMPEROR), heroRow.x.rng);
   assert.deepEqual(d2.targets.map((t) => t.id), [LEON, LIEF]); // the hero front row, no squad
 });
 
 test("area statuses skip the squad unless include_soldiers; a directly hit single target keeps its status", () => {
-  const weak = (p: Pack) => { (p.byId.characters.get(EMPEROR) as any).base_stats.ATK = 30; }; // so the Dirge (45 vs DEF 39) does not wipe the squad
+  const weak = (p: Pack) => { (p.byId.characters.get(EMPEROR) as any).base_stats.ATK = 30; }; // so the Dirge does no more than the minimum
   const a = setup((p, b) => { weak(p); sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002")]; });
   const emp = a.u(EMPEROR);
   executeSkill(a.x, emp, decideTactic(a.state, emp, a.x.rng));
-  assert.equal(a.ev("damage").filter((e) => e.target === SQ_C).length, 10); // damage still hits every soldier
+  assert.equal(a.ev("damage").filter((e) => e.target === SQ_C).length, 1); // damage still hits the squad
   assert.equal(a.u(SQ_C).alive, true);
   assert.deepEqual(a.u(SQ_C).statuses, []); // but the area status (Dark Dragon's Ire, Defense Down) skips the squad
 
@@ -171,15 +173,15 @@ test("heal on a squad is split evenly over all 10 soldiers, dead included: 60 is
   sq.soldiers[0]!.hp = 20;
   sq.soldiers[1]!.hp = 0;
   sq.soldiers[1]!.alive = false;
-  sq.soldiers[2]!.hp = 47;
+  sq.soldiers[2]!.hp = 150;
   syncSquad(sq);
   const before = sq.hp;
   const applied = applyHeal(x, jas, sq, { id: "skl_heal_active_001" }, 60);
   assert.equal(sq.soldiers[0]!.hp, 26); // living 20 -> 26
   assert.equal(sq.soldiers[1]!.hp, 6); // dead revives at its share
   assert.equal(sq.soldiers[1]!.alive, true);
-  assert.equal(sq.soldiers[2]!.hp, 50); // 47 + 6 capped at max
-  assert.equal(sq.soldiers[3]!.hp, 50);
+  assert.equal(sq.soldiers[2]!.hp, 153); // 150 + 6 capped at max
+  assert.equal(sq.soldiers[3]!.hp, 153);
   assert.equal(applied, 6 + 6 + 3);
   assert.equal(sq.hp, before + applied);
   const h = ev("heal")[0]!;
@@ -202,10 +204,10 @@ test("a wiped squad takes no heal and does not come back", () => {
 });
 
 test("squad defeated: all soldiers dead removes it from the timeline, logs it, and the heroes live on", () => {
-  const { state, x, u, ev } = setup((_p, b) => { sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002")]; });
+  const { state, x, u, ev } = setup((p, b) => { (p.byId.characters.get(EMPEROR) as any).base_stats.ATK = 1000; sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002")]; });
   scheduleInitial(state);
   const sq = u(SQ_C);
-  for (const s of sq.soldiers) s.hp = 1;
+  for (const s of sq.soldiers) s.hp = 1; // one Dirge hit (1500 - 182) overflows through all of them
   const emp = u(EMPEROR);
   executeSkill(x, emp, decideTactic(state, emp, x.rng));
   assert.equal(sq.alive, false);
@@ -219,7 +221,7 @@ test("squad defeated: all soldiers dead removes it from the timeline, logs it, a
   assert.ok(state.units.filter((v) => v.kind === "hero" && v.side === "challenger").every((v) => v.alive));
 });
 
-test("a squad action is 10 real hits with their own rolls (30 draws), in soldier order, on the squad's own SPD schedule", () => {
+test("a squad action is ONE attack: summed ATK of the living soldiers, one hit/crit/guard roll (3 draws), on the squad's own SPD schedule", () => {
   const { state, x, u, ev } = setup();
   scheduleInitial(state);
   u(SQ_D).alive = false; // so the squad's targets are heroes
@@ -227,28 +229,31 @@ test("a squad action is 10 real hits with their own rolls (30 draws), in soldier
   state.timeline.now = 33;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, sq);
-  assert.equal(x.rng.draws, 30); // hit, crit, guard for each of the 10 soldiers
+  assert.equal(x.rng.draws, 3); // hit, crit, guard once
   const rolls = ev("roll");
-  assert.equal(rolls.length, 30);
-  assert.deepEqual(rolls.filter((r) => r.kind === "hit").map((r) => r.by), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-  assert.equal(ev("damage").length, 10);
-  assert.ok(ev("damage").every((e) => e.target === EMPEROR && e.unit === SQ_C)); // nearest, front row first, ties by column
-  assert.equal(u(EMPEROR).hp, 200 - 10 * 1); // soldier ATK 39 vs Emperor DEF 50: minimum damage 1 per hit
+  assert.deepEqual(rolls.map((r) => r.kind), ["hit", "crit", "guard"]);
+  assert.ok(rolls.every((r) => r.by === undefined));
+  const dmg = ev("damage");
+  assert.equal(dmg.length, 1);
+  assert.ok(dmg[0]!.target === EMPEROR && dmg[0]!.unit === SQ_C); // nearest, front row first, ties by column
+  assert.ok(Math.abs(dmg[0]!.power - 221) < 1e-3); // 10 x ATK 22.1 (17 x 1.3)
+  assert.equal(u(EMPEROR).hp, 950 - 151); // 221 - DEF 70
   assert.equal(ev("squad_attack")[0]!.attackers, 10);
   const next = ev("schedule").at(-1)!;
   assert.deepEqual([next.unit, next.reason, next.due, next.interval], [SQ_C, "next_action", 33 + 33, 33]); // SPD 30: round(1000 / 30)
 });
 
-test("when a target dies mid-attack the next soldiers take the next nearest enemy", () => {
+test("a weakened squad hits softer: the attack sums only the living soldiers", () => {
   const { state, x, u, ev } = setup();
   scheduleInitial(state);
   u(SQ_D).alive = false;
-  u(EMPEROR).hp = 1;
-  u(JASMINE).hp = 1000;
-  executeSquadAction(x, u(SQ_C));
-  const targets = ev("damage").map((e) => e.target);
-  assert.deepEqual(targets, [EMPEROR, ...Array(9).fill(JASMINE)]);
-  assert.equal(u(EMPEROR).alive, false);
+  const sq = u(SQ_C);
+  for (const i of [0, 2, 4, 6, 8]) { sq.soldiers[i]!.hp = 0; sq.soldiers[i]!.alive = false; }
+  syncSquad(sq);
+  executeSquadAction(x, sq);
+  assert.ok(Math.abs(ev("damage")[0]!.power - 110.5) < 1e-3); // 5 x 22.1
+  assert.equal(u(EMPEROR).hp, 950 - 40);
+  assert.equal(ev("squad_attack")[0]!.attackers, 5);
 });
 
 test("the attack stops once the enemy has no living hero", () => {
@@ -259,7 +264,7 @@ test("the attack stops once the enemy has no living hero", () => {
   assert.equal(ev("damage").length, 0); // the defender squad still stands, but heroes decide the battle
 });
 
-test("a higher SPD squad makes more attacks per phase; every attack is 10 hits", () => {
+test("a higher SPD squad makes more attacks per phase; every attack is one hit roll", () => {
   const run = (spd: number) => {
     const { pack, battle } = loadReal({ squads: true });
     pack.rules.rolls.hit_min = 100;
@@ -271,20 +276,17 @@ test("a higher SPD squad makes more attacks per phase; every attack is 10 hits",
     const log = new EventLog();
     const { state, rng } = beginPhase(pack, battle, 1, null, log);
     const res = runPhase(state, rng, log);
-    const squadAttacks = log.events.filter((e): e is Extract<BattleEvent, { type: "squad_attack" }> => e.type === "squad_attack" && e.unit === SQ_C);
-    const attacks = squadAttacks.length;
-    const hits = squadAttacks.reduce((n, e) => n + e.attackers, 0); // one hit per living soldier (focus fire does kill soldiers over time)
+    const attacks = log.events.filter((e) => e.type === "squad_attack" && e.unit === SQ_C).length;
     const hitRolls = log.events.filter((e) => e.type === "roll" && e.kind === "hit" && e.unit === SQ_C).length;
-    return { res, attacks, hits, hitRolls };
+    return { res, attacks, hitRolls };
   };
   const slow = run(30);
   const fast = run(60);
   assert.equal(slow.res.reason, "exhausted");
   assert.ok(slow.attacks >= 3, `slow squad attacked ${slow.attacks} times`);
   assert.ok(fast.attacks > slow.attacks, `${fast.attacks} > ${slow.attacks}`);
-  assert.equal(slow.hitRolls, slow.hits); // one hit per living soldier (the Emperor's Iron Fist ATK buff now reaches his squad, so soldiers do die)
-  assert.ok(slow.hits <= slow.attacks * 10);
-  assert.equal(fast.hitRolls, fast.hits); // one real hit with its own rolls per living soldier
+  assert.equal(slow.hitRolls, slow.attacks); // one hit roll per squad attack
+  assert.equal(fast.hitRolls, fast.attacks);
 });
 
 test("squads never keep a phase alive: no usable hero skill ends the phase at once, even with squads at full strength", () => {
@@ -296,7 +298,7 @@ test("squads never keep a phase alive: no usable hero skill ends the phase at on
   assert.equal(res.reason, "exhausted");
   assert.equal(res.actions, 0);
   assert.equal(res.squadActions, 0); // the soldiers never even got to attack
-  assert.ok(state.units.filter((v) => v.kind === "squad").every((s) => s.alive && s.hp === 500));
+  assert.ok(state.units.filter((v) => v.kind === "squad").every((s) => s.alive && s.hp === 1530));
 });
 
 test("squads take no part in the idle cycle either: heroes idling ends the phase while squads keep acting in between", () => {
@@ -333,28 +335,31 @@ test("soldiers' HP and deaths persist into the next phase; they do not respawn",
 test("soldier skills are always-on stat mods in the soldier category: ATK/DEF +30% on the squad", () => {
   const { state, u } = setup();
   const sq = u(SQ_C);
-  assert.equal(effectiveStat(sq, "ATK", state.pack), 39); // 30 x 1.3
-  assert.equal(effectiveStat(sq, "DEF", state.pack), 39);
+  assert.ok(Math.abs(effectiveStat(sq, "ATK", state.pack) - 17 * 1.3) < 1e-9);
+  assert.ok(Math.abs(effectiveStat(sq, "DEF", state.pack) - 14 * 1.3) < 1e-9);
   assert.equal(effectiveStat(sq, "SPD", state.pack), 30);
   const bd = statBreakdown(sq, "ATK", state.pack);
   assert.deepEqual(bd.effects.map((e) => [e.category, e.value, e.outcome]), [["soldier", 30, "winner"]]);
+  // INT/MDEF pairing (Decision 132): the ATK / DEF soldier skill lines also apply to INT / MDEF, as entries of the same skill and category
+  assert.deepEqual(statBreakdown(sq, "INT", state.pack).effects.map((e) => [e.status, e.category, e.value]), [["soldier_001 skill 1.1", "soldier", 30]]);
+  assert.deepEqual(statBreakdown(sq, "MDEF", state.pack).effects.map((e) => [e.status, e.category, e.value]), [["soldier_001 skill 1.2", "soldier", 30]]);
 });
 
 test("soldier-category effects multiply with active, passive and equipment effects; within the category the strongest wins", () => {
   const { state, u } = setup();
   const sq = u(SQ_C);
   applyStatus(state, sq, "buff_004", "active", LEON); // DEF UP 20%, active category
-  assert.ok(Math.abs(effectiveStat(sq, "DEF", state.pack) - 30 * 1.3 * 1.2) < 1e-9); // 46.8
+  assert.ok(Math.abs(effectiveStat(sq, "DEF", state.pack) - 14 * 1.3 * 1.2) < 1e-9); // 21.84
   applyStatus(state, sq, "buff_004", "passive", LEON); // the same status from a passive source coexists
-  assert.ok(Math.abs(effectiveStat(sq, "DEF", state.pack) - 30 * 1.3 * 1.2 * 1.2) < 1e-9);
+  assert.ok(Math.abs(effectiveStat(sq, "DEF", state.pack) - 14 * 1.3 * 1.2 * 1.2) < 1e-9);
   sq.innate.push({ id: "second soldier skill", stat: "DEF", mode: "percent", value: 10, category: "soldier" }); // weaker, same category
   const bd = statBreakdown(sq, "DEF", state.pack);
-  assert.ok(Math.abs(bd.result - 30 * 1.3 * 1.2 * 1.2) < 1e-9); // soldier vs soldier never stack
+  assert.ok(Math.abs(bd.result - 14 * 1.3 * 1.2 * 1.2) < 1e-9); // soldier vs soldier never stack
   assert.equal(bd.effects.find((e) => e.status === "second soldier skill")!.outcome, "suppressed");
   sq.innate.push({ id: "stronger soldier skill", stat: "DEF", mode: "percent", value: 50, category: "soldier" });
-  assert.ok(Math.abs(statBreakdown(sq, "DEF", state.pack).result - 30 * 1.5 * 1.2 * 1.2) < 1e-9); // the strongest wins
+  assert.ok(Math.abs(statBreakdown(sq, "DEF", state.pack).result - 14 * 1.5 * 1.2 * 1.2) < 1e-9); // the strongest wins
   sq.equipFlat.DEF = 10; // flat lines come first
-  assert.ok(Math.abs(statBreakdown(sq, "DEF", state.pack).result - 40 * 1.5 * 1.2 * 1.2) < 1e-9);
+  assert.ok(Math.abs(statBreakdown(sq, "DEF", state.pack).result - 24 * 1.5 * 1.2 * 1.2) < 1e-9);
 });
 
 test("soldier skills the engine cannot run (on_event, a condition, non-stat leader/party effects) are logged, never silently dropped", () => {
@@ -367,7 +372,7 @@ test("soldier skills the engine cannot run (on_event, a condition, non-stat lead
   const notes = log.events.filter((e): e is Extract<BattleEvent, { type: "not_implemented" }> => e.type === "not_implemented").map((e) => e.what);
   assert.ok(notes.includes("not implemented: event soldier skill"));
   assert.ok(notes.includes("not implemented: soldier skill effect heal"));
-  assert.equal(state.units.find((v) => v.id === SQ_C)!.innate.length, 2); // only the always-on ATK/DEF mods run
+  assert.equal(state.units.find((v) => v.id === SQ_C)!.innate.length, 4); // only the always-on ATK/DEF mods run (with their paired INT/MDEF lines)
 });
 
 test("hero passive skills run (3a): no 'not implemented: passive' notes remain for fielded heroes", () => {
@@ -389,8 +394,34 @@ test("sample battle with real squads: runs, is deterministic, and the log shows 
   assert.equal(ra.squads.length, 2);
   const setup0 = ra.events[0] as Extract<BattleEvent, { type: "battle_setup" }>;
   assert.equal(setup0.squads.length, 2);
-  assert.equal(setup0.squads[0]!.stats.ATK.result, 39);
+  assert.equal(setup0.squads[0]!.stats.ATK.result, 22.1);
   const types = new Set(ra.events.map((e) => e.type));
   assert.ok(types.has("squad_attack"));
   assert.ok(ra.events.some((e) => e.type === "damage" && e.soldier !== undefined));
+});
+
+test("a flat line shared from the leader counts once for the squad's summed ATK / DEF, not per soldier", () => {
+  const { state, pack, x, u, ev } = setup((p) => {
+    const base = structuredClone(p.byId.statuses.get("buff_005")!);
+    p.byId.statuses.set("flat_atk", { ...base, id: "flat_atk", modifiers: [{ stat: "ATK", mode: "flat", value: 10 }, { stat: "DEF", mode: "flat", value: 10 }] });
+  });
+  applyStatus(state, u(LEON), "flat_atk", "active", LEON);
+  const sq = u(SQ_C);
+  const bd = statBreakdown(sq, "ATK", pack);
+  assert.equal(bd.sharedFlat, 10);
+  assert.ok(bd.effects.some((e) => e.status === "flat_atk" && e.shared));
+  assert.ok(Math.abs(summedStat(sq, "ATK", pack) - (10 * 17 + 10) * 1.3) < 1e-9); // per soldier (17 + 10) x 1.3, but the +10 only once
+  assert.ok(Math.abs(summedStat(sq, "DEF", pack) - (10 * 14 + 10) * 1.3) < 1e-9);
+  scheduleInitial(state);
+  u(SQ_D).alive = false;
+  state.timeline.pending.delete(SQ_C);
+  executeSquadAction(x, sq);
+  assert.ok(Math.abs(ev("damage")[0]!.power - 234) < 1e-9); // (170 + 10) x 1.3
+});
+
+test("a conditional INT line in a soldier skill (not built) does not suppress the ATK -> INT pairing", () => {
+  const { state, u } = setup((p) => {
+    p.byId.soldiers.get("soldier_001")!.passive_effects[0]!.effects.push({ type: "modify_stat", stat: "INT", mode: "percent", value: 50, condition: { type: "phase", op: ">", value: 1 } } as any);
+  });
+  assert.deepEqual(statBreakdown(u(SQ_C), "INT", state.pack).effects.map((e) => [e.status, e.value]), [["soldier_001 skill 1.1", 30]]);
 });

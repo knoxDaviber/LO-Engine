@@ -3,7 +3,8 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { parse } from "yaml";
-import { parseBattleInput, type BattleInput } from "./schema";
+import { DAMAGE_FORMULAS, parseBattleInput, type BattleInput, type DamageFormulaName } from "./schema";
+import type { FormulaOption } from "./engine";
 import { Collector, type Issue } from "./types";
 import { validateContent } from "./validate";
 import { validateBattle } from "./validate/battle";
@@ -46,4 +47,62 @@ export function checkBattle(raw: unknown, file: string, pack: Pack): BattleInput
     process.exit(1);
   }
   return parseBattleInput(raw);
+}
+
+/** PP override bounds for the what-if knob (sim, batch, editor). */
+export const PP_OVERRIDE_MAX = 10;
+
+/**
+ * Parses `--pp-active=` / `--pp-passive=` (comma lists when `list`). Returns undefined when the flag is absent; calls `fail` on a value that is
+ * not a decimal integer in [0, PP_OVERRIDE_MAX], on a repeated value or on a list where a single value is expected.
+ */
+export function ppFlag(args: string[], name: "pp-active" | "pp-passive", list: boolean, fail: (msg: string) => never): number[] | undefined {
+  const a = args.find((x) => x.startsWith(`--${name}=`));
+  if (a === undefined) return undefined;
+  const parts = a.slice(name.length + 3).split(",");
+  const msg = `--${name} must be ${list ? "a comma list of distinct decimal integers" : "a decimal integer"} in [0, ${PP_OVERRIDE_MAX}]`;
+  if (!list && parts.length !== 1) fail(msg);
+  const vals = parts.map((s) => (/^\d+$/.test(s) && Number(s) <= PP_OVERRIDE_MAX ? Number(s) : fail(msg)));
+  if (new Set(vals).size !== vals.length) fail(msg);
+  return vals;
+}
+
+/** A formula override and its label (the spec as written: `ratio:150`). */
+export interface FormulaSpec { label: string; option: FormulaOption }
+
+const NUM_RE = /^\d+(\.\d+)?$/;
+
+/**
+ * Parses one formula spec: `subtract`, `ratio[:K]` (K > 0), `scaled_subtract[:FLOOR_PCT[:DEF_WEIGHT]]` (floor 0..100, weight >= 0). Omitted
+ * parameters keep the rules.yaml values. Returns an error message on anything else.
+ */
+export function parseFormula(spec: string): FormulaSpec | string {
+  const [name, ...params] = spec.split(":");
+  const err = `formula must be subtract, ratio[:K] or scaled_subtract[:FLOOR_PCT[:DEF_WEIGHT]] with decimal numbers (got '${spec}')`;
+  if (!(DAMAGE_FORMULAS as readonly string[]).includes(name!)) return err;
+  if (params.some((p) => !NUM_RE.test(p) || !Number.isFinite(Number(p)))) return err;
+  const n = params.map(Number);
+  const formula = name as DamageFormulaName;
+  if (formula === "subtract") return n.length === 0 ? { label: spec, option: { formula } } : err;
+  if (formula === "ratio") return n.length <= 1 && (n[0] ?? 1) > 0 ? { label: spec, option: { formula, ...(n.length ? { ratio_k: n[0] } : {}) } } : err;
+  if (n.length > 2 || (n[0] ?? 0) > 100) return err;
+  return { label: spec, option: { formula, ...(n.length > 0 ? { floor_pct: n[0] } : {}), ...(n.length > 1 ? { def_weight: n[1] } : {}) } };
+}
+
+/** Parses `--formula=` (a comma list of distinct specs when `list`). Undefined when absent; calls `fail` on a bad, repeated or extra spec. */
+export function formulaFlag(args: string[], list: boolean, fail: (msg: string) => never): FormulaSpec[] | undefined {
+  const a = args.find((x) => x.startsWith("--formula="));
+  if (a === undefined) return undefined;
+  const parts = a.slice("--formula=".length).split(",");
+  if (!list && parts.length !== 1) fail("--formula takes a single formula here");
+  if (new Set(parts).size !== parts.length) fail("--formula values must be distinct");
+  return parts.map((p) => {
+    const r = parseFormula(p);
+    return typeof r === "string" ? fail(`--${r}`) : r;
+  });
+}
+
+/** Calls `fail` when any `--name=` flag in `names` is given more than once. */
+export function rejectRepeats(args: string[], names: string[], fail: (msg: string) => never): void {
+  for (const n of names) if (args.filter((a) => a.startsWith(`--${n}=`)).length > 1) fail(`--${n} given more than once`);
 }

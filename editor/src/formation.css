@@ -1,0 +1,43 @@
+.sprite { display: inline-block; flex: none; }
+.sprite-anim { background-repeat: no-repeat; background-size: 400% 100%; background-position: 0 0; animation: fm-idle 0.8s steps(4) infinite; }
+@keyframes fm-idle { from { background-position-x: 0%; } to { background-position-x: 133.333%; } }
+.sprite-fallback { border-radius: 50%; background: var(--accent, #2b6cb0); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .sprite-anim { animation: none; } }
+
+/* Fixed-size grid: every slot is the same size whether it is occupied or not, so nothing reflows while dragging. The slot width is fitted to
+   the board's container (.formations > div): 4 lanes, each slot + 10px (padding, border), 3 gaps of 6px = 4 * --fm-w + 58px, at most 100px. */
+.fm-wrap { --fm-w: 100px; --fm-h: 100px; --fm-gap: 4px; }
+@container (min-width: 1px) { .fm-wrap { --fm-w: clamp(64px, calc((100cqi - 58px) / 4), 100px); } }
+.fm-board { display: flex; gap: 6px; align-items: flex-start; }
+.fm-lane { flex: none; width: calc(var(--fm-w) + 8px); border: 1px dashed var(--line, #ddd); border-radius: 6px; padding: 4px; background: var(--panel, #fff); }
+.fm-lane.soldier { background: color-mix(in srgb, var(--panel, #fff) 90%, var(--muted, #777)); }
+.fm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #777); text-align: center; margin-bottom: 4px; height: 14px; white-space: nowrap; overflow: hidden; }
+.fm-cells { display: grid; grid-template-rows: repeat(var(--cols, 3), var(--fm-h)); gap: var(--fm-gap); }
+.fm-slot { position: relative; box-sizing: border-box; height: var(--fm-h); border: 1px dotted var(--line, #ddd); border-radius: 6px; transition: opacity 0.2s, background 0.2s; }
+.fm-slot.wide { grid-row: 1 / -1; height: auto; }
+.fm-offgrid { display: flex; gap: 6px; margin-top: 6px; }
+.fm-offgrid .fm-slot { width: var(--fm-w); }
+
+/* Drop indicators (drag in progress, or a card held with Alt): a slowly fading "+" on empty targets, a swap highlight on occupied ones. */
+.fm-slot.invalid { opacity: 0.35; }
+.fm-slot.can-empty { border-color: var(--accent, #2b6cb0); border-style: dashed; }
+.fm-slot.can-empty:not(:has(.fm-card))::after { content: "+"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 34px; line-height: 1; color: var(--accent, #2b6cb0); pointer-events: none; animation: fm-plus 2s ease-in-out infinite; }
+.fm-slot.can-swap { border-color: var(--accent, #2b6cb0); border-style: dashed; background: color-mix(in srgb, var(--accent, #2b6cb0) 12%, transparent); }
+.fm-slot.can-swap::before { content: "\21C4"; position: absolute; top: 2px; right: 4px; z-index: 1; font-size: 14px; color: var(--accent, #2b6cb0); pointer-events: none; animation: fm-plus 2s ease-in-out infinite; }
+.fm-slot.over { border-style: solid; background: color-mix(in srgb, var(--accent, #2b6cb0) 22%, var(--panel, #fff)); }
+@keyframes fm-plus { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.75; } }
+@media (prefers-reduced-motion: reduce) { .fm-slot.can-empty:not(:has(.fm-card))::after, .fm-slot.can-swap::before { animation: none; opacity: 0.5; } .fm-slot { transition: none; } }
+
+.fm-card { position: absolute; inset: 0; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 3px; border: 1px solid var(--line, #ddd); border-radius: 6px; background: var(--panel, #fff); color: var(--text, #222); cursor: grab; text-align: center; }
+.fm-card.dragging { opacity: 0.5; }
+.fm-card.squad { border-style: dashed; border-width: 2px; background: color-mix(in srgb, var(--panel, #fff) 85%, var(--muted, #777)); }
+.fm-card.selected { outline: 2px solid var(--accent, #2b6cb0); }
+.fm-card:focus-visible { outline: 2px solid var(--accent, #2b6cb0); outline-offset: 1px; }
+.fm-card.overflow { border-color: #c53030; background: color-mix(in srgb, #c53030 10%, var(--panel, #fff)); }
+.fm-name { font-size: 12px; font-weight: 600; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fm-cls { font-size: 11px; color: var(--muted, #777); }
+.fm-badge, .fm-warn { position: absolute; top: 2px; left: 2px; font-size: 10px; padding: 0 4px; border-radius: 3px; color: #fff; background: var(--accent, #2b6cb0); }
+.fm-warn { left: auto; right: 2px; background: #c53030; }
+.fm-move { display: none; position: absolute; bottom: 2px; left: 0; right: 0; justify-content: center; gap: 2px; }
+.fm-card:focus .fm-move, .fm-card:focus-within .fm-move { display: flex; }
+.fm-move button { font-size: 9px; padding: 0 4px; line-height: 1.3; }

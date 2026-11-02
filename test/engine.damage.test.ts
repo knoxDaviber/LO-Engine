@@ -16,36 +16,36 @@ const setup = () => {
 };
 const HIT = { hit: true, crit: false, guard: false };
 
-test("worked examples: bare Leon vs bare Emperor, Charging Assault 55 and Thousand Azure Hooves 107", () => {
+test("worked examples: bare Leon vs bare Emperor, Charging Assault 102 and Thousand Azure Hooves 188", () => {
   const { eff, ctx, leon, emp } = setup();
   const ca = computeDamage(leon, emp, eff("skl_cav_active_001"), ctx, HIT);
-  assert.equal(ca.power, 105); // 70 x 1.2 x 1.25
-  assert.equal(ca.amount, 55);
+  assert.equal(ca.power, 172.5); // 115 x 1.2 x 1.25
+  assert.equal(ca.amount, 102); // - DEF 70
   const th = computeDamage(leon, emp, eff("skl_cav_active_002"), ctx, HIT);
-  assert.equal(th.power, 157.5);
-  assert.equal(th.amount, 107);
+  assert.equal(th.power, 258.75);
+  assert.equal(th.amount, 188);
 });
 
 test("no variance: same outcome, same damage; crit and guard apply after defense and floor", () => {
   const { eff, ctx, leon, emp } = setup();
   const e = eff("skl_cav_active_001");
   assert.equal(computeDamage(leon, emp, e, ctx, HIT).amount, computeDamage(leon, emp, e, ctx, HIT).amount);
-  assert.equal(computeDamage(leon, emp, e, ctx, { hit: true, crit: true, guard: false }).amount, 82); // floor(55 x 1.5)
+  assert.equal(computeDamage(leon, emp, e, ctx, { hit: true, crit: true, guard: false }).amount, 153); // floor(102 x 1.5)
   const th = eff("skl_cav_active_002");
-  assert.equal(computeDamage(leon, emp, th, ctx, { hit: true, crit: true, guard: false }).amount, 160); // floor(107 x 1.5)
-  assert.equal(computeDamage(leon, emp, th, ctx, { hit: true, crit: false, guard: true }).amount, 53); // floor(107 x 0.5)
-  assert.equal(computeDamage(leon, emp, th, ctx, { hit: true, crit: true, guard: true }).amount, 80); // floor(160 x 0.5)
+  assert.equal(computeDamage(leon, emp, th, ctx, { hit: true, crit: true, guard: false }).amount, 282); // floor(188 x 1.5)
+  assert.equal(computeDamage(leon, emp, th, ctx, { hit: true, crit: false, guard: true }).amount, 94); // floor(188 x 0.5)
+  assert.equal(computeDamage(leon, emp, th, ctx, { hit: true, crit: true, guard: true }).amount, 141); // floor(282 x 0.5)
   assert.equal(computeDamage(leon, emp, th, ctx, { hit: false, crit: true, guard: true }).amount, 0);
 });
 
 test("ignores_guard skills never guard, even when the outcome says so", () => {
   const { eff, ctx, leon, emp } = setup();
-  assert.equal(computeDamage(leon, emp, eff("skl_cav_active_001"), ctx, { hit: true, crit: false, guard: true }).amount, 55);
+  assert.equal(computeDamage(leon, emp, eff("skl_cav_active_001"), ctx, { hit: true, crit: false, guard: true }).amount, 102);
 });
 
 test("minimum damage: a landed hit never deals less than 1", () => {
   const { eff, ctx, jas, emp } = setup();
-  const d = computeDamage(jas, emp, eff("skl_cav_active_001"), ctx, HIT); // 20 x 1.2 = 24 vs DEF 50
+  const d = computeDamage(jas, emp, eff("skl_cav_active_001"), ctx, HIT); // 20 x 1.2 = 24 vs DEF 70
   assert.equal(d.amount, 1);
   assert.equal(computeDamage(jas, emp, eff("skl_cav_active_001"), ctx, { hit: true, crit: false, guard: true }).amount, 1);
 });
@@ -53,8 +53,8 @@ test("minimum damage: a landed hit never deals less than 1", () => {
 test("class advantage and disadvantage apply to power before defense", () => {
   const { eff, ctx, leon, lief } = setup();
   const e = eff("skl_cav_active_001");
-  assert.equal(computeDamage(lief, leon, e, ctx, HIT).amount, 25); // lancer > cavalry: 50 x 1.2 x 1.25 = 75 - 50
-  assert.equal(computeDamage(leon, lief, e, ctx, HIT).amount, 21); // cavalry vs lancer: 84 x 0.85 = 71.4 - 50
+  assert.equal(computeDamage(lief, leon, e, ctx, HIT).amount, 65); // lancer > cavalry: 90 x 1.2 x 1.25 = 135 - 70
+  assert.equal(computeDamage(leon, lief, e, ctx, HIT).amount, 47); // cavalry vs lancer: 138 x 0.85 = 117.3 - 70
 });
 
 test("bonus_vs_class multiplies with the class matchup; hybrid defense is the average of DEF and MDEF", () => {
@@ -63,23 +63,23 @@ test("bonus_vs_class multiplies with the class matchup; hybrid defense is the av
     type: "damage", damage_type: "physical", range: "melee", scaling: [{ stat: "ATK", coef: 1 }], multiplier: 1, ignores_guard: false,
     bonus_vs_class: [{ class: "infantry", modifier_percent: 20 }], bonus_on_terrain: [], hit_bonus_percent: 0,
   };
-  assert.equal(computeDamage(leon, emp, e, ctx, HIT).power, 70 * 1.25 * 1.2);
+  assert.equal(computeDamage(leon, emp, e, ctx, HIT).power, 115 * 1.25 * 1.2);
   const hybrid = computeDamage(leon, emp, { ...e, bonus_vs_class: [], damage_type: "hybrid" }, ctx, HIT);
-  assert.equal(hybrid.defense, 35); // (50 + 20) / 2
-  assert.equal(computeDamage(leon, emp, { ...e, bonus_vs_class: [], damage_type: "magical" }, ctx, HIT).defense, 20);
+  assert.equal(hybrid.defense, 55); // (70 + 40) / 2
+  assert.equal(computeDamage(leon, emp, { ...e, bonus_vs_class: [], damage_type: "magical" }, ctx, HIT).defense, 40);
 });
 
 test("hit, crit and guard chances use the rules constants and clamps", () => {
   const { eff, ctx, s, leon, emp, lief } = setup();
   const e = eff("skl_cav_active_001");
-  assert.equal(hitChance(leon, emp, e, ctx), 100); // 100 + 10 - 10 + 3.75 clamps to hit_max
-  assert.equal(hitChance(lief, leon, e, ctx), 76.25); // 100 + 10 - 30 - 3.75
-  assert.equal(hitChance(leon, lief, e, ctx), 73.75); // disadvantaged (no hit penalty): 100 - 30 + 3.75
+  assert.equal(hitChance(leon, emp, e, ctx), 100); // 100 + 10 - 10 + 3.25 clamps to hit_max
+  assert.equal(hitChance(lief, leon, e, ctx), 76.75); // 100 + 10 - 30 - 3.25
+  assert.equal(hitChance(leon, lief, e, ctx), 73.25); // disadvantaged (no hit penalty): 100 - 30 + 3.25
   emp.baseStats.EVA = 200;
   assert.equal(hitChance(leon, emp, e, ctx), 70); // hit_min
-  assert.equal(critChance(leon, unit(s, EMPEROR), ctx), 0); // 30 - 45 + 3.75 clamps to 0
-  assert.equal(critChance(emp, unit(s, JASMINE), ctx), 5); // 30 - 30 + 5
-  assert.equal(guardChance(unit(s, EMPEROR), ctx), 65); // 45 + 80 / 4
+  assert.equal(critChance(leon, unit(s, EMPEROR), ctx), 0); // 30 - 45 + 3.25 clamps to 0
+  assert.equal(critChance(emp, unit(s, JASMINE), ctx), 1.75); // 30 - 30 + 7 / 4
+  assert.equal(guardChance(unit(s, EMPEROR), ctx), 50.5); // 45 + 22 / 4
   unit(s, EMPEROR).baseStats.GUARD = 500;
   assert.equal(guardChance(unit(s, EMPEROR), ctx), 75);
 });
@@ -119,12 +119,12 @@ test("heal: percent of max HP or scaling x multiplier, floored, capped at max HP
   const { s, skill, jas, emp } = setup();
   const x: ExecCtx = { state: s, rng: scripted([]), log: new EventLog() };
   const pct: HealEffect = { type: "heal", percent_max_hp: 33 };
-  assert.equal(computeHeal(emp, jas, pct, s.pack), 66); // floor(0.33 x 200)
+  assert.equal(computeHeal(emp, jas, pct, s.pack), 313); // floor(0.33 x 950)
   const sc: HealEffect = { type: "heal", scaling: [{ stat: "INT", coef: 1 }], multiplier: 1.5 };
-  assert.equal(computeHeal(emp, jas, sc, s.pack), 90);
-  emp.hp = 150;
+  assert.equal(computeHeal(emp, jas, sc, s.pack), 150);
+  emp.hp = 900;
   assert.equal(applyHeal(x, jas, emp, skill("skl_heal_active_001"), 90), 50); // capped
-  assert.equal(emp.hp, 200);
+  assert.equal(emp.hp, 950);
   emp.hp = 0; emp.alive = false;
   assert.equal(applyHeal(x, jas, emp, skill("skl_heal_active_001"), 90), 0);
   assert.equal(emp.hp, 0);
@@ -149,14 +149,14 @@ test("executing Thousand Azure Hooves: spends PP, damages, stuns (pushback), SPD
   const a = nextAction(s)!;
   assert.equal(a.unit.id, LEON);
   const log = new EventLog();
-  const rng = scripted([0.5, 0.9, 0.9]); // hit, no crit, no guard (65%)
+  const rng = scripted([0.5, 0.9, 0.9]); // hit, no crit, no guard (50.5%)
   const decision = decideTactic(s, leon, rng);
   assert.equal(decision.skillId, "skl_cav_active_002");
   const x: ExecCtx = { state: s, rng, log };
   const empBefore = s.timeline.pending.get(EMPEROR)!.due;
   executeSkill(x, leon, decision);
   assert.equal(leon.pp.active.cur, 0);
-  assert.equal(emp.hp, 200 - 107);
+  assert.equal(emp.hp, 950 - 188);
   assert.equal(s.timeline.pending.get(LEON)!.due, 20 + 17); // interval 17 with SPD UP (57.5), not 20
   const empDue = s.timeline.pending.get(EMPEROR)!.due;
   assert.equal(empDue, empBefore + 15); // rules.stun_pushback_counts; no PP lost
@@ -173,4 +173,29 @@ test("Dark Dragon's Ire ends after the hit it guarantees", () => {
   executeSkill({ state: s, rng, log }, leon, decideTactic(s, leon, scripted([])));
   assert.equal(emp.statuses.some((st) => st.statusId === "status_003"), false);
   assert.ok(log.events.some((e) => e.type === "status_expired" && e.reason === "hit"));
+});
+
+test("damage formulas: subtract (default), ratio and scaled_subtract change only the base step; withOptions overrides rules.damage", async () => {
+  const { withOptions, runBattle } = await import("../src/engine");
+  const { eff, s, leon, emp, jas } = setup();
+  const opt = (formula: any) => ({ pack: withOptions(s.pack as any, { formula }) });
+  assert.equal(s.pack.rules.damage.formula, "subtract");
+  const ca = eff("skl_cav_active_001"); // Leon power 172.5 vs DEF 70; Jasmine power 24 vs DEF 70
+  assert.equal(computeDamage(leon, emp, ca, opt({ formula: "subtract" }), HIT).base, 102);
+  assert.equal(computeDamage(leon, emp, ca, opt({ formula: "ratio" }), HIT).base, 101); // 172.5 x 100 / 170 = 101.47
+  assert.equal(computeDamage(leon, emp, ca, opt({ formula: "ratio", ratio_k: 200 }), HIT).base, 127); // 172.5 x 200 / 270 = 127.8
+  assert.equal(computeDamage(jas, emp, ca, opt({ formula: "ratio" }), HIT).base, 14); // 24 x 100 / 170
+  assert.equal(computeDamage(leon, emp, ca, opt({ formula: "scaled_subtract" }), HIT).base, 102); // max(34.5, 102.5)
+  assert.equal(computeDamage(jas, emp, ca, opt({ formula: "scaled_subtract" }), HIT).base, 4); // max(4.8, -46)
+  assert.equal(computeDamage(jas, emp, ca, opt({ formula: "scaled_subtract", floor_pct: 35, def_weight: 0.5 }), HIT).base, 8); // max(8.4, -11)
+  // crit still applies after the base step
+  assert.equal(computeDamage(leon, emp, ca, opt({ formula: "ratio" }), { hit: true, crit: true, guard: false }).amount, 151); // floor(101 x 1.5)
+  // the override leaves the original pack untouched; no override returns the same pack
+  assert.equal(s.pack.rules.damage.formula, "subtract");
+  assert.equal(withOptions(s.pack as any, {}), s.pack);
+  // a run with the default formula named explicitly is identical to a run without the option
+  const { loadReal } = await import("./engineHelpers");
+  const { pack, battle } = loadReal({ squads: true, auras: true });
+  assert.deepEqual(runBattle(pack, battle, { formula: { formula: "subtract" } }).events, runBattle(pack, battle).events);
+  assert.notDeepEqual(runBattle(pack, battle, { formula: { formula: "ratio" } }).events, runBattle(pack, battle).events);
 });

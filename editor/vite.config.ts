@@ -9,7 +9,12 @@ import { createApi, MAX_BODY_BYTES, requestGuard } from "./api";
 const root = fileURLToPath(new URL(".", import.meta.url));
 const contentDir = fileURLToPath(new URL("../content", import.meta.url));
 
-const PORT = 5173;
+/** EDITOR_PORT (default 5173) when another local project already uses 5173; the API's host/origin guard checks the same port. */
+const rawPort = process.env.EDITOR_PORT?.trim() || "5173"; // empty = unset
+if (!/^\d{1,5}$/.test(rawPort) || Number(rawPort) < 1 || Number(rawPort) > 65535) {
+  throw new Error(`EDITOR_PORT must be a port number 1..65535, got '${process.env.EDITOR_PORT}'`);
+}
+const PORT = Number(rawPort);
 
 class TooLarge extends Error {}
 

@@ -3,7 +3,7 @@
 //
 // Events (the design doc names the system but not the list; this is the roadmap's list, [DEFAULT] payloads):
 //   before_hit    before each hit's rolls            {attacker, defender, skillId, damageType, range, single, by?, soldier?, redirect?}
-//   after_hit     after each LANDED hit is applied   {...the same, amount, killed}   (a miss emits nothing)
+//   after_hit     after each LANDED hit is applied   {...the same, amount, killed, lost}   (a miss emits nothing; amount = raw damage, lost = HP removed)
 //   after_heal    a living unit regained HP (> 0)    {caster, target, skillId, amount}
 //   after_action  after an action's effects and status ticks, before rescheduling   {actor, skillId (null for idle and squad attacks), idle, hit}
 //   on_death      a hero died or a squad was wiped out (single soldier deaths are not events)   {unit, killer}
@@ -18,7 +18,7 @@
 // Rules:
 //  - Order: handlers run by (order ascending, registration sequence), so dispatch is deterministic. Soldier skills use order 100, engine system handlers 0.
 //  - Per-hit-once (design Section 7): a handler fires AT MOST ONCE per attacking action per affected unit (the defender for hit events, the actor for
-//    after_action, the dead unit for on_death). A 10-hit squad attack therefore triggers an after_hit handler once per defender hit, not 10 times.
+//    after_action, the dead unit for on_death). A multi-hit action (a row skill on several units) therefore triggers an after_hit handler once per defender hit.
 //    The key is (action id, event, handler, affected unit); actions are numbered by `beginAction`.
 //  - A handler whose owner is dead does not fire (unless it sets `evenIfOwnerDead`). `owner: null` is an engine handler that is always on.
 //  - Handlers' effects run through the normal effect executor. Events raised while a handler runs are NOT dispatched ([DEFAULT]: reactions
@@ -48,7 +48,9 @@ export interface HitRef extends HitMeta {
 
 export interface BusPayloads {
   before_hit: HitRef & { redirect?: Unit; covered?: boolean };
-  /** `lost`: HP the defender actually lost (min of its HP before and amount; set by the engine, absent in hand-built payloads = amount). */
+  /** `amount`: the hit's raw damage, the same for heroes and squads (a single-target squad hit's overflow chain included). `lost`: HP the
+   * defender actually lost (a hero: min of its HP before and amount; a squad: summed over the soldiers hit, each counting at most the HP it had;
+   * set by the engine, absent in hand-built payloads = amount). Reflect reads `lost`. */
   after_hit: HitRef & { amount: number; killed: boolean; lost?: number };
   after_heal: { caster: Unit; target: Unit; skillId: string; amount: number };
   after_action: { actor: Unit; skillId: string | null; idle: boolean; hit: Unit[] };

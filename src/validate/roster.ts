@@ -65,6 +65,10 @@ export function checkRosterHero(h: RosterHero, loc: Location, pack: Pack, c: Col
   const hero = pack.byId.characters.get(h.char_id);
   if (!hero) { c.error("E_REF_MISSING", `unknown hero '${h.char_id}'`, loc); return null; }
 
+  if (h.column !== undefined && h.column > pack.rules.board.columns) {
+    c.error("E_BATTLE_SLOT", `column ${h.column} is beyond the board's ${pack.rules.board.columns} columns`, { ...loc, path: `${loc.path}.column` });
+  }
+
   const squad = pack.byId.soldiers.get(h.squad_id);
   if (!squad) c.error("E_REF_MISSING", `unknown squad '${h.squad_id}'`, { ...loc, path: `${loc.path}.squad_id` });
   else {

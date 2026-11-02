@@ -132,6 +132,21 @@ test("formation overflow is resolved by leader-line rank (lowest-ranked non-lead
   assert.equal(setup.units.find((u) => u.id === "char_013")!.row, "back");
 });
 
+test("overflow move drops the moved hero's explicit column; edits can set columns", () => {
+  const raw = draftRaw();
+  for (const h of raw.challenger.roster.heroes) h.preferred_row = "front";
+  raw.challenger.roster.heroes.find((h: any) => h.char_id === "char_013").column = 3;
+  const d = resolveDraft(realPack(), parse(raw));
+  assert.deepEqual(d.sides!.challenger.moved, ["char_013"]);
+  assert.equal("column" in d.battle!.challenger.heroes.find((h) => h.char_id === "char_013")!, false);
+  assert.deepEqual(codes((b) => { for (const h of b.challenger.roster.heroes) h.preferred_row = "front"; b.challenger.roster.heroes.find((h: any) => h.char_id === "char_013").column = 3; }), []);
+  const edit = (e: unknown) => (b: any) => { b.challenger.edits = [e]; };
+  assert.deepEqual(codes(edit({ phase: 2, heroes: [{ char_id: "char_005", column: 3 }] })), []);
+  assert.deepEqual(codes(edit({ phase: 2, heroes: [{ char_id: "char_005", column: 9 }] })), ["E_BATTLE_SLOT"]);
+  assert.deepEqual(codes(edit({ phase: 2, heroes: [{ char_id: "char_005", column: null }] })), [], "column: null = back to auto");
+  assert.deepEqual(codes((b) => { b.challenger.roster.heroes.find((h: any) => h.char_id === "char_005").column = 9; }), ["E_BATTLE_SLOT"], "roster form: one error, no E_BATTLE_ROW_FULL");
+});
+
 test("draft input errors: pick counts, ineligible picks, roster layer, duplicates, battlefield, ban metric", () => {
   assert.ok(codes((b) => { b.challenger.draft.bans = ["char_004"]; }).includes("E_DRAFT_PICKS"));
   assert.ok(codes((b) => { delete b.challenger.draft; }).includes("E_DRAFT_PICKS"));
@@ -216,4 +231,17 @@ test("text log renders the draft and the edits", () => {
   assert.match(text, /=== Draft ===\n {2}step 1: challenger bans Lief \(defender\) \[human\]/);
   assert.match(text, /defender fields Monster, Lancer, The Emperor, Assassin; leader Monster; anchor Monster; banned Lief, Mage/);
   assert.match(text, /challenger edit: Infantry tactic_sheet, squad_row/);
+});
+
+test("roster battle: two fielded heroes claiming the same slot is E_BATTLE_SLOT from validation", () => {
+  const found = codes((b) => {
+    delete b.challenger.edits;
+    const fielded = resolveDraft(realPack(), parse(b)).battle!.challenger.heroes.map((h) => h.char_id);
+    for (const id of fielded.slice(0, 2)) {
+      const h = b.challenger.roster.heroes.find((x: any) => x.char_id === id);
+      h.preferred_row = "front";
+      h.column = 1;
+    }
+  });
+  assert.ok(found.includes("E_BATTLE_SLOT"), found.join(","));
 });

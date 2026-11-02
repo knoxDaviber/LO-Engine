@@ -53,28 +53,30 @@ test("buff grants resolve before debuffs, whichever side the aura belongs to", (
 
 test("Lief's aura (class filter) buffs only Lancers, and only when Lief is the leader", () => {
   const led = setup({ over: (_p, b) => { b.challenger.leader = LIEF; } });
-  close(led.stat(LIEF, "ATK"), 60);
-  close(led.stat(LIEF, "DEF"), 60);
-  close(led.stat(LEON, "ATK"), 70); // a cavalry ally is not a Lancer
+  close(led.stat(LIEF, "ATK"), 108);
+  close(led.stat(LIEF, "DEF"), 84);
+  close(led.stat(LIEF, "INT"), 48); // INT/MDEF pairing (Decision 132): the ATK line also applies to INT
+  close(led.stat(LIEF, "MDEF"), 46 * 1.2);
+  close(led.stat(LEON, "ATK"), 115); // a cavalry ally is not a Lancer
   const lief = led.ev("aura_applied").filter((e) => e.leader === LIEF);
   assert.ok(lief.length > 0 && lief.every((e) => e.unit === LIEF && e.category === "passive"));
   const notLed = setup(); // Leon leads: Lief's aura never applies
-  close(notLed.stat(LIEF, "ATK"), 50);
+  close(notLed.stat(LIEF, "ATK"), 90);
 });
 
 test("Leon's aura needs The Emperor fielded and Leon as leader", () => {
   const sample = setup(); // Leon leads but the Emperor is on the other side
-  close(sample.stat(LEON, "ATK"), 70);
+  close(sample.stat(LEON, "ATK"), 115);
   assert.equal(sample.ev("aura_applied").filter((e) => e.leader === LEON).length, 0);
   const full = setup({ file: "full4v4.yaml" }); // Leon + Emperor, Leon leads
-  close(full.stat(LEON, "ATK"), 91); // 70 * 1.3
-  close(full.stat(EMPEROR, "ATK"), 78); // 60 * 1.3
-  close(full.stat(EMPEROR, "DEF"), 65);
+  close(full.stat(LEON, "ATK"), 149.5); // 115 * 1.3
+  close(full.stat(EMPEROR, "ATK"), 130); // 100 * 1.3
+  close(full.stat(EMPEROR, "DEF"), 91);
   close(full.stat(EMPEROR, "SPD"), 39);
   close(full.stat(JASMINE, "ATK"), 20); // the enemy side gets nothing
   const emperorLeads = setup({ file: "full4v4.yaml", over: (_p, b) => { b.challenger.leader = EMPEROR; } }); // Leon's aura is silent
-  close(emperorLeads.stat(LEON, "ATK"), 70 * 1.2); // only the Emperor's faction aura (+20%)
-  close(emperorLeads.stat(EMPEROR, "ATK"), 60 * 1.2);
+  close(emperorLeads.stat(LEON, "ATK"), 115 * 1.2); // only the Emperor's faction aura (+20%)
+  close(emperorLeads.stat(EMPEROR, "ATK"), 100 * 1.2);
   assert.equal(emperorLeads.ev("aura_applied").filter((e) => e.leader === LEON).length, 0);
 });
 
@@ -82,17 +84,20 @@ test("Leon's aura is off in a later phase when The Emperor is no longer fielded 
   const s = setup({ file: "full4v4.yaml" });
   s.u(EMPEROR).alive = false; s.u(EMPEROR).hp = 0;
   const p2 = beginPhase(s.pack, s.battle, 2, s.state, new EventLog());
-  close(effectiveStat(p2.state.units.find((v) => v.id === LEON)!, "ATK", s.pack), 70);
+  close(effectiveStat(p2.state.units.find((v) => v.id === LEON)!, "ATK", s.pack), 115);
 });
 
 test("Emperor's aura (faction): Empire heroes of his side only, not the other side's Empire hero", () => {
   const { stat, u, pack } = setup(); // Leon (Empire) is on the challenger side, Emperor leads the defender
-  close(stat(EMPEROR, "ATK"), 72);
-  close(stat(EMPEROR, "DEF"), 60);
+  close(stat(EMPEROR, "ATK"), 120);
+  close(stat(EMPEROR, "DEF"), 84);
+  close(stat(EMPEROR, "INT"), 36); // paired with the ATK line (Decision 132)
+  close(stat(EMPEROR, "MDEF"), 48); // paired with the DEF line
   close(stat(JASMINE, "ATK"), 20); // not Empire
-  close(stat(LEON, "ATK"), 70); // Empire, but an enemy
-  // the Emperor's squad shares its leader's statuses (design 53): 30 * 1.3 (soldier skill) * 1.2 (aura, passive)
-  close(statBreakdown(u(`squad_${EMPEROR}`), "ATK", pack).result, 30 * 1.3 * 1.2);
+  close(stat(LEON, "ATK"), 115); // Empire, but an enemy
+  // a leader's aura is not shared with its squad: the faction aura does not include soldiers, so the squad keeps 17 * 1.3 (soldier skill)
+  close(statBreakdown(u(`squad_${EMPEROR}`), "ATK", pack).result, 17 * 1.3);
+  assert.ok(!statBreakdown(u(`squad_${EMPEROR}`), "ATK", pack).effects.some((e) => e.status.startsWith("aura:")));
 });
 
 // ------------------------------------------------------------------ Jasmine: event-triggered aura
@@ -112,9 +117,9 @@ test("Jasmine's aura heals every ally, soldiers included, after her action; no P
   executeIdle(s.x, s.u(JASMINE)); // an idle action counts
   assert.deepEqual(s.ev("trigger").map((e) => [e.source, e.event, e.subject]), [[JASMINE, "after_action", JASMINE]]);
   assert.match(s.ev("trigger")[0]!.handler, /^aura:/);
-  assert.equal(s.u(LIEF).hp, 60 + 45); // 30% of 150
-  assert.equal(s.u(JASMINE).hp, 70); // 40 + 30
-  assert.equal(sq.soldiers[0]!.hp, 25); // 10 + 30% of 500 / 10 = 15
+  assert.equal(s.u(LIEF).hp, 60 + 240); // 30% of 800
+  assert.equal(s.u(JASMINE).hp, 205); // 40 + 165
+  assert.equal(sq.soldiers[0]!.hp, 55); // 10 + floor(30% of 1530 / 10) = 45
   assert.equal(sq.soldiers[1]!.alive, true); // dead soldiers revive at their share
   assert.equal(s.ev("pp_spend").length, 0);
   assert.equal(s.u(JASMINE).pp.passive.cur, ppBefore);
@@ -148,30 +153,30 @@ const side = (s: "ally" | "enemy" | "both", filter: unknown = null) => ({ side: 
 
 test("field aura reaches both sides (and meets the other leader's aura in the same passive category: strongest wins)", () => {
   const s = withAura({ type: "field", target: side("both"), effects: [mod("ATK", 10)] });
-  assert.deepEqual(group(s, "ATK"), { [LEON]: 77, [LIEF]: 55, [EMPEROR]: 72, [JASMINE]: 22 }); // Emperor: passive 20 beats passive 10
+  assert.deepEqual(group(s, "ATK"), { [LEON]: 126.5, [LIEF]: 99, [EMPEROR]: 120, [JASMINE]: 22 }); // Emperor: passive 20 beats passive 10
   assert.deepEqual(s.ev("aura_applied").filter((e) => e.leader === LEON).map((e) => e.unit).sort(), [EMPEROR, JASMINE, LEON, LIEF].sort());
 });
 
 test("ally aura reaches every ally of the leader's side and nobody else", () => {
   const s = withAura({ type: "ally_buff", target: side("ally"), effects: [mod("ATK", 10)] });
-  assert.deepEqual(group(s, "ATK"), { [LEON]: 77, [LIEF]: 55, [EMPEROR]: 72, [JASMINE]: 20 });
+  assert.deepEqual(group(s, "ATK"), { [LEON]: 126.5, [LIEF]: 99, [EMPEROR]: 120, [JASMINE]: 20 });
 });
 
 test("faction aura reaches only allies of the named faction", () => {
   const s = withAura({ type: "faction_buff", faction_id: "faction_004", target: side("ally"), effects: [mod("ATK", 10)] }); // Lief's faction
-  assert.deepEqual(group(s, "ATK"), { [LEON]: 70, [LIEF]: 55, [EMPEROR]: 72, [JASMINE]: 20 });
+  assert.deepEqual(group(s, "ATK"), { [LEON]: 115, [LIEF]: 99, [EMPEROR]: 120, [JASMINE]: 20 });
 });
 
 test("enemy debuff reaches only the enemies, as a negative passive modifier", () => {
   const s = withAura({ type: "enemy_debuff", target: side("enemy"), effects: [mod("ATK", -20)] });
-  assert.deepEqual(group(s, "ATK"), { [LEON]: 70, [LIEF]: 50, [EMPEROR]: 57.6, [JASMINE]: 16 }); // Emperor: (60) * 1.2 * 0.8, 1.2 buff and 0.8 debuff multiply
+  assert.deepEqual(group(s, "ATK"), { [LEON]: 115, [LIEF]: 90, [EMPEROR]: 96, [JASMINE]: 16 }); // Emperor: (100) * 1.2 * 0.8, 1.2 buff and 0.8 debuff multiply
   const e = statBreakdown(s.u(JASMINE), "ATK", s.pack).effects[0]!;
   assert.deepEqual([e.category, e.value], ["passive", -20]);
 });
 
 test("hero-id filters (authored only) pick exactly the named heroes", () => {
   const s = withAura({ type: "ally_buff", target: side("ally", { type: "hero_is", side: "ally", value: LIEF }), effects: [mod("DEF", 10)] });
-  assert.deepEqual(group(s, "DEF"), { [LEON]: 50, [LIEF]: 55, [EMPEROR]: 60, [JASMINE]: 20 });
+  assert.deepEqual(group(s, "DEF"), { [LEON]: 70, [LIEF]: 77, [EMPEROR]: 84, [JASMINE]: 40 });
 });
 
 test("aura effects the engine cannot run are logged as not implemented, never dropped silently", () => {
@@ -192,7 +197,7 @@ test("aura statuses stay for the whole phase while the leader lives, and end the
   kill(s.x, JASMINE, LEON);
   assert.equal(auraOn(EMPEROR), 0);
   assert.equal(auraOn(LEON), 0);
-  close(s.stat(EMPEROR, "ATK"), 60);
+  close(s.stat(EMPEROR, "ATK"), 100);
   assert.equal(s.state.leaders.challenger.auraActive, false);
   const gone = s.ev("aura_removed");
   assert.equal(gone.length, 6); // 3 effects on Leon, 3 on the Emperor
@@ -214,7 +219,7 @@ test("succession: the next phase's pre-battle step applies the successor's aura;
   const p2 = beginPhase(s.pack, s.battle, 2, s.state, log);
   assert.deepEqual(p2.state.leaders.challenger, { leaderId: EMPEROR, auraActive: true });
   const emp = p2.state.units.find((v) => v.id === EMPEROR)!;
-  close(effectiveStat(emp, "ATK", s.pack), 72); // Empire's Dominion (+20%) now; Leon's +30% is not coming back
+  close(effectiveStat(emp, "ATK", s.pack), 120); // Empire's Dominion (+20%) now; Leon's +30% is not coming back
   const applied = log.events.filter((e): e is Extract<BattleEvent, { type: "aura_applied" }> => e.type === "aura_applied");
   assert.ok(applied.every((e) => e.leader === EMPEROR));
   const types = log.events.map((e) => e.type);
@@ -233,7 +238,7 @@ test("passive (aura) 20% x active 20% on the same stat = x1.44; passive 20% vs p
   leon.statuses = [inst("aura:test:0", "passive", 1, 20), inst("buff_005", "active", 2)]; // buff_005 = ATTACK UP, +20% ATK
   const bd = statBreakdown(leon, "ATK", s.pack);
   close(bd.multiplier, 1.44);
-  close(bd.result, 70 * 1.44);
+  close(bd.result, 115 * 1.44);
   assert.deepEqual(bd.effects.map((e) => [e.category, e.outcome]), [["passive", "winner"], ["active", "winner"]]);
   leon.statuses = [inst("aura:test:0", "passive", 1, 20), inst("aura:test:1", "passive", 2, 30)];
   const same = statBreakdown(leon, "ATK", s.pack);
@@ -255,5 +260,15 @@ test("a battle with auras is byte-identical across runs and the setup stats alre
   const a = run(), b = run();
   assert.equal(JSON.stringify(a.events), JSON.stringify(b.events));
   const setupEv = a.events[0] as Extract<BattleEvent, { type: "battle_setup" }>;
-  assert.equal(setupEv.units.find((u) => u.id === EMPEROR)!.stats.ATK.result, 72);
+  assert.equal(setupEv.units.find((u) => u.id === EMPEROR)!.stats.ATK.result, 120);
+});
+
+test("an aura reaches the leader's squad only through its own targeting (include_soldiers), never by sharing the leader's instance", () => {
+  const off = withAura({ type: "ally_buff", target: side("ally"), effects: [mod("DEF", 10)] }); // include_soldiers false
+  assert.ok(!statBreakdown(off.u(`squad_${LEON}`), "DEF", off.pack).effects.some((e) => e.status.startsWith("aura:")));
+  close(off.stat(`squad_${LEON}`, "DEF"), 14 * 1.3);
+  const on = withAura({ type: "ally_buff", target: { side: "ally", filter: null, include_soldiers: true }, effects: [mod("DEF", 10)] });
+  const sq = on.u(`squad_${LEON}`);
+  assert.equal(statBreakdown(sq, "DEF", on.pack).effects.filter((e) => e.status.startsWith("aura:")).length, 1); // its own instance, counted once
+  close(on.stat(`squad_${LEON}`, "DEF"), 14 * 1.3 * 1.1);
 });

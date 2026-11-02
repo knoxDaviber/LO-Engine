@@ -2,6 +2,7 @@
 // `all` of two leaves, sub is a selector or one such condition. Leaf parameter inputs are generated from the leaf's JSON Schema.
 import { useEffect, useState } from "react";
 import type { CharacterInfo, ContentInfo, LeafInfo } from "../apiTypes";
+import { Info, titleOf, useTips } from "./Hint";
 import type { Json } from "./model";
 
 type Edit = (fn: (draft: Json) => void) => void;
@@ -70,17 +71,19 @@ function ParamInput({ c, leaf, k, s, required, path, edit }: { c: ContentInfo; l
 
 function LeafEditor({ c, leaf, path, edit, onRemove }: { c: ContentInfo; leaf: Json; path: string; edit: Edit; onRemove?: () => void }) {
   const info = c.leaves.find((l) => l.type === leaf.type);
+  const tips = useTips();
   const props = (info?.params.properties ?? {}) as Record<string, Json>;
   const required = (info?.params.required ?? []) as string[];
   return (
     <span className="leaf" data-path={path}>
-      <select value={leaf.type} title={info?.description} onChange={(e) => {
+      <select value={leaf.type} title={titleOf(tips.condition(leaf)) ?? info?.description} onChange={(e) => {
         const next = c.leaves.find((l) => l.type === e.target.value)!;
         edit((l) => { for (const k of Object.keys(l)) delete l[k]; Object.assign(l, newLeaf(c, next)); });
       }}>
         {!info && <option value={leaf.type}>{leaf.type} (not allowed here)</option>}
-        {c.leaves.map((l) => <option key={l.type} value={l.type}>{l.type}</option>)}
+        {c.leaves.map((l) => <option key={l.type} value={l.type} title={l.description}>{l.type}</option>)}
       </select>
+      <Info tip={tips.condition(leaf)} />
       {Object.entries(props).map(([k, s]) => <ParamInput key={k} c={c} leaf={leaf} k={k} s={s} required={required.includes(k)} path={path} edit={edit} />)}
       {onRemove && <button className="small" onClick={onRemove}>x</button>}
     </span>
@@ -97,7 +100,7 @@ export function ConditionSlot({ c, value, path, set }: { c: ContentInfo; value: 
   const editAt = (i: number): Edit => (fn) => { const list = structuredClone(leaves); fn(list[i]); write(list); };
   const leafPath = (i: number) => (leaves.length === 1 ? path : `${path}.all[${i}]`);
   return (
-    <span className="slot" data-path={path}>
+    <span data-path={path}>
       {leaves.map((l, i) => (
         <span key={i}>
           {i > 0 && <b> AND </b>}
@@ -143,6 +146,7 @@ function SubSlot({ c, value, path, set }: { c: ContentInfo; value: Json; path: s
 
 export function TacticsBoard({ c, hero, sheet, path, edit }: Props) {
   const skills = hero?.skills ?? [];
+  const tips = useTips();
   const renumber = (s: Json[]) => s.forEach((t, i) => (t.priority = i + 1));
   const move = (i: number, d: number) => edit((s) => { const j = i + d; if (j < 0 || j >= s.length) return; [s[i], s[j]] = [s[j], s[i]]; renumber(s); });
   return (
@@ -160,8 +164,9 @@ export function TacticsBoard({ c, hero, sheet, path, edit }: Props) {
                 <td data-path={`${tp}.skill_id`}>
                   <select value={t.skill_id} onChange={(e) => set((x) => (x.skill_id = e.target.value))}>
                     {!skills.some((s) => s.id === t.skill_id) && <option value={t.skill_id}>{t.skill_id} (not this hero's)</option>}
-                    {skills.map((s) => <option key={s.id} value={s.id}>{s.name} [{s.kind}, {s.pp_cost} {s.pp_pool} PP{s.shape ? `, ${s.shape}` : ""}]</option>)}
+                    {skills.map((s) => <option key={s.id} value={s.id} title={titleOf(tips.skill(s.id))}>{s.name} [{s.kind}, {s.pp_cost} {s.pp_pool} PP{s.shape ? `, ${s.shape}` : ""}]</option>)}
                   </select>
+                  <Info tip={tips.skill(t.skill_id)} />
                 </td>
                 <td><ConditionSlot c={c} value={t.activation} path={`${tp}.activation`} set={(v) => set((x) => (x.activation = v))} /></td>
                 <td><ConditionSlot c={c} value={t.targeting?.main} path={`${tp}.targeting.main`} set={(v) => set((x) => ((x.targeting ??= { main: null, sub: null }).main = v))} /></td>

@@ -1,8 +1,8 @@
 // Equipment in the engine (design Sections 7, 9, 9.1 and 12; roadmap 3b).
 //
-//   stat_modifiers  flat lines, summed into `Unit.equipFlat` when the unit is built (state.ts) and added to base before any stacking. Duplicate
-//                   accessories (allowed by `duplicate_allowed_in_both_accessory_slots`, checked by the roster validator) add their lines: two
-//                   Speed Rings = SPD +40.
+//   flat lines      the item type's base (rules.equipment_bases, src/equipmentBase.ts; Decision 133), summed into `Unit.equipFlat` when the unit
+//                   is built (state.ts) and added to base before any stacking. Duplicate accessories (allowed by
+//                   `duplicate_allowed_in_both_accessory_slots`, checked by the roster validator) add their lines: two Spiky Gloves = ATK +24.
 //   pp_modifiers    added to the character's PP pools when the unit is built, capped at rules.pp.max (Dragon Scale: Active PP 3).
 //   effects         by trigger:
 //     none / always modify_stat   an `equipment`-category modifier (or the effect's own source_category) carried by an inline status instance
@@ -36,10 +36,10 @@
 //   reflect_damage / on_event   a reaction after each non-idle action of another unit (bus after_action, order DEVOTION_ORDER, once per action):
 //                               the action's hit events by that actor on the wearer for which the effect's condition holds (each judged in its own
 //                               event context, so unit_hit_by_single_target_attack reads that hit) decide it. reflect_damage deals
-//                               floor(percent% of the HP the wearer lost to those hits (after_hit `lost`: overkill and Fairy's Grace saves
-//                               count only the HP it had), summed over the whole action: a 10-hit squad attack counts every hit) to the actor:
+//                               floor(percent% of the HP the wearer lost to those hits (after_hit `lost` = total HP removed: overkill and Fairy's Grace saves
+//                               count only the HP it had), summed over the whole action: a multi-hit action counts every hit) to the actor:
 //                               no rolls, no DEF, not a hit (no events), can kill (Fairy's Grace still intercepts); on a squad it lands on the
-//                               lowest-HP living soldier, excess discarded. It still fires when that action killed the wearer (`evenIfOwnerDead`).
+//                               lowest-HP living soldier and overflows to the next ones like a single hit. It still fires when that action killed the wearer (`evenIfOwnerDead`).
 //                               Any other on_event effect (Gift's heal) runs once on the wearer if any such hit event (a before_hit counts:
 //                               targeted, landed or not) exists. [DEFAULT] A dead wearer heals no more; reflected damage below 1 is dropped.
 //   reduce_damage phase/battle  a standing reduction, set in the equipment pre-battle step every phase (Plate: damage taken -10%).

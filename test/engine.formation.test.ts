@@ -1,9 +1,9 @@
 // Formation resolution (roadmap 2.0, design Sections 10 and 17): hero rows from preferred_row (class default, per-hero override),
-// leader always front, squad_row resolution, squad only in a soldier row, up to 4 fielded heroes per side.
+// slot placement (row + column), leader in either row, squad_row resolution, squad only in a soldier row, up to 4 fielded heroes per side.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CLASSES, type Battle } from "../src/schema";
-import { classDefaultRow, heroRow, resolvePlacements, resolveSquadPlacement } from "../src/formation";
+import { classDefaultRow, heroRow, resolvePlacements, resolveSquadPlacement, slotConflicts } from "../src/formation";
 import { createBattleState, runBattle, boardRank } from "../src/engine";
 import { validateRaw } from "../src/validate";
 import { LEON, EMPEROR, JASMINE, LIEF, loadReal, tactic } from "./engineHelpers";
@@ -44,14 +44,37 @@ test("hero row: entry override, else the character's preferred_row, else the cla
   void s;
 });
 
-test("the leader is always in the front row, whatever the authored row or the override", () => {
+test("the leader may stand in either row: its own row rules apply like everyone else's (Decision 129)", () => {
   const { pack } = loadReal();
-  const jasLeads = side([LEON, JASMINE, EMPEROR, LIEF], JASMINE, { [JASMINE]: { preferred_row: "back" } });
-  const placed = resolvePlacements(pack, jasLeads);
-  assert.equal(placed.find((p) => p.charId === JASMINE)!.row, "front"); // holy, preferred back, override back: still front
-  assert.equal(heroRow(pack, jasLeads, jasLeads.heroes[1]!), "front");
-  const leonLeads = side([JASMINE, LEON, EMPEROR, LIEF], LEON, { [LEON]: { preferred_row: "back" } });
-  assert.equal(resolvePlacements(pack, leonLeads).find((p) => p.charId === LEON)!.row, "front");
+  const jasLeads = side([LEON, JASMINE, EMPEROR, LIEF], JASMINE);
+  assert.equal(resolvePlacements(pack, jasLeads).find((p) => p.charId === JASMINE)!.row, "back"); // holy: back, leader or not
+  const leonBack = side([JASMINE, LEON, EMPEROR, LIEF], LEON, { [LEON]: { preferred_row: "back" } });
+  assert.equal(resolvePlacements(pack, leonBack).find((p) => p.charId === LEON)!.row, "back");
+  assert.equal(heroRow(pack, leonBack, leonBack.heroes[1]!), "back");
+});
+
+test("explicit columns claim exactly (row, column); auto heroes fill the lowest free column in roster order", () => {
+  const { pack } = loadReal();
+  const rows = (s: Battle["challenger"]) => resolvePlacements(pack, s).map((p) => [p.charId, p.row, p.column, p.formationIndex]);
+  // Leon column 3, Emperor column 1 explicit; Lief auto takes the lowest free front column (2); Jasmine alone in back, column 2.
+  const mixed = side([LEON, LIEF, JASMINE, EMPEROR], LEON, { [LEON]: { column: 3 }, [EMPEROR]: { column: 1 }, [JASMINE]: { column: 2 } });
+  assert.deepEqual(rows(mixed), [[EMPEROR, "front", 1, 0], [LIEF, "front", 2, 1], [LEON, "front", 3, 2], [JASMINE, "back", 2, 3]]);
+  // An auto hero listed BEFORE an explicit one still skips the claimed column.
+  const early = side([LIEF, LEON], LEON, { [LEON]: { column: 1 } });
+  assert.deepEqual(rows(early), [[LEON, "front", 1, 0], [LIEF, "front", 2, 1]]);
+  // The leader in the back row at an explicit column.
+  const back = side([LEON, JASMINE], JASMINE, { [JASMINE]: { column: 3 } });
+  assert.deepEqual(rows(back), [[LEON, "front", 1, 0], [JASMINE, "back", 3, 1]]);
+});
+
+test("slotConflicts / E_BATTLE_SLOT: two heroes on one (row, column); the engine refuses; same column in different rows is fine", () => {
+  const { pack, battle } = loadReal();
+  const dup = side([LEON, LIEF], LEON, { [LEON]: { column: 2 }, [LIEF]: { column: 2 } });
+  assert.deepEqual(slotConflicts(pack, dup), [{ row: "front", column: 2, charIds: [LEON, LIEF] }]);
+  assert.equal(resolvePlacements(pack, dup).length, 2); // never throws; the later claimant is auto-placed
+  assert.deepEqual(slotConflicts(pack, side([LEON, JASMINE], LEON, { [LEON]: { column: 2 }, [JASMINE]: { column: 2 } })), []);
+  battle.challenger = dup;
+  assert.throws(() => createBattleState(pack, battle), /E_BATTLE_SLOT/);
 });
 
 test("placement of 4 heroes: front row first, then back, columns by roster order; unit state agrees", () => {
