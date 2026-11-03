@@ -441,7 +441,7 @@
 - id: char_014
   name: Monster
   class: monster
-  race: demon
+  race: human
   factions: []
   role: "Bruiser"
   lore: "A hero who gave in to madness or took evil into their heart, trading control for power."

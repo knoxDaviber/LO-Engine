@@ -1,4 +1,4 @@
-# Session handover (updated 2026-11-03)
+# Session handover (updated 2026-11-04)
 
 Read this first, then `CLAUDE.md` (working rules, commands, architecture). Design intent is in `docs/design_doc_v2.md`,
 progress in `docs/roadmap.md`.
@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 371/371 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 379/379 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -31,11 +31,11 @@ progress in `docs/roadmap.md`.
 ## Todo queue (in order)
 
 0. **Done 2026-11-04 (Decision 136):** tactic = skill + `main` + `sub` (leaf filters/checks, selector orders, `prefer`
-   selector; skill defaults always apply; tactic `fallback` removed), `race` on characters (all human, Monster = demon),
+   selector; skill defaults always apply; tactic `fallback` removed), `race` on characters (all human for now, designer 2026-11-04),
    battle `time: day | night`, 14 new leaves. Editor: party board sticky on every page, click a hero for a drawer (tactics
    first, then stats/gear/skills), "Advanced" section for dev controls, Main/Sub preset picker (`editor/src/conditionPresets.ts`,
    ~238 presets in 13 categories), sample battle opens on first load.
-   **Open calls:** day/night race bonuses (which races, stats, amounts); real races for the current heroes; no presets for
+   **Open calls:** day/night race bonuses (which races, stats, amounts); no presets for
    nearest / farthest / random selectors (not in the designer list). **Known limit:** at 768-1099px the boards stack and the
    drawer covers the defender board (own side stays visible).
 
