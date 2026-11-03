@@ -69,7 +69,8 @@ progress in `docs/roadmap.md`.
    is identical every run (picks don't depend on the seed).
    Gear now dominates hero cost (Decision 135): axe + heavy armor + shield + bracelet prices ~333, about 70-80% of a bare
    hero's ~400-500, because ATK weighs 1.0 per point; recalibrate the cost weights before any cost caps are set.
-6. **Editor follow-ups:** edit between-phase `edits` and the defender `ban_sheet` in the UI; roster-form "new battle"
+6. **Editor follow-ups:** (done 2026-11-04: challenger between-phase `edits` and defender `ban_sheet` are editable,
+   `editor/src/BattleExtras.tsx`; compound ban filters stay read-only, a new rule defaults to the first ban-context leaf) roster-form "new battle"
    template; skill / equipment / character editors (roadmap Step 5 order). Equipment flat stat lines were not rescaled by
    the rebalance (they are now relatively small).
 7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a

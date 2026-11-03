@@ -13,7 +13,7 @@ interface Props { c: ContentInfo; hero: CharacterInfo | undefined; sheet: Json[]
 const isLeaf = (n: Json) => n && typeof n === "object" && typeof n.type === "string";
 
 /** One leaf with its required parameters filled in (first enum value, minimum or 0, false, first referenced id). */
-function newLeaf(c: ContentInfo, info: LeafInfo): Json {
+export function newLeaf(c: ContentInfo, info: LeafInfo): Json {
   const leaf: Json = { type: info.type };
   const props = (info.params.properties ?? {}) as Record<string, Json>;
   const required = (info.params.required ?? []) as string[];
@@ -71,19 +71,19 @@ function ParamInput({ c, leaf, k, s, required, path, edit }: { c: ContentInfo; l
   return <label className="param" data-path={`${path}.${k}`}>{k}{input}</label>;
 }
 
-function LeafEditor({ c, leaf, path, edit }: { c: ContentInfo; leaf: Json; path: string; edit: Edit }) {
-  const info = c.leaves.find((l) => l.type === leaf.type);
+export function LeafEditor({ c, leaf, path, edit, leaves = c.leaves }: { c: ContentInfo; leaf: Json; path: string; edit: Edit; leaves?: LeafInfo[] }) {
+  const info = leaves.find((l) => l.type === leaf.type);
   const tips = useTips();
   const props = (info?.params.properties ?? {}) as Record<string, Json>;
   const required = (info?.params.required ?? []) as string[];
   return (
     <span className="leaf" data-path={path}>
       <select value={leaf.type} title={titleOf(tips.condition(leaf)) ?? info?.description} onChange={(e) => {
-        const next = c.leaves.find((l) => l.type === e.target.value)!;
+        const next = leaves.find((l) => l.type === e.target.value)!;
         edit((l) => { for (const k of Object.keys(l)) delete l[k]; Object.assign(l, newLeaf(c, next)); });
       }}>
         {!info && <option value={leaf.type}>{leaf.type} (not allowed here)</option>}
-        {c.leaves.map((l) => <option key={l.type} value={l.type} title={l.description}>{l.type}</option>)}
+        {leaves.map((l) => <option key={l.type} value={l.type} title={l.description}>{l.type}</option>)}
       </select>
       <Info tip={tips.condition(leaf)} />
       {Object.entries(props).map(([k, s]) => <ParamInput key={k} c={c} leaf={leaf} k={k} s={s} required={required.includes(k)} path={path} edit={edit} />)}

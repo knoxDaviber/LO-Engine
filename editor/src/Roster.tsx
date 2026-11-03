@@ -4,6 +4,7 @@ import type { ContentInfo } from "../apiTypes";
 import { Info, titleOf, useTips } from "./Hint";
 import { defaultHero, heroesOf, heroesPath, isRosterForm, SLOTS, usedHeroes, type Json, type SideKey } from "./model";
 import { TacticsBoard } from "./Tactics";
+import { BanSheetPanel, EditsPanel } from "./BattleExtras";
 
 type Edit = (fn: (battle: Json) => void) => void;
 interface SideProps { c: ContentInfo; battle: Json; side: SideKey; edit: Edit; selected: string | null; select: (id: string) => void }
@@ -177,7 +178,6 @@ export function SidePanel(props: SideProps) {
                     {c.terrains.map((t) => <Opt key={t.id} id={t.id} label={t.name} />)}
                   </select>
                 </label>
-                <span className="muted" data-path={`${side}.roster.ban_sheet`}>ban sheet: {r.ban_sheet ? `${r.ban_sheet.rules?.length ?? 0} rule(s), kept as loaded` : "none"}</span>
               </>
             )}
           </>
@@ -193,13 +193,16 @@ export function SidePanel(props: SideProps) {
           ))}
         </div>
       )}
+      {r && side === "defender" && <BanSheetPanel c={c} battle={battle} edit={edit} />}
       {r && (
         <div className="fields">
           <Picks c={c} battle={battle} side={side} edit={edit} kind="bans" />
           <Picks c={c} battle={battle} side={side} edit={edit} kind="protects" />
         </div>
       )}
-      {(battle[side].edits?.length ?? 0) > 0 && <p className="muted" data-path={`${side}.edits`}>{battle[side].edits.length} between-phase edit(s), kept as loaded (not editable here yet).</p>}
+      {side === "challenger"
+        ? <EditsPanel c={c} battle={battle} edit={edit} />
+        : (battle[side].edits?.length ?? 0) > 0 && <p className="muted" data-path={`${side}.edits`}>{battle[side].edits.length} between-phase edit(s) loaded (the defender cannot have edits).</p>}
       {heroes.map((_: Json, i: number) => <HeroPanel key={`${heroes[i].char_id}-${i}`} {...props} index={i} />)}
       <label>add hero
         <select value="" disabled={heroes.length >= limit} onChange={(e) => e.target.value && edit((b) => addHero(c, b, side, e.target.value))}>

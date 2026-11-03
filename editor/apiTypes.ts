@@ -20,6 +20,8 @@ export interface ContentInfo {
   rules: { max_tactics: number; fielded: number; roster_size: number; columns: number };
   /** Condition leaves allowed in the `tactic` context. */
   leaves: LeafInfo[];
+  /** Condition leaves allowed in the `ban` context (defender ban sheets). */
+  ban_leaves: LeafInfo[];
   /** Leaf fields that name other content (status / faction / hero ids). */
   leaf_refs: Record<string, { field: string; kind: string }>;
   rows: string[];

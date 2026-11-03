@@ -65,6 +65,10 @@ export function createCore(texts: Record<string, string>, store: ContentStore) {
     return parseBattleInput(battle);
   }
 
+  const leafInfos = (ctx: string) => Object.entries(LEAF_REGISTRY)
+    .filter(([, spec]) => (spec.contexts as readonly string[]).includes(ctx))
+    .map(([type, spec]) => ({ type, description: spec.description, params: z.toJSONSchema(spec.fields, { unrepresentable: "any" }) as Record<string, unknown> }));
+
   function content(): ContentInfo {
     const skill = (id: string) => p.byId.skills.get(id);
     return {
@@ -88,9 +92,8 @@ export function createCore(texts: Record<string, string>, store: ContentStore) {
       statuses: [...p.byId.statuses.values()].map((s) => ({ id: s.id, name: s.name, category: s.category })),
       factions: [...p.byId.factions.values()].map((f) => ({ id: f.id, name: f.name })),
       rules: { max_tactics: p.rules.limits.max_tactics, fielded: p.rules.draft.fielded, roster_size: p.rules.draft.roster_size, columns: p.rules.board.columns },
-      leaves: Object.entries(LEAF_REGISTRY)
-        .filter(([, spec]) => spec.contexts.includes("tactic"))
-        .map(([type, spec]) => ({ type, description: spec.description, params: z.toJSONSchema(spec.fields, { unrepresentable: "any" }) as Record<string, unknown> })),
+      leaves: leafInfos("tactic"),
+      ban_leaves: leafInfos("ban"),
       leaf_refs: LEAF_REFS,
       rows: [...ROWS],
       files: { battles: store.list("battles"), rosters: store.list("rosters") },

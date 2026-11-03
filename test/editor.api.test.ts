@@ -17,6 +17,7 @@ test("editor api: content lists tactic leaves with a params schema, gods, terrai
   assert.equal((hp.params as any).type, "object");
   assert.deepEqual(Object.keys((hp.params as any).properties).sort(), ["op", "side", "value"]);
   assert.ok(!c.leaves.some((l) => l.type === "hero_is" || l.type === "cost"), "authored-only and ban leaves are not offered");
+  assert.ok(c.ban_leaves.length > 0 && c.ban_leaves.some((l) => l.type === "cost") && !c.ban_leaves.some((l) => l.type === "hp_percent"), "ban leaves are the ban-context ones");
   assert.ok(c.gods.length > 0 && c.gods.every((g) => g.blessing));
   assert.ok(c.terrains.some((t) => t.id === "terrain_005"));
   assert.ok(c.characters.find((ch) => ch.id === "char_001")!.skills.length > 0);
