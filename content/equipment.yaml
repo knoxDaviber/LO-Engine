@@ -76,18 +76,18 @@
     pre_standard_stats: "HP 120, DEF 25, MDEF 15, SPD 5, SKL 10, GUARD 30, EVA 10"
 
 - id: equip_006
-  name: "Speed Ring"
-  description: "A rare ring sought after by many"
+  name: "Speed Boots"
+  description: "Light boots sought after by many; quick feet win the timeline."
   slot: accessory
-  tags: [ring]
+  tags: [boots]
   pp_modifiers: { active: 0, passive: 0 }
   effects: []
   eligible: { classes: [], characters: [], required_tags: [] }
   rules: { duplicate_allowed_in_both_accessory_slots: true }
-  designer_notes: "Basic ring that increased SPD by 20 before the equipment standard; now the ring base (INT). Its SPD identity needs a designer call (rename, or a SPD effect)."
+  designer_notes: "Was the Speed Ring (SPD +20 before the equipment standard, then an INT ring under Decision 133). Designer call (2026-11): re-typed to boots and renamed Speed Boots, so its SPD identity comes from the boots base (HP 60, SPD 5 after Decision 135). Id kept."
   meta:
     pre_standard_stats: "SPD 20"
-    authored_notes: "SPD +20 appeared in both the stat block and the effect text ('Increases SPD by 20'); kept once, as flat SPD +20 until the equipment standard (Decision 133) replaced it with the ring base. Duplicate accessories are allowed; flat stats add."
+    authored_notes: "SPD +20 appeared in both the stat block and the effect text ('Increases SPD by 20'); kept once, as flat SPD +20 until the equipment standard (Decision 133) replaced it with the item type's base. Originally a ring; now boots. Duplicate accessories are allowed; flat stats add."
 
 - id: equip_007
   name: "Strange box"

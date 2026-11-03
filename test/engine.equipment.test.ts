@@ -14,8 +14,8 @@ const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} 
 type Slots = Partial<Record<"weapon" | "armor" | "accessory_1" | "accessory_2", string>>;
 
 /** The real sample (Leon+Lief vs Emperor+Jasmine, leaders Leon and Emperor), squads off, with the given items worn, after the pre-battle steps. */
-function setup(gear: Record<string, Slots>, opts: { auras?: boolean; over?: (pack: Pack, battle: Battle) => void } = {}) {
-  const { pack, battle } = loadReal({ auras: opts.auras ?? false });
+function setup(gear: Record<string, Slots>, opts: { auras?: boolean; damage?: boolean; over?: (pack: Pack, battle: Battle) => void } = {}) {
+  const { pack, battle } = loadReal({ auras: opts.auras ?? false, damage: opts.damage ?? false });
   for (const side of [battle.challenger, battle.defender]) for (const h of side.heroes) Object.assign(h.equipment, gear[h.char_id] ?? {});
   opts.over?.(pack, battle);
   const log = new EventLog();
@@ -33,22 +33,32 @@ test("the equipment step is the first pre-battle step", () => {
   assert.equal(PREBATTLE_STEPS[0]!.name, "equipment");
 });
 
-test("Dragon Scale worked example: bare Leon vs Dragon-Scale Emperor (DEF 92): Charging Assault 80, Thousand Azure Hooves 166", () => {
+test("Dragon Scale worked example: bare Leon vs Dragon-Scale Emperor (DEF 140): Charging Assault 32, Thousand Azure Hooves 118", () => {
   const { pack, u, stat } = setup({ [EMPEROR]: { armor: "equip_002" } });
-  close(stat(EMPEROR, "DEF"), 92); // 70 + 22, the heavy armor base (Decision 133) added to base once
-  close(stat(EMPEROR, "MDEF"), 40 + 6); // the heavy armor base MDEF line only
+  close(stat(EMPEROR, "DEF"), 140); // 70 + 70, the heavy armor base (Decision 133) added to base once
+  close(stat(EMPEROR, "MDEF"), 40 + 15); // the heavy armor base MDEF line only
   close(stat(LEON, "ATK"), 115);
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 80); // 172.5 - 92
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 166); // 258.75 - 92
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 32); // 172.5 - 140
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 118); // 258.75 - 140
 });
 
-test("Dragon Scale with Empire's Dominion (Emperor leads, DEF 110.4): Charging Assault 62, Thousand Azure Hooves 148", () => {
+test("Dragon Scale with Empire's Dominion (Emperor leads, DEF 168): Charging Assault 4, Thousand Azure Hooves 90", () => {
   const { pack, u, stat, state } = setup({ [EMPEROR]: { armor: "equip_002" } }, { auras: true });
   assert.equal(state.leaders.defender.leaderId, EMPEROR);
-  close(stat(EMPEROR, "DEF"), 92 * 1.2);
+  close(stat(EMPEROR, "DEF"), 140 * 1.2);
   close(stat(LEON, "ATK"), 115); // Leon's own aura needs the Emperor in HIS party
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 62);
-  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 148);
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 4);
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_002"), { pack }, HIT).amount, 90);
+});
+
+test("content formula (pool, hero_hits 4, Decision 135 bases): sworded Leon vs Dragon-Scale Emperor", () => {
+  const { pack, u, stat } = setup({ [LEON]: { weapon: "equip_009" }, [EMPEROR]: { armor: "equip_002" } }, { damage: true });
+  assert.equal(pack.rules.damage.formula, "pool");
+  assert.equal(pack.rules.damage.hero_hits, 4);
+  close(stat(LEON, "ATK"), 115 + 150); // sword base ATK 150
+  close(stat(EMPEROR, "DEF"), 70 + 70); // heavy armor base DEF 70
+  // Charging Assault: (265 x 1.2 - 140) = 178, pool 1.25 (cavalry > infantry) = 222, x hero_hits 4
+  assert.equal(computeDamage(u(LEON), u(EMPEROR), dmg(pack, "skl_cav_active_001"), { pack }, HIT).amount, 888);
 });
 
 test("Dragon Scale gives +1 Active PP; PP bonuses are capped at rules.pp.max", () => {
@@ -101,15 +111,15 @@ test("a dead wearer's equipment modifiers come off (equipment_removed death)", (
 
 test("a conditional equipment effect (Queen's Scepter, HP > 80%) is on exactly while its condition holds", () => {
   const { stat, u, x, ev } = setup({ [JASMINE]: { weapon: "equip_003" } });
-  close(stat(JASMINE, "INT"), (100 + 24) * 1.2); // staff base INT 24
+  close(stat(JASMINE, "INT"), (100 + 120) * 1.2); // staff base INT 120
   const jas = u(JASMINE);
   jas.hp = Math.floor(jas.maxHp / 2);
   checkEquipment(x);
-  close(stat(JASMINE, "INT"), 124);
+  close(stat(JASMINE, "INT"), 220);
   assert.equal(ev("equipment_removed").length, 1);
   jas.hp = jas.maxHp;
   checkEquipment(x);
-  close(stat(JASMINE, "INT"), 124 * 1.2);
+  close(stat(JASMINE, "INT"), 220 * 1.2);
   assert.equal(ev("equipment_applied").length, 2);
 });
 

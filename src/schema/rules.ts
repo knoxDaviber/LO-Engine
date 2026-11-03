@@ -4,7 +4,7 @@ import { CLASSES, DRAFT_ACTIONS, DRAFT_ACTORS, DRAFT_SOURCES, EQUIPMENT_TAGS, ST
 const pct = z.number();
 
 /** Damage formulas for the base step (power vs defense); see rules.yaml damage and design Section 8. */
-export const DAMAGE_FORMULAS = ["subtract", "ratio", "scaled_subtract"] as const;
+export const DAMAGE_FORMULAS = ["pool", "subtract", "ratio", "scaled_subtract"] as const;
 export type DamageFormulaName = (typeof DAMAGE_FORMULAS)[number];
 
 /**
@@ -19,10 +19,11 @@ export const rulesSchema = z.strictObject({
   damage: z.strictObject({
     min_damage: z.number().min(0),
     crit_multiplier: z.number().positive(),
-    formula: z.enum(DAMAGE_FORMULAS).default("subtract"),
+    formula: z.enum(DAMAGE_FORMULAS).default("pool"),
     ratio_k: z.number().positive().default(100), // ratio: power * K / (K + defense)
     floor_pct: z.number().min(0).max(100).default(20), // scaled_subtract: never below this percent of power
     def_weight: z.number().min(0).default(1), // scaled_subtract: defense weight
+    hero_hits: z.number().positive().default(4), // hero damage (not squads, not heals) x this, after everything else [DEFAULT]
   }),
   guard: z.strictObject({ damage_reduction_percent: z.number().min(0).max(100), total_reduction_cap_percent: z.number().min(0).max(100) }),
   matchup: z.strictObject({ advantage_damage_percent: pct, advantage_hit: z.number(), disadvantage_damage_percent: pct }),

@@ -12,7 +12,7 @@ IDs are stable strings and are never reused. New content should use a type prefi
 stats: [HP, ATK, INT, DEF, MDEF, SPD, HIT, SKL, CRIT, GUARD, EVA]
 classes: [infantry, lancer, cavalry, archer, flyer, mage, assassin, holy, aquatic, monster]   # more classes will come
 equipment_slots: [weapon, armor, accessory]        # accessory fills Accessory 1 or 2
-equipment_tags: [sword, spear, staff, bow, light_armor, heavy_armor, robe, none]
+equipment_tags: [sword, spear, axe, staff, tome, bow, dagger, hammer, light_armor, heavy_armor, robe, shield, gloves, boots, ring, amulet, charm, bracelet, earring, cloak, belt]   # one per item (Decision 133)
 skill_category: [active, passive]
 pp_pool: [active, passive]
 passive_trigger: [pre_battle, own_turn, on_event, while_condition]

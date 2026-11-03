@@ -84,8 +84,10 @@ Roster form (3e, alongside the fielded form; recognised by `challenger.roster`):
 - Treat all work as a todo queue. When the user proposes tweaks, changes or corrections, append them to the queue; don't break the queue to prioritize them. Exception: a correction to the task currently in progress is applied immediately, before moving on. Only stop when the queue is truly 100% clear.
 - Mistakes aren't your fault; don't apologize. A mistake means a gap or issue in the instruction files. Describe which part of the instruction files caused it and suggest the fix. Be solution oriented.
 - YAGNI: don't overengineer, and never expand scope without permission. Do suggest scope improvements when they make sense. All work must be justifiable. Judge where the project sits between "quick and dirty" and "production grade" and match the engineering effort to that.
-- After making changes, always spin up a reviewer subagent on a cheap model with minimal context to look over them with fresh eyes for possible problems.
+- After making changes, the supervisor (not the implementing subagent) spins up a reviewer subagent on a cheap model with minimal context to look over them with fresh eyes for possible problems. Implementing subagents are told not to spawn subagents or commit.
+- Commits: once a queue item is implemented, reviewed, its review findings fixed and all checks are green (typecheck, test, validate, sims), the supervisor commits it on its own with a short message. Never push, never commit a red tree, never mix two queue items in one commit.
+- Session continuity: `docs/handover.md` is the running state (done, todo queue, open designer calls). Update it at the end of every queue item so a fresh session can start from it.
 
 ## Environment note
 
-The original environment couldn't reach npm and used preinstalled zod/yaml/tsx/TypeScript; on a normal machine `npm install` works as is. There is no `node_modules` in the repo.
+Node 24 via nvm (`export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"`); `npm install` works. `node_modules` is in `.gitignore` but was tracked by an early commit: run `git rm -r --cached node_modules` once before the first commit. The editor needs a free port (`EDITOR_PORT`).

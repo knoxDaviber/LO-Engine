@@ -44,7 +44,10 @@ export interface BreakdownResult { phase: number; units: BreakdownUnit[] }
 export interface PpOverride { active?: number | null; passive?: number | null }
 
 /** What-if damage formula choices for the editor select ("" = rules.yaml), sent as `formula` with sim and breakdown requests. Never saved. */
-export const FORMULA_CHOICES = ["", "subtract", "ratio:100", "ratio:150", "ratio:200", "scaled_subtract:20", "scaled_subtract:35"] as const;
+export const FORMULA_CHOICES = ["", "pool", "subtract", "ratio:100", "ratio:150", "ratio:200", "scaled_subtract:20", "scaled_subtract:35"] as const;
+
+/** What-if hero_hits choices for the editor select ("" = rules.yaml), sent as `hero_hits` (a number) with sim and breakdown requests. Never saved. */
+export const HERO_HITS_CHOICES = ["", "1", "2", "4", "6", "10"] as const;
 
 export interface SimResult { winner: string; reason: string; log: string; events: { type: string; [k: string]: unknown }[] }
 

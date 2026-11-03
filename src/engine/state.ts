@@ -154,19 +154,21 @@ export interface FormulaOption { formula: DamageFormulaName; ratio_k?: number; f
 
 /**
  * What-if knobs for simulation (never part of a battle file). `pp` replaces every hero's base PP before gear PP is added; `formula` replaces
- * rules.damage's formula and the parameters it names for the run (`withOptions`).
+ * rules.damage's formula and the parameters it names for the run; `heroHits` replaces rules.damage.hero_hits (`withOptions`).
  */
 export interface BattleOptions {
   pp?: { active?: number; passive?: number };
   formula?: FormulaOption;
+  heroHits?: number;
 }
 
-/** The pack a run uses: the same pack, or a shallow copy whose rules.damage carries the formula override. */
+/** The pack a run uses: the same pack, or a shallow copy whose rules.damage carries the formula / hero_hits override. */
 export function withOptions(pack: Pack, opts: BattleOptions): Pack {
   const f = opts.formula;
-  if (!f) return pack;
-  const defined = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined));
-  return { ...pack, rules: { ...pack.rules, damage: { ...pack.rules.damage, ...defined } } };
+  if (!f && opts.heroHits === undefined) return pack;
+  const defined = Object.fromEntries(Object.entries(f ?? {}).filter(([, v]) => v !== undefined));
+  const hh = opts.heroHits !== undefined ? { hero_hits: opts.heroHits } : {};
+  return { ...pack, rules: { ...pack.rules, damage: { ...pack.rules.damage, ...defined, ...hh } } };
 }
 
 const zeroStats = (): Record<Stat, number> => Object.fromEntries(STATS.map((s) => [s, 0])) as Record<Stat, number>;

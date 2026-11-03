@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Last commit:** `7852bd2` (terrain). Everything below is **uncommitted** in the working tree. `git status` shows it all.
-- **Checks at handover:** typecheck clean (root and editor), 356/356 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 364/364 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -23,18 +23,19 @@ progress in `docs/roadmap.md`.
 | 130 | Squads attack and defend as one (summed ATK / summed DEF of living soldiers) |
 | 131 | Stat rebalance around primary stat P (generic P = 100; HP 5-10x, DEF/MDEF 0.4-0.8x, SKL 0.1-0.3x, HIT 100; soldiers ~0.15x) |
 | 132 | ATK/DEF modifiers from skills, auras, soldier skills also apply to INT/MDEF |
-| Section 8 | Damage formula selectable in `rules.yaml` (`subtract` default, `ratio`, `scaled_subtract`) |
-| 133 | Equipment type standard: one type tag per item, flat stats from `rules.equipment_bases` (design doc 12.1); items keep only effects/PP. Open calls: Speed Ring is now an INT ring (rename, re-type to boots, or add a SPD effect?); Prayer's Guardian has no effect left; Chainmail stays light armour |
+| Section 8 / 134 | Damage formula selectable in `rules.yaml`: `pool` default (`(ATK - DEF) x (1 + bonus% - reduction%)`), `subtract`, `ratio`, `scaled_subtract`; `rules.damage.hero_hits` 4 multiplies hero damage (Decision 134; sweep with `--hero-hits=1,2,4,6,10`) |
+| 133 | Equipment type standard: one type tag per item, flat stats from `rules.equipment_bases` (design doc 12.1); items keep only effects/PP. Speed Ring resolved as Speed Boots (boots type, Decision 134). Open calls: Prayer's Guardian has no effect left; Chainmail stays light armour |
+| 135 | Equipment bases retuned (design doc 12.1): designer asked "roughly 3x", the sword anchor (ATK 150 / DEF 24) set weapon ATK at 5x the old table, armor main line 1/3-1/2 of a weapon's (light armor HP 150 / DEF 50 / MDEF 20), defensive accessories about 2x, kept modest, so high DEF is a deliberate build |
 
 ## Todo queue (in order)
 
-1. **Pick the damage model (designer).** After the rebalance every battle times out under every formula and PP 2-4.
-   Formula comparison (full kits, engine stats): when power is well above defense all formulas agree within ~15%; in close
-   matchups `subtract` gives 1-7 damage (hundreds of hits), `ratio:100` 15-35 hits, `scaled_subtract` in between. Even
-   `ratio` kills too slowly for ~6-12 skill uses per battle, so damage per hit must also rise (skill multipliers and/or HP
-   factors). Battle files are lightly kitted (`sample`, `full4v4` bare; City battles 2-3 sigil wearers per side): consider
-   fully kitted test battles before judging. Rerun:
-   `npm run batch -- content/battles/*.yaml --runs=100 --formula=subtract,ratio:100,ratio:150,scaled_subtract:20,scaled_subtract:35 --pp-active=2,3,4`.
+1. **Why defenders win (next).** With `pool` + hero_hits 4 and the retuned gear (Decisions 134-135), the equipped battles
+   end in kills (city4v4 timeouts 6-20%, draft_city 0-40%) but the defender wins almost every one (challenger 0-4%; only
+   city4v4-edit favours the challenger). The `sample` defender deals almost no damage (14-80 per battle). Suspect tactic
+   sheets / targeting / leader placement before numbers. `sample` and `full4v4` have no gear at all. Remaining walls: DEF at
+   or above ATK still gives min damage x hero_hits (the core is a subtraction), e.g. a bare hero vs heavy armour, full
+   squads with summed DEF. Rerun: `npm run batch -- content/battles/*.yaml --runs=100 --hero-hits=1,2,4 --pp-active=2,3`.
+   Then the designer plans to raise damage through **skill multipliers**.
 2. **Default PP** (designer: decide after the formula), then sweep PP 2-5 under the chosen formula.
 3. **Two-sided blessings (designer notes, 2026-11-03).** Each god gets a DEF and an ATK enchantment; new 2-pieces:
    Mirror HP+20%, Full Moon DEF/MDEF+10%, Plate GUARD+10, Gift HP+20%, Breeze ATK/INT+10%, Meteor CRIT+10, Rush EVA+10.
@@ -52,6 +53,8 @@ progress in `docs/roadmap.md`.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), timeout tiebreak (Decision 115). The draft
    is identical every run (picks don't depend on the seed).
+   Gear now dominates hero cost (Decision 135): axe + heavy armor + shield + bracelet prices ~333, about 70-80% of a bare
+   hero's ~400-500, because ATK weighs 1.0 per point; recalibrate the cost weights before any cost caps are set.
 6. **Editor follow-ups:** edit between-phase `edits` and the defender `ban_sheet` in the UI; roster-form "new battle"
    template; skill / equipment / character editors (roadmap Step 5 order). Equipment flat stat lines were not rescaled by
    the rebalance (they are now relatively small).

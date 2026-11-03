@@ -175,7 +175,7 @@ test("Dark Dragon's Ire ends after the hit it guarantees", () => {
   assert.ok(log.events.some((e) => e.type === "status_expired" && e.reason === "hit"));
 });
 
-test("damage formulas: subtract (default), ratio and scaled_subtract change only the base step; withOptions overrides rules.damage", async () => {
+test("damage formulas: subtract (pinned by loadReal), ratio and scaled_subtract change only the base step; withOptions overrides rules.damage", async () => {
   const { withOptions, runBattle } = await import("../src/engine");
   const { eff, s, leon, emp, jas } = setup();
   const opt = (formula: any) => ({ pack: withOptions(s.pack as any, { formula }) });
@@ -195,7 +195,52 @@ test("damage formulas: subtract (default), ratio and scaled_subtract change only
   assert.equal(withOptions(s.pack as any, {}), s.pack);
   // a run with the default formula named explicitly is identical to a run without the option
   const { loadReal } = await import("./engineHelpers");
-  const { pack, battle } = loadReal({ squads: true, auras: true });
-  assert.deepEqual(runBattle(pack, battle, { formula: { formula: "subtract" } }).events, runBattle(pack, battle).events);
-  assert.notDeepEqual(runBattle(pack, battle, { formula: { formula: "ratio" } }).events, runBattle(pack, battle).events);
+  const { pack, battle } = loadReal({ squads: true, auras: true, damage: true });
+  assert.equal(pack.rules.damage.formula, "pool");
+  assert.deepEqual(runBattle(pack, battle, { formula: { formula: "pool" } }).events, runBattle(pack, battle).events);
+  assert.notDeepEqual(runBattle(pack, battle, { formula: { formula: "subtract" } }).events, runBattle(pack, battle).events);
+});
+
+test("pool formula: (ATK - DEF) x (1 + bonus% - reduction%), crit after, capped at 75% net reduction; hero_hits multiplies hero damage last", async () => {
+  const { withOptions, runBattle } = await import("../src/engine");
+  const s = sampleState(1, { damage: true });
+  const ca = { ...((s.pack.byId.skills.get("skl_cav_active_001") as Skill).effects.find((e) => e.type === "damage") as DamageEffect), ignores_guard: false };
+  const leon = unit(s, LEON), emp = unit(s, EMPEROR), jas = unit(s, JASMINE), lief = unit(s, LIEF);
+  assert.equal(s.pack.rules.damage.formula, "pool");
+  assert.equal(s.pack.rules.damage.hero_hits, 4);
+  const one = { pack: withOptions(s.pack, { heroHits: 1 }) };
+  // Leon 115 x 1.2 = 138 vs DEF 70: core 68, cavalry > infantry +25
+  const d = computeDamage(leon, emp, ca, one, HIT);
+  assert.equal(d.power, 138);
+  assert.equal(d.amount, 85); // 68 x 1.25
+  assert.deepEqual(d.pool, { bonus: 25, reduction: 0, factor: 1.25 });
+  assert.equal(computeDamage(leon, emp, ca, one, { hit: true, crit: false, guard: true }).amount, 51); // 68 x (1.25 - 0.5)
+  assert.equal(computeDamage(leon, emp, ca, one, { hit: true, crit: true, guard: false }).amount, 127); // 68 x 1.25 x 1.5 = 127.5
+  assert.equal(computeDamage(leon, emp, ca, one, { hit: true, crit: true, guard: true }).amount, 76); // 68 x 0.75 x 1.5 = 76.5
+  const capped = computeDamage(leon, emp, ca, { ...one, reductions: [50, 50] }, { hit: true, crit: false, guard: true });
+  assert.equal(capped.amount, 17); // 1.25 - 1.5 < 0.25: capped at 0.25
+  assert.deepEqual(capped.pool, { bonus: 25, reduction: 150, factor: 0.25 });
+  assert.equal(computeDamage(leon, lief, ca, one, HIT).amount, 57); // cavalry vs lancer -15: 68 x 0.85 = 57.8
+  assert.equal(computeDamage(leon, emp, { ...ca, bonus_vs_class: [{ class: "infantry", modifier_percent: 25 }] }, one, HIT).amount, 102); // 68 x 1.5 (additive)
+  assert.equal(computeDamage(jas, emp, ca, one, HIT).amount, 1); // core min 1 x 1.25, floored
+  // hero_hits (content value 4) multiplies the final amount; a squad's damage is untouched
+  assert.equal(computeDamage(leon, emp, ca, { pack: s.pack }, HIT).amount, 340);
+  assert.equal(computeDamage(leon, emp, ca, { pack: s.pack }, HIT).heroHits, 4);
+  assert.equal(computeDamage(jas, emp, ca, { pack: s.pack }, HIT).amount, 4);
+  assert.equal(computeDamage(leon, emp, ca, { pack: withOptions(s.pack, { heroHits: 2.5 }) }, HIT).amount, 212); // floor(85 x 2.5)
+  const sq = sampleState(1, { squads: true, damage: true });
+  const squad = sq.units.find((u) => u.kind === "squad" && u.alive)!;
+  const target = sq.units.find((u) => u.kind === "hero" && u.side !== squad.side)!;
+  const { soldierEffect } = await import("../src/engine/squad");
+  const se = soldierEffect({ state: sq } as ExecCtx, squad);
+  const sd = computeDamage(squad, target, se, { pack: sq.pack }, HIT);
+  assert.equal(sd.amount, computeDamage(squad, target, se, { pack: withOptions(sq.pack, { heroHits: 1 }) }, HIT).amount);
+  assert.equal(sd.heroHits, undefined);
+  // the override reaches a run; the damage log carries the pool parts
+  const { pack, battle } = (await import("./engineHelpers")).loadReal({ squads: true, auras: true, damage: true });
+  const ev = runBattle(pack, battle).events;
+  assert.deepEqual(runBattle(pack, battle, { heroHits: 4 }).events, ev);
+  assert.notDeepEqual(runBattle(pack, battle, { heroHits: 1 }).events, ev);
+  const hit = ev.find((e) => e.type === "damage" && (e as any).hero_hits === 4) as any;
+  assert.ok(hit && typeof hit.pool === "number" && typeof hit.bonus === "number" && typeof hit.reduction === "number");
 });

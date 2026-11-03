@@ -153,3 +153,15 @@ test("editor api: an optional formula override reaches the sim; bad values are a
     assert.equal(api.handle("POST", "/api/breakdown", { battle: battle("sample.yaml"), formula }).status, 400, JSON.stringify(formula));
   }
 });
+
+test("editor api: an optional hero_hits override reaches the sim and breakdown; bad values are a 400", () => {
+  const plain = api.handle("POST", "/api/sim", { battle: battle("sample.yaml") }).json as any;
+  assert.equal((api.handle("POST", "/api/sim", { battle: battle("sample.yaml"), hero_hits: null }).json as any).log, plain.log);
+  assert.equal((api.handle("POST", "/api/sim", { battle: battle("sample.yaml"), hero_hits: 4 }).json as any).log, plain.log);
+  assert.notEqual((api.handle("POST", "/api/sim", { battle: battle("sample.yaml"), hero_hits: 1 }).json as any).log, plain.log);
+  assert.equal(api.handle("POST", "/api/breakdown", { battle: battle("sample.yaml"), hero_hits: 2.5 }).status, 200);
+  for (const hero_hits of [0, -1, "4", Infinity, Number.NaN, [4], { n: 4 }]) {
+    assert.equal(api.handle("POST", "/api/sim", { battle: battle("sample.yaml"), hero_hits }).status, 400, String(hero_hits));
+    assert.equal(api.handle("POST", "/api/breakdown", { battle: battle("sample.yaml"), hero_hits }).status, 400, String(hero_hits));
+  }
+});

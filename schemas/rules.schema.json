@@ -14,9 +14,10 @@
           "exclusiveMinimum": 0
         },
         "formula": {
-          "default": "subtract",
+          "default": "pool",
           "type": "string",
           "enum": [
+            "pool",
             "subtract",
             "ratio",
             "scaled_subtract"
@@ -37,6 +38,11 @@
           "default": 1,
           "type": "number",
           "minimum": 0
+        },
+        "hero_hits": {
+          "default": 4,
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       },
       "required": [
@@ -45,7 +51,8 @@
         "formula",
         "ratio_k",
         "floor_pct",
-        "def_weight"
+        "def_weight",
+        "hero_hits"
       ],
       "additionalProperties": false
     },

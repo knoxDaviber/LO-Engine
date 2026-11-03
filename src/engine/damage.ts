@@ -1,17 +1,32 @@
 // Damage, heal and action execution (design Section 8).
 //
-// Pipeline for one hit (all constants from rules.yaml):
-//   power   = sum(coef * effective stat of attacker) * skill multiplier * matchup
+// Pipeline for one hit (all constants from rules.yaml), formula = rules.damage.formula (a BattleOptions.formula override replaces it, state.ts):
+// pool [DEFAULT] (designer: "ATK (all sources) - DEF (all sources) x (DMG bonus - DMG reduction)"):
+//   power   = ATK_total = sum(coef * effective stat of attacker) * skill multiplier (every stat modifier is in the effective stat; a squad sums its soldiers)
+//   defense = DEF_total = DEF (physical), MDEF (magical), average of both (hybrid); a squad sums its living soldiers
+//   core    = max(min_damage, power - defense)
+//   bonus % (added up) = class advantage percent (rules.matchup.advantage_damage_percent, or the class_advantage pair's own damage_percent)
+//                        or the disadvantage percent (negative), + every bonus_vs_class modifier_percent for the defender's class,
+//                        + every bonus_on_terrain modifier_percent for the battle's battlefield. (No effect type grants a damage bonus yet.)
+//   reduction % (added up) = rules.guard.damage_reduction_percent when the guard activates, + every reduce_damage percent of the defender in
+//                        force for this hit (Plate, Quick Guard, any duration; reductionsOn)
+//   pool    = max(1 - total_reduction_cap_percent/100, 1 + bonus/100 - reduction/100)
+//   amount  = max(min_damage, floor(core * pool * crit))    crit = rules.damage.crit_multiplier on a crit, else 1 (a separate multiplier)
+//   The class advantage HIT bonus is unchanged (hitChance).
+// subtract / ratio / scaled_subtract (older, selectable):
+//   power   = sum(coef * effective stat) * skill multiplier * matchup
 //   matchup = class factor (1 + advantage/disadvantage percent) * product of the skill's bonus_vs_class factors for the defender's class
 //             * product of its bonus_on_terrain factors for the battle's battlefield. A class_advantage pair's own damage_percent, when set,
 //             replaces advantage_damage_percent for that pair (the disadvantage side keeps the global percent).
-//   base    = floor(max(min_damage, formula(power, defense)))  defense = DEF (physical), MDEF (magical), average of both (hybrid)
-//             formula = rules.damage.formula (baseDamage): subtract power - defense (default); ratio power * K / (K + defense);
-//             scaled_subtract max(power * floor_pct/100, power - defense * def_weight). A BattleOptions.formula override replaces it (state.ts).
+//   base    = floor(max(min_damage, formula(power, defense)))  (baseDamage): subtract power - defense; ratio power * K / (K + defense);
+//             scaled_subtract max(power * floor_pct/100, power - defense * def_weight)
 //   crit    = floor(base * crit_multiplier)                 applied after defense, to the already floored damage
 //   guard   = floor(crit_result * factor)                   factor = max(1 - cap/100, product of (1 - reduction/100)) over the guard (when it
 //                                                           activates) and the defender's reduce_damage effects for this attack (Quick Guard)
 //   amount  = max(min_damage, guard_result)                 any landed hit deals at least min_damage
+// Hero hits (every formula) [DEFAULT]: when the attacker is a hero (actives, passives, reactions, item effects), amount = max(min_damage,
+//   floor(amount * rules.damage.hero_hits)) as the very last step. Squads are unaffected (their power already sums the soldiers); heals are
+//   unaffected; Mirror's reflect uses the HP lost, so it follows. A BattleOptions.heroHits override replaces it.
 // Roll order (fixed, always from the phase rng): hit, then crit, then guard. A miss stops the sequence (no crit/guard draw).
 // prevents_evasion makes the hit land without drawing. `ignores_guard` / interactions.guard "ignores" skips the guard draw;
 // "guaranteed" guards without drawing. A roll succeeds when rng.next() * 100 < chance.
@@ -95,15 +110,19 @@ export interface DamageCtx {
 export interface DamageBreakdown {
   landed: boolean;
   scaled: number; // sum of coef * stat
-  matchup: number; // class factor * bonus_vs_class factors * bonus_on_terrain factors
+  matchup: number; // pool: 1 + the summed bonus % (additive); older formulas: class factor * bonus_vs_class factors * bonus_on_terrain factors (product)
   power: number;
   defense: number;
   base: number; // after defense, floored, min damage
   crit: boolean;
   guard: boolean;
-  guardFactor: number; // 1 when no guard and no reduction
+  guardFactor: number; // pool: the applied (capped) pool factor; older formulas: the guard/reduction factor (1 when none)
   amount: number; // final damage (0 on a miss)
   reductions?: number[]; // reduce_damage percents that applied (absent when none)
+  /** pool formula only: the summed bonus %, the summed reduction % (guard + reduce_damage) and the resulting (capped) pool factor. */
+  pool?: { bonus: number; reduction: number; factor: number };
+  /** The hero_hits multiplier applied last (absent when 1 or the attacker is a squad). */
+  heroHits?: number;
 }
 
 /** Floor that ignores float noise like 125.99999999999999. */
@@ -118,14 +137,22 @@ export function classMatchup(pack: Pick<Pack, "rules">, a: Unit, d: Unit): 1 | 0
   return 0;
 }
 
-export function matchupFactor(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx): number {
+/** Damage bonus percents for the attacker's hit on `defender`: class advantage / disadvantage, bonus_vs_class, bonus_on_terrain (see the header). */
+export function bonusPercents(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx): number[] {
   const { matchup } = ctx.pack.rules;
   const m = classMatchup(ctx.pack, attacker, defender);
   const pair = m === 1 ? ctx.pack.rules.class_advantage.find((p) => p.attacker === attacker.class && p.defender === defender.class) : undefined;
-  let f = m === 1 ? 1 + (pair?.damage_percent ?? matchup.advantage_damage_percent) / 100 : m === -1 ? 1 + matchup.disadvantage_damage_percent / 100 : 1;
-  for (const b of effect.bonus_vs_class) if (b.class === defender.class) f *= 1 + b.modifier_percent / 100;
-  for (const b of effect.bonus_on_terrain ?? []) if (ctx.battlefield != null && b.terrain === ctx.battlefield) f *= 1 + b.modifier_percent / 100;
-  return f;
+  const out: number[] = [];
+  if (m === 1) out.push(pair?.damage_percent ?? matchup.advantage_damage_percent);
+  else if (m === -1) out.push(matchup.disadvantage_damage_percent);
+  for (const b of effect.bonus_vs_class) if (b.class === defender.class) out.push(b.modifier_percent);
+  for (const b of effect.bonus_on_terrain ?? []) if (ctx.battlefield != null && b.terrain === ctx.battlefield) out.push(b.modifier_percent);
+  return out;
+}
+
+/** Multiplicative matchup factor of the older formulas: product of (1 + percent/100) over bonusPercents. */
+export function matchupFactor(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx): number {
+  return bonusPercents(attacker, defender, effect, ctx).reduce((f, p) => f * (1 + p / 100), 1);
 }
 
 export function hitChance(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx): number {
@@ -166,7 +193,7 @@ export function reductionFactor(percents: number[], capPercent: number): number 
   return Math.max(1 - capPercent / 100, percents.reduce((f, p) => f * (1 - p / 100), 1));
 }
 
-/** Base damage (after defense, floored, at least min_damage) under rules.damage.formula. Squads use it with their summed defense. */
+/** Base damage (after defense, floored, at least min_damage) under the older formulas (subtract / ratio / scaled_subtract). */
 export function baseDamage(power: number, defense: number, d: Rules["damage"]): number {
   const raw = d.formula === "ratio" ? (power * d.ratio_k) / (d.ratio_k + Math.max(0, defense))
     : d.formula === "scaled_subtract" ? Math.max((power * d.floor_pct) / 100, power - defense * d.def_weight)
@@ -174,26 +201,53 @@ export function baseDamage(power: number, defense: number, d: Rules["damage"]): 
   return fl(Math.max(d.min_damage, raw));
 }
 
+/** pool formula factor: 1 + bonus% - reduction%, never below 1 - capPercent/100. */
+export function poolFactor(bonus: number, reduction: number, capPercent: number): number {
+  return Math.max(1 - capPercent / 100, 1 + bonus / 100 - reduction / 100);
+}
+
+const sum = (xs: number[]): number => xs.reduce((n, x) => n + x, 0);
+
 /** Deterministic: the same attacker, defender, effect and outcome always give the same damage. No variance. */
 export function computeDamage(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx, outcome: HitOutcome): DamageBreakdown {
   const { rules } = ctx.pack;
+  const isPool = rules.damage.formula === "pool";
   const scaled = effect.scaling.reduce((n, t) => n + t.coef * summedStat(attacker, t.stat, ctx.pack), 0); // a squad attacks as one
-  const matchup = matchupFactor(attacker, defender, effect, ctx);
-  const power = scaled * effect.multiplier * matchup;
+  const bonuses = bonusPercents(attacker, defender, effect, ctx);
+  // pool: the bonuses are additive and live in the pool, so `matchup` reports 1 + their sum and power leaves them out
+  const matchup = isPool ? 1 + sum(bonuses) / 100 : bonuses.reduce((f, p) => f * (1 + p / 100), 1);
+  const power = scaled * effect.multiplier * (isPool ? 1 : matchup);
   const defense = defenseFor(defender, effect.damage_type, ctx.pack);
   const mode: GuardMode = effect.ignores_guard ? "ignores" : (ctx.guardMode ?? "standard");
   const guard = mode === "ignores" ? false : mode === "guaranteed" ? true : outcome.guard;
   const miss: DamageBreakdown = { landed: false, scaled, matchup, power, defense, base: 0, crit: false, guard: false, guardFactor: 1, amount: 0 };
   if (!outcome.hit) return miss;
   const min = rules.damage.min_damage;
-  const base = baseDamage(power, defense, rules.damage);
-  let amount = outcome.crit ? fl(base * rules.damage.crit_multiplier) : base;
   const reductions = ctx.reductions ?? [];
   const percents = [...(guard ? [rules.guard.damage_reduction_percent] : []), ...reductions];
-  const guardFactor = percents.length > 0 ? reductionFactor(percents, rules.guard.total_reduction_cap_percent) : 1;
-  if (percents.length > 0) amount = fl(amount * guardFactor);
-  amount = Math.max(min, amount);
-  return { landed: true, scaled, matchup, power, defense, base, crit: outcome.crit, guard, guardFactor, amount, ...(reductions.length ? { reductions } : {}) };
+  const cap = rules.guard.total_reduction_cap_percent;
+  let base: number, amount: number, guardFactor: number, pool: DamageBreakdown["pool"];
+  if (isPool) {
+    const core = Math.max(min, power - defense);
+    const bonus = sum(bonuses), reduction = sum(percents);
+    const factor = poolFactor(bonus, reduction, cap);
+    base = fl(core);
+    guardFactor = factor;
+    pool = { bonus, reduction, factor };
+    amount = Math.max(min, fl(core * factor * (outcome.crit ? rules.damage.crit_multiplier : 1)));
+  } else {
+    base = baseDamage(power, defense, rules.damage);
+    amount = outcome.crit ? fl(base * rules.damage.crit_multiplier) : base;
+    guardFactor = percents.length > 0 ? reductionFactor(percents, cap) : 1;
+    if (percents.length > 0) amount = fl(amount * guardFactor);
+    amount = Math.max(min, amount);
+  }
+  const hh = attacker.kind === "hero" ? rules.damage.hero_hits : 1;
+  if (hh !== 1) amount = Math.max(min, fl(amount * hh));
+  return {
+    landed: true, scaled, matchup, power, defense, base, crit: outcome.crit, guard, guardFactor, amount,
+    ...(reductions.length ? { reductions } : {}), ...(pool ? { pool } : {}), ...(hh !== 1 ? { heroHits: hh } : {}),
+  };
 }
 
 export function computeHeal(target: Unit, caster: Unit, effect: HealEffect, pack: Pick<Pack, "byId">): number {
@@ -324,8 +378,12 @@ export function killUnit(x: ExecCtx, unit: Unit, killer: Unit | null): void {
   state.bus.emit(x, "on_death", { unit, killer });
 }
 
-/** Reduction percents for the damage log (absent when none applied). */
-const reduced = (d: DamageBreakdown) => (d.reductions ? { reductions: d.reductions } : {});
+/** Reduction percents, the pool parts and the hero_hits multiplier for the damage log (each absent when it did not apply). */
+const reduced = (d: DamageBreakdown) => ({
+  ...(d.reductions ? { reductions: d.reductions } : {}),
+  ...(d.pool ? { bonus: r4(d.pool.bonus), reduction: r4(d.pool.reduction), pool: r4(d.pool.factor) } : {}),
+  ...(d.heroHits !== undefined ? { hero_hits: d.heroHits } : {}),
+});
 
 /** `meta.noEvent`: fixed damage that is not a hit (devotion reflect_damage): no after_hit is emitted. */
 export type DamageMeta = HitMeta & { noEvent?: boolean };

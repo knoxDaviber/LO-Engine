@@ -244,7 +244,7 @@ export function describeSkill(s: Skill, cat: Cat): Described {
 }
 
 // ------------------------------------------------------------------ equipment
-/** "Sword base: ATK +30, DEF +8": the item type's flat stat lines (rules.equipment_bases, Decision 133). */
+/** "Sword base: ATK +150, DEF +24": the item type's flat stat lines (rules.equipment_bases, Decision 133). */
 export function describeEquipmentBase(q: Pick<Equipment, "slot" | "tags">, cat: Cat): string {
   const t = equipmentType(q);
   if (!t) return `${cap(q.slot)} (no equipment type)`;

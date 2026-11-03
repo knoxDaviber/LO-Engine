@@ -65,9 +65,11 @@ test("sim CLI --pp-active / --pp-passive override every hero's base PP; bad valu
 test("sim CLI --formula overrides the damage formula; bad specs exit 2", () => {
   const cwd = process.cwd();
   const run = (...extra: string[]) => JSON.parse(execFileSync("npx", ["tsx", "src/sim.ts", "content/battles/sample.yaml", "--json", ...extra], { cwd, encoding: "utf-8" }));
-  assert.deepEqual(run("--formula=subtract"), run());
-  assert.notDeepEqual(run("--formula=ratio:150"), run());
-  for (const extra of [["--formula"], ["--formula=div"], ["--formula=ratio:0"], ["--formula=ratio,subtract"], ["--formula=subtract:1"], ["--formula=scaled_subtract:101"], ["--formula=ratio:1e2"], ["--formula=ratio:" + "9".repeat(400)], ["--formula=ratio", "--formula=subtract"], ["--pp-active=2", "--pp-active=3"]]) {
+  assert.deepEqual(run("--formula=pool"), run());
+  assert.notDeepEqual(run("--formula=subtract"), run());
+  assert.deepEqual(run("--hero-hits=4"), run());
+  assert.notDeepEqual(run("--hero-hits=1"), run());
+  for (const extra of [["--hero-hits"], ["--hero-hits=0"], ["--hero-hits=-1"], ["--hero-hits=x"], ["--hero-hits=1e2"], ["--hero-hits=1,2"], ["--hero-hits=2", "--hero-hits=3"], ["--formula=pool:1"], ["--formula"], ["--formula=div"], ["--formula=ratio:0"], ["--formula=ratio,subtract"], ["--formula=subtract:1"], ["--formula=scaled_subtract:101"], ["--formula=ratio:1e2"], ["--formula=ratio:" + "9".repeat(400)], ["--formula=ratio", "--formula=subtract"], ["--pp-active=2", "--pp-active=3"]]) {
     const r = spawnSync("npx", ["tsx", "src/sim.ts", "content/battles/sample.yaml", ...extra], { cwd, encoding: "utf-8" });
     assert.equal(r.status, 2, extra.join(" "));
     assert.match(r.stderr, /usage: npm run sim/);

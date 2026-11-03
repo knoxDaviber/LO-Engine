@@ -97,10 +97,10 @@ test("describe: INT/MDEF pairing shows on statuses, auras and soldier skills, no
 
 test("describe: an item shows its type base plus its own PP and effects (Decision 133)", () => {
   const q = (id: string) => cat.equipment.find((e) => e.id === id)!;
-  assert.equal(describeEquipment(q("equip_009"), cat).summary, "Sword base: ATK +30, DEF +8");
-  assert.equal(describeEquipment(q("equip_002"), cat).summary, "Heavy armor base: HP +150, DEF +22, MDEF +6, SPD -5; +1 active PP");
+  assert.equal(describeEquipment(q("equip_009"), cat).summary, "Sword base: ATK +150, DEF +24");
+  assert.equal(describeEquipment(q("equip_002"), cat).summary, "Heavy armor base: HP +220, DEF +70, MDEF +15, SPD -5; +1 active PP");
   const scepter = describeEquipment(q("equip_003"), cat);
   assert.ok(scepter.summary.startsWith("Staff base: ") && scepter.summary.endsWith("; 1 effect"), scepter.summary);
   const info = api.content().equipment.find((e) => e.id === "equip_009")!;
-  assert.deepEqual([info.type, info.base], ["sword", { ATK: 30, DEF: 8 }]);
+  assert.deepEqual([info.type, info.base], ["sword", { ATK: 150, DEF: 24 }]);
 });

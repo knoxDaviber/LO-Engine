@@ -4,7 +4,7 @@
 import { StrictMode, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { ApiIssue, BreakdownResult, Catalog, ContentInfo, PpOverride, SimResult } from "../apiTypes";
-import { FORMULA_CHOICES } from "../apiTypes";
+import { FORMULA_CHOICES, HERO_HITS_CHOICES } from "../apiTypes";
 import { get, post, RequestError } from "./client";
 import { FormationBoard } from "./Formation";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -39,6 +39,8 @@ function App() {
   // What-if PP override (blank = content values), sent with sim and breakdown requests; never saved into the battle.
   const [ppText, setPpText] = useState({ active: "", passive: "" });
   const [formula, setFormula] = useState<string>(""); // what-if damage formula ("" = rules.yaml), sent with sim and breakdown; never saved
+  const [heroHitsText, setHeroHitsText] = useState<string>(""); // what-if hero_hits ("" = rules.yaml), same
+  const hero_hits = heroHitsText === "" ? null : Number(heroHitsText);
   const [status, setStatus] = useState("");
   const timer = useRef<number | undefined>(undefined);
   const req = useRef(0); // only the latest validate/breakdown round may write its results
@@ -97,7 +99,7 @@ function App() {
         setIssues(v.issues);
         setPending(false);
         if (v.issues.some((i) => i.severity === "error")) return setBd({ data: null, error: "Fix the validation errors to see the breakdown." });
-        const data = await post<BreakdownResult>("/api/breakdown", { battle, phase, pp, formula });
+        const data = await post<BreakdownResult>("/api/breakdown", { battle, phase, pp, formula, hero_hits });
         if (live()) setBd({ data, error: null });
       } catch (e) {
         if (!live()) return;
@@ -105,7 +107,7 @@ function App() {
         setBd({ data: null, error: (e as Error).message });
       }
     }, 400);
-  }, [battle, phase, pp, formula]);
+  }, [battle, phase, pp, formula, hero_hits]);
 
   const edit = (fn: (b: Json) => void) => setBattle((b: Json) => { const next = structuredClone(b); fn(next); return next; });
 
@@ -150,7 +152,7 @@ function App() {
   const run = async () => {
     setStatus("running...");
     try {
-      setSim(await post<SimResult>("/api/sim", { battle, pp, formula }));
+      setSim(await post<SimResult>("/api/sim", { battle, pp, formula, hero_hits }));
       setStatus("");
     } catch (e) {
       setSim(null);
@@ -239,6 +241,11 @@ function App() {
             <label title="What-if damage formula for the base step (blank = rules.yaml). Sent with sim and breakdown, never saved.">formula
               <select aria-label="damage formula override" value={formula} onChange={(e) => setFormula(e.target.value)}>
                 {FORMULA_CHOICES.map((f) => <option key={f} value={f}>{f === "" ? "rules.yaml" : f}</option>)}
+              </select>
+            </label>
+            <label title="What-if hero damage multiplier (rules.damage.hero_hits; blank = rules.yaml). Squads and heals are unaffected. Sent with sim and breakdown, never saved.">hero hits
+              <select aria-label="hero hits override" value={heroHitsText} onChange={(e) => setHeroHitsText(e.target.value)}>
+                {HERO_HITS_CHOICES.map((h) => <option key={h} value={h}>{h === "" ? "rules.yaml" : `x${h}`}</option>)}
               </select>
             </label>
           </div>

@@ -222,7 +222,7 @@ test("equipment type: the item's cost is its type base, weighted", () => {
   const hero = pack!.byId.characters.get("char_005")!;
   const bare = heroCost(hero, pack!.rules);
   const w = pack!.rules.cost.stat_weights;
-  assert.equal(heroCost(hero, pack!.rules, { equipment: [pack!.byId.equipment.get("equip_009")!] }), Math.round((bare + 30 * w.ATK + 8 * w.DEF) * 10) / 10);
+  assert.equal(heroCost(hero, pack!.rules, { equipment: [pack!.byId.equipment.get("equip_009")!] }), Math.round((bare + 150 * w.ATK + 24 * w.DEF) * 10) / 10);
 });
 
 test("equipment type: weapon, armor and shield types are gated by the hero's equipment_tags; other accessory categories are open", async () => {

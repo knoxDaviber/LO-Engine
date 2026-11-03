@@ -258,12 +258,18 @@ The challenger may adjust between phases. [DEFAULT scope]:
 
 ## 8. Damage Resolution [DEFAULT formulas, all constants tunable]
 
-Order: select target (a hit on a squad is resolved once against the summed defense of its living soldiers and lands on its lowest-HP living soldier, Section 2.1) → hit check (HIT vs EVA, SKL-adjusted) → damage (`power × multiplier × matchup − defense`, minimum 1) → crit check → guard/reductions → apply to HP/soldiers → statuses/reactions → rescheduling.
+Order: select target (a hit on a squad is resolved once against the summed defense of its living soldiers and lands on its lowest-HP living soldier, Section 2.1) → hit check (HIT vs EVA, SKL-adjusted) → crit check → guard check → damage (`pool`: `(ATK_total − DEF_total) × (1 + bonus% − reduction%) × crit × hero_hits`, minimum 1) → apply to HP/soldiers → statuses/reactions → rescheduling.
 
 - **Damage is floored to an integer** [DECIDED], consistent with the worked examples below (157.5 - 100 -> 57; 157.5 - 50 -> 107).
 - **Minimum damage** [DECIDED]: any hit that lands deals at least 1 damage, even when the attacker's power is below the target's defense. The tick matters for on-hit mechanics.
-- **Damage formula** [DEFAULT, still being tuned]: `max(1, power x skill_multiplier x matchup - defense)`. Power is the skill's scaled stat value after all buffs, debuffs and stat conversions. The matchup factor combines the class advantage and skill bonuses (they multiply). Defense is the target's relevant defense after all modifiers. A high-DEF unit can only be hurt by high-power, high-multiplier or class-advantaged skills. Worked example (Section 3.3 numbers), a bare Leon (cavalry, ATK 115) attacking a Dragon-Scale Emperor (infantry, DEF 70 + 22 heavy armor base = 92, Section 12.1): Charging Assault is 115 x 1.2 x 1.25 = 172.5, so 80 damage; Thousand Azure Hooves is 115 x 1.8 x 1.25 = 258.75, so 166. If the Emperor is also the leader (Empire's Dominion, DEF x 1.2 = 110.4), Charging Assault falls to 62 and Hooves to 148.
-- **Formula choice** [DEFAULT `subtract` until the designer chooses]: the base step (power vs defense) is selectable in `rules.yaml` (`damage.formula`); matchup, crit, guard/reductions and minimum damage are unchanged by it. `subtract`: `max(1, power - defense)` (above). `ratio`: `power x K / (K + defense)`, K = `ratio_k` (default 100; defense K halves the damage). `scaled_subtract`: `max(power x floor_pct/100, power - defense x def_weight)` (defaults 20 and 1; subtraction that never falls below a share of power). Squads use the same formula with their summed defense. The batch simulator sweeps formulas as a what-if (`--formula=subtract,ratio:150,scaled_subtract:20`; the editor has a matching select), never saved.
+- **Damage formula** [DEFAULT `pool`, designer 2026-11: "ATK (from all sources) - DEF (from all sources) x (DMG bonus - DMG reduction)"]: `amount = max(1, floor(core × pool × crit))`, then × `hero_hits` for heroes (below).
+  - `core = max(1, ATK_total − DEF_total)`. ATK_total = the skill's scaled stat after every buff, debuff, aura, equipment and terrain modifier (Section 9.1) × skill multiplier; DEF_total = the target's DEF / MDEF (hybrid: their average) after all modifiers. Squads: both sums over the living soldiers.
+  - `pool = 1 + (sum of damage bonus %) − (sum of damage reduction %)`, never below `1 − total_reduction_cap_percent/100` (0.25). **Bonuses** (added): class advantage `advantage_damage_percent` (+25, or the pair's own `damage_percent`, e.g. archer → flyer +50) or disadvantage `disadvantage_damage_percent` (−15); every `bonus_vs_class` modifier for the target's class; every `bonus_on_terrain` modifier for the battlefield. **Reductions** (added): GUARD's `damage_reduction_percent` (50) when the guard activates; every `reduce_damage` effect in force on the target (Plate, Quick Guard, any duration). Bonuses and reductions are additive with each other (+25 and a 50% guard give ×0.75), not multiplicative.
+  - Crit stays a separate multiplier (`crit_multiplier` 1.5) after the pool. The class-advantage HIT bonus is unchanged.
+  - The combat log shows each hit's bonus %, reduction % and pool factor.
+  - Worked example (bare Leon, ATK 115, vs bare Emperor, DEF 70, hero_hits 1): Charging Assault core = 115 × 1.2 − 70 = 68, pool 1.25 (cavalry > infantry), 85 damage; guarded, pool 0.75, 51. Against a Dragon-Scale Emperor (heavy armor, DEF 140 after Decision 135) the core is negative, so the hit does the minimum 1: a bare hero cannot dent a tank build.
+- **Hero hits** [DEFAULT 4, `rules.damage.hero_hits`]: Langrisser heroes and 10-soldier squads hit for comparable totals; here a hero's damage (actives, passives, reactions, item effects; every formula) is multiplied by `hero_hits` as the last step (floored, minimum 1). Squads are unaffected (they already sum 10 soldiers); heals are unaffected; Mirror's reflect uses the HP lost, so it follows. What-if: `--hero-hits=N` on the sim, `--hero-hits=1,2,4,6,10` on the batch simulator (combines with `--formula` and `--pp-*`, same seeds), and an editor select; never saved.
+- **Formula choice**: `pool` (above) is the default; the older formulas stay selectable in `rules.yaml` (`damage.formula`) and as a what-if (`--formula=pool,subtract,ratio:150,scaled_subtract:20`; the editor has a matching select). They multiply the matchup into power (`power × multiplier × matchup`, class factor × each bonus factor), floor, crit, then guard and reductions **multiplicatively** (0.5 × 0.5 = 0.25, capped at 75%). `subtract`: `max(1, power − defense)`. `ratio`: `power × K / (K + defense)`, K = `ratio_k` (default 100; defense K halves the damage). `scaled_subtract`: `max(power × floor_pct/100, power − defense × def_weight)` (defaults 20 and 1). Squads use the same formula with their summed defense.
 - **Squads** [DEFAULT, Decision 130]: a squad's power is the sum over its living soldiers (attacking), its defense the sum over its living soldiers (defending); see Section 2.1.
 - **GUARD is the chance to guard** [DECIDED]: when a guard activates it reduces damage by 50%. GUARD UP adds 50 to the GUARD stat.
 - Defense stat follows the skill's damage type (physical → DEF, magical → MDEF). Skills may override.
@@ -272,7 +278,7 @@ Order: select target (a hit on a squad is resolved once against the summed defen
   - `hit% = clamp(HIT + hit_bonus - EVA + (attacker SKL - defender SKL)/4, 70, 100)` [DECIDED narrow band]. `hit_bonus` = the skill's `hit_bonus_percent` + the class-advantage HIT. EVA includes the Flyer's melee evasion bonus when the attack is melee (Section 3.1).
   - `crit% = clamp(CRIT - defender GUARD + (attacker SKL - defender SKL)/4, 0, 100)` [DECIDED]. Cap 100 is deliberately hard to reach and build-altering. CRIT default 30 stays.
   - `guard% = clamp(GUARD + defender SKL/4, 0, 75)` (unchanged; a guard halves damage). **GUARD therefore has a dual role** (lowers enemy crit chance and feeds its own guard roll) [DECIDED]: kept for now, to be re-checked in the batch simulator.
-- **Guard and damage reduction stack multiplicatively** (0.5 × 0.5 = 0.25) with a total-reduction cap of 75% [DEFAULT]. "Ignores guard" skips only the GUARD stat roll, not other reductions, unless the skill says otherwise.
+- **Guard and damage reduction** [DEFAULT]: under `pool` they add into the reduction part of the pool (50% + 30% = 80%, capped at 75% net of bonuses); under the older formulas they stack multiplicatively (0.5 × 0.5 = 0.25), same 75% cap. "Ignores guard" skips only the GUARD stat roll, not other reductions, unless the skill says otherwise.
 - **No damage variance** [DECIDED]: damage is deterministic given a hit and a crit; randomness comes only from the hit, crit, guard and evasion rolls (seeded), which are intentional variance.
 
 ---
@@ -378,23 +384,24 @@ Rules [DEFAULT] (Decision 125):
 Designer rule: all equipment of one type has the same base stats; types differ from each other (all swords share a base and differ only by their effects; swords differ from daggers; heavy armor differs from light armor). Accessories come in categories, one category = one stat block. Inspiration: Unicorn Overlord, Langrisser. Basic stat-increase items for now; damage is balanced later through skills.
 - An item's flat stat lines are its type's base, `rules.yaml equipment_bases` (every type required). Items never author stat lines; what makes a named item special is its `pp_modifiers` and `effects`. Cost prices the base like any stat line.
 - **Exception rule**: bases stay on HP, ATK, INT, DEF and MDEF. Another stat appears only as a type identity that balances against a smaller primary line: dagger CRIT (assassin crit), heavy armor SPD -5 (weight), shield GUARD (guard), boots SPD (mobility).
-- Starting table [DEFAULT], scaled to a P = 100 hero (Section 3.3):
+- Table [DEFAULT], scaled to a P = 100 hero (Section 3.3), retuned by Decision 135:
+- **Retune rationale** (designer 2026-11, Decision 135): the designer asked for weapons "roughly 3x" with the sword anchored at ATK 150 / DEF 24; the anchor set weapon ATK at 5x the previous base table (sword ATK 30), secondary weapon lines about 3x. ATK is the strongest stat under the `pool` formula. Defensive gear's main line is about 1/3 to 1/2 of a weapon's main line (light armor DEF 50 vs sword ATK 150) while its raw stat total is a bit higher (light armor 220 vs sword 174), because ATK is worth more than DEF and HP. Defensive accessories (shield, bracelet, belt, cloak, amulet) are about 2x, kept modest, so a high DEF is a deliberate build: a P = 100 infantry with heavy armor + shield + bracelet reaches DEF 200, a normal kit (light armor) about 120, both below a P = 100 attacker's sword ATK 250. Offensive accessories scale with weapons (gloves ATK 50 = 1/3 of a sword). CRIT / GUARD / SPD identities unchanged.
 
 | type | base | type | base |
 |---|---|---|---|
-| sword | ATK 30, DEF 8 | heavy_armor | HP 150, DEF 22, MDEF 6, SPD -5 |
-| axe | ATK 40 | light_armor | HP 100, DEF 14, MDEF 10 |
-| spear | ATK 32, HP 50 | robe | HP 70, DEF 6, MDEF 20 |
-| hammer | ATK 34, DEF 6, MDEF 6 | shield | HP 40, DEF 12, GUARD 5 |
-| bow | ATK 32 | gloves | ATK 12 |
-| dagger | ATK 24, CRIT 10 | boots | HP 30, SPD 5 |
-| staff | INT 24, MDEF 12, HP 30 | ring | INT 12 |
-| tome | INT 34 | amulet | MDEF 14, HP 20 |
-| | | charm | HP 60 |
-| | | bracelet | DEF 12 |
-| | | earring | ATK 6, INT 6 |
-| | | cloak | DEF 6, MDEF 10 |
-| | | belt | HP 40, DEF 6 |
+| sword | ATK 150, DEF 24 | heavy_armor | HP 220, DEF 70, MDEF 15, SPD -5 |
+| axe | ATK 200 | light_armor | HP 150, DEF 50, MDEF 20 |
+| spear | ATK 160, HP 150 | robe | HP 100, DEF 20, MDEF 60 |
+| hammer | ATK 170, DEF 18, MDEF 18 | shield | HP 60, DEF 25, GUARD 5 |
+| bow | ATK 160 | gloves | ATK 50 |
+| dagger | ATK 120, CRIT 10 | boots | HP 60, SPD 5 |
+| staff | INT 120, MDEF 36, HP 90 | ring | INT 50 |
+| tome | INT 170 | amulet | MDEF 30, HP 40 |
+| | | charm | HP 120 |
+| | | bracelet | DEF 25 |
+| | | earring | ATK 25, INT 25 |
+| | | cloak | DEF 12, MDEF 25 |
+| | | belt | HP 80, DEF 12 |
 - A schema-driven in-game editor generates dropdowns for stats, tags, conditions and references, and validates IDs, duplicates and missing fields before a battle.
 - Build order for the editor: **tactics board first**, then skills, equipment, characters.
 
@@ -586,6 +593,8 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 131 | Stat guideline (rebalance) | DECIDED rules, DEFAULT factors | Stats relative to a primary stat P (ATK, INT for casters): HP 5-10 x P, ATK 1 x P, INT 1 x P if used, DEF/MDEF 0.4-0.8 x P, SKL 0.1-0.3 x P, SPD foot 30-50 / mounted 50-70, HIT 100, CRIT/GUARD/EVA baselines kept. Generic heroes P = 100 (factor table in Section 3.3); Leon P 115, The Emperor P 100, Jasmine P 100 (INT), Lief P 90. Soldiers ~0.15 x a P=100 hero of their class (Heavy types 0.17 for HP/ATK/DEF), rate stats unchanged, HIT 90 (Bowmen 95). Damage formula, skills, equipment and rules constants unchanged |
 | 132 | INT/MDEF pairing | DEFAULT (meaning of a designer rule) | "Skills or auras boosting ATK or DEF should also apply to INT and MDEF": a modify_stat on ATK (DEF) from a skill status (active / passive / soldier category), a leader aura or a soldier skill also applies to INT (MDEF), same mode and value, buffs and debuffs alike, unless that source already names the paired stat. Not for equipment lines, item effects, blessings or terrain. Shown as a normal breakdown entry of the same category (Section 9.1) |
 | 133 | Equipment type standard | DECIDED rule, DEFAULT values | "All equipment of one type has the same base stats; types differ from each other." An item has exactly one type (weapon type, armor type or accessory category: shield, gloves, boots, ring, amulet, charm, bracelet, earring, cloak, belt; replaces `none`); its flat stat lines are `rules.equipment_bases[type]` and items no longer author `stat_modifiers`. Named items differ by pp_modifiers and effects. Bases stay on HP/ATK/INT/DEF/MDEF except type identities (dagger CRIT, heavy armor SPD -5, shield GUARD, boots SPD). Table in Section 12.1. Existing items re-typed; their old stat lines dropped (kept in `meta.pre_standard_stats`) |
+| 134 | Additive-pool damage, hero hits, Speed Boots | DECIDED formula shape, DEFAULT values | "ATK (from all sources) - DEF (from all sources) x (DMG bonus - DMG reduction)": `pool` formula, `(ATK_total - DEF_total) x (1 + bonus% - reduction%)`, class advantage / pair / bonus_vs_class / bonus_on_terrain in the bonus part, guard and reduce_damage in the reduction part, cap 75%, crit after (Section 8). "Heroes hit for 4x to begin with": `rules.damage.hero_hits` 4 multiplies hero damage (not squads, not heals), sweepable. Older formulas kept selectable. equip_006 Speed Ring re-typed to boots as Speed Boots |
+| 135 | Equipment base retune | DEFAULT values (designer guide) | "Increase weapon stats by roughly 3x, then defence gear roughly 1/3 - 1/2 of weapons; sword ATK 150 DEF 24, Leather Armour (light_armor) DEF 50 HP 150. Armour should give a better stat total, ATK is just very powerful. Building up a high defence should be an intentional build." The designer asked "roughly 3x" with the sword anchored at ATK 150 / DEF 24; the anchor set weapon ATK at 5x the previous base table (sword ATK 30), weapon secondary lines ~3x; armor main defensive line 1/3-1/2 of a weapon line with a slightly higher raw total; offensive accessories scale with weapons; defensive accessories about 2x, kept modest, so stacking DEF is deliberate; CRIT / GUARD / SPD identities unchanged. Table in Section 12.1 |
 
 ---
 
@@ -636,7 +645,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - Prayer-category effects multiply with passive, active, equipment and soldier effects; 2 and 4 same-god sigils unlock the 2-piece and 4-piece blessing tiers (when devotion is built).
 - The combat log shows a per-stat breakdown naming the winning and suppressed effects.
 - The batch simulator output includes challenger win rate and timeout rate.
-- Class advantage and skill bonuses apply to power x multiplier before defense is subtracted. Slice test (bare Leon vs bare Emperor, DEF 50): Charging Assault 70 x 1.2 x 1.25 = 105 - 50 = 55; Thousand Azure Hooves 157.5 - 50 -> 107. Step-3 test (Section 3.3 stats, Leon ATK 115 vs a Dragon-Scale Emperor, DEF 92): 80 and 166; as leader with Empire's Dominion (DEF 110.4): 62 and 148.
+- Class advantage and skill bonuses apply to power x multiplier before defense is subtracted. Slice test (bare Leon vs bare Emperor, DEF 50): Charging Assault 70 x 1.2 x 1.25 = 105 - 50 = 55; Thousand Azure Hooves 157.5 - 50 -> 107. Step-3 test (Section 3.3 stats, Leon ATK 115 vs a Dragon-Scale Emperor, DEF 140 with the Decision 135 heavy armor base): 32 and 118; as leader with Empire's Dominion (DEF 168): 4 and 90.
 - crit% = clamp(CRIT - defender GUARD + (attacker SKL - defender SKL)/4, 0, 100): raising the defender's GUARD lowers crit chance; GUARD still rolls its own guard (clamp 0..75) independently.
 - Area statuses (row, party, field) skip soldiers unless the effect sets `include_soldiers: true`.
 - `squad_row` is optional on a roster entry (falls back to the soldier type's `default_soldier_row`) and the resolved row must be one of the soldier type's allowed rows.

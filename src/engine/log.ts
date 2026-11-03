@@ -69,6 +69,8 @@ export type BattleEvent =
   | ({
       type: "damage"; unit: string; target: string; skill: string; power: number; defense: number; base: number; crit: boolean; guard: boolean;
       amount: number; hp_before: number; hp_after: number; reductions?: number[]; spill?: boolean;
+      /** pool formula: summed bonus %, summed reduction % (guard + reduce_damage), the capped pool factor. hero_hits: the multiplier, when not 1. */
+      bonus?: number; reduction?: number; pool?: number; hero_hits?: number;
     } & SoldierRef & Stamp)
   | ({ type: "heal"; unit: string; target: string; skill: string; amount: number; applied: number; hp_before: number; hp_after: number; share?: number; revived?: number } & Stamp)
   | ({ type: "status_applied"; unit: string; status: string; category: string; source: string; remaining: number | null; notes: string[] } & Stamp)
@@ -196,7 +198,7 @@ export function renderLog(events: BattleEvent[]): string {
         out.push(`${tag(e)}   roll ${e.kind} ${U(e.unit)}${by(e)} -> ${U(e.target)}${sol(e)}: chance ${e.chance}%${e.roll === null ? "" : `, rolled ${e.roll}`} => ${e.result ? (e.kind === "hit" ? "HIT" : "yes") : e.kind === "hit" ? "MISS" : "no"}${e.note ? ` (${e.note})` : ""}`);
         break;
       case "damage":
-        out.push(`${tag(e)}   ${U(e.unit)}${by(e)} deals ${e.amount} to ${U(e.target)}${sol(e)}${e.spill ? " (overflow)" : ""} (power ${e.power}, defense ${e.defense}, base ${e.base}${e.crit ? ", crit" : ""}${e.guard ? ", guarded" : ""}${e.reductions ? `, reduced ${e.reductions.map((r) => `${r}%`).join(" ")}` : ""}) HP ${e.hp_before} -> ${e.hp_after}`);
+        out.push(`${tag(e)}   ${U(e.unit)}${by(e)} deals ${e.amount} to ${U(e.target)}${sol(e)}${e.spill ? " (overflow)" : ""} (power ${e.power}, defense ${e.defense}, base ${e.base}${e.crit ? ", crit" : ""}${e.guard ? ", guarded" : ""}${e.reductions ? `, reduced ${e.reductions.map((r) => `${r}%`).join(" ")}` : ""}${e.pool !== undefined ? `, bonus ${e.bonus! >= 0 ? "+" : ""}${e.bonus}% reduction ${e.reduction}% -> x${e.pool}` : ""}${e.hero_hits !== undefined ? `, x${e.hero_hits} hero hits` : ""}) HP ${e.hp_before} -> ${e.hp_after}`);
         break;
       case "heal":
         out.push(`${tag(e)}   ${U(e.unit)} heals ${U(e.target)} for ${e.applied} (${e.amount} before cap${e.share === undefined ? "" : `; ${e.share} per soldier, ${e.revived} revived`}) HP ${e.hp_before} -> ${e.hp_after}`);

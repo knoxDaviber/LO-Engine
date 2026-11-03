@@ -7,7 +7,7 @@ import { parse, stringify } from "yaml";
 import { z } from "zod/v4";
 import { resolveDraft } from "../src/draft";
 import { equipmentStats, equipmentType } from "../src/equipmentBase";
-import { parseFormula, PP_OVERRIDE_MAX } from "../src/cliBattle";
+import { parseFormula, parseHeroHits, PP_OVERRIDE_MAX } from "../src/cliBattle";
 import { allBreakdowns, preBattleState, renderLog, runBattle, type BattleOptions } from "../src/engine";
 import { LEAF_REFS, LEAF_REGISTRY } from "../src/registry/conditions";
 import { isRosterBattle, parseBattleInput, ROWS, SELECTORS, STATS, TACTIC_FALLBACKS, type Battle } from "../src/schema";
@@ -165,10 +165,17 @@ export function createApi(contentDir = "content") {
     return { formula: r.option };
   }
 
+  /** The engine's hero_hits option from a request's optional `hero_hits` (a positive finite number, as the CLI flag); absent / null = rules.yaml; 400 otherwise. */
+  function heroHitsOption(hh: unknown): BattleOptions {
+    if (hh === undefined || hh === null) return {};
+    if (typeof hh !== "number" || !Number.isFinite(hh) || hh <= 0) throw new ApiError(400, "hero_hits must be a positive finite number");
+    return { heroHits: hh };
+  }
+
   /** Section 9.1 breakdown of every hero and squad after the pre-battle steps of `phase` (edits applied; HP is not carried over). */
-  function breakdown(battle: unknown, phase = 1, pp?: unknown, formula?: unknown): BreakdownResult {
+  function breakdown(battle: unknown, phase = 1, pp?: unknown, formula?: unknown, heroHits?: unknown): BreakdownResult {
     if (![1, 2, 3].includes(phase)) throw new ApiError(400, "phase must be 1, 2 or 3");
-    const opts = { ...ppOption(pp), ...formulaOption(formula) };
+    const opts = { ...ppOption(pp), ...formulaOption(formula), ...heroHitsOption(heroHits) };
     const input = checked(battle);
     let fielded: Battle;
     if (isRosterBattle(input)) {
@@ -186,8 +193,8 @@ export function createApi(contentDir = "content") {
     };
   }
 
-  function sim(battle: unknown, pp?: unknown, formula?: unknown): SimResult {
-    const opts = { ...ppOption(pp), ...formulaOption(formula) };
+  function sim(battle: unknown, pp?: unknown, formula?: unknown, heroHits?: unknown): SimResult {
+    const opts = { ...ppOption(pp), ...formulaOption(formula), ...heroHitsOption(heroHits) };
     const result = runBattle(p, checked(battle), opts);
     return { winner: result.winner, reason: result.reason, log: renderLog(result.events), events: result.events as SimResult["events"] };
   }
@@ -214,8 +221,8 @@ export function createApi(contentDir = "content") {
         case "GET /api/catalog": return { status: 200, json: catalog() };
         case "GET /api/file": return { status: 200, json: file(u.searchParams.get("path")) };
         case "POST /api/validate": return { status: 200, json: validate(b.battle) };
-        case "POST /api/breakdown": return { status: 200, json: breakdown(b.battle, b.phase ?? 1, b.pp, b.formula) };
-        case "POST /api/sim": return { status: 200, json: sim(b.battle, b.pp, b.formula) };
+        case "POST /api/breakdown": return { status: 200, json: breakdown(b.battle, b.phase ?? 1, b.pp, b.formula, b.hero_hits) };
+        case "POST /api/sim": return { status: 200, json: sim(b.battle, b.pp, b.formula, b.hero_hits) };
         case "POST /api/save": return { status: 200, json: save(b.path, b.battle, b.overwrite === true) };
         default: return { status: 404, json: { error: `no route ${route}` } };
       }

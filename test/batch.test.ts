@@ -106,7 +106,13 @@ test("formula sweep: every (formula, pp) combination with the same run seeds; fo
   const r = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", "--runs=1", "--formula=subtract,ratio", "--json"], { cwd: process.cwd(), encoding: "utf-8" });
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(JSON.parse(r.stdout).sweeps[0].combinations.map((c: any) => c.formula), ["subtract", "ratio"]);
-  for (const extra of [["--formula=ratio,ratio"], ["--formula=x"], ["--formula"], ["--runs=1", "--runs=2"], ["--seed=1", "--seed=2"], ["--formula=ratio", "--formula=subtract"], ["--pp-passive=2", "--pp-passive=3"]]) {
+  const h = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", "--runs=1", "--formula=pool", "--hero-hits=1,4", "--pp-active=2,3", "--json"], { cwd: process.cwd(), encoding: "utf-8" });
+  assert.equal(h.status, 0, h.stderr);
+  assert.deepEqual(JSON.parse(h.stdout).sweeps[0].combinations.map((c: any) => `${c.formula}/${c.hero_hits}/${c.pp.active}`), ["pool/1/2", "pool/1/3", "pool/4/2", "pool/4/3"]);
+  const hw = runSweep(pack, battle, "sample.yaml", 1, 1, [undefined], [undefined], [undefined], [1, 4]);
+  assert.deepEqual(hw.combinations[0]!.report, runMatchup(pack, battle, "sample.yaml", 1, 1, { heroHits: 1 }));
+  assert.match(renderSweep([hw], 1), /hero hits\s+pp active.*dmg chal\s+dmg def/);
+  for (const extra of [["--hero-hits=1,1"], ["--hero-hits=0"], ["--hero-hits"], ["--hero-hits=1", "--hero-hits=2"], ["--formula=ratio,ratio"], ["--formula=x"], ["--formula"], ["--runs=1", "--runs=2"], ["--seed=1", "--seed=2"], ["--formula=ratio", "--formula=subtract"], ["--pp-passive=2", "--pp-passive=3"]]) {
     const b = spawnSync("npx", ["tsx", "src/batch.ts", "content/battles/sample.yaml", ...extra], { cwd: process.cwd(), encoding: "utf-8" });
     assert.equal(b.status, 2, extra.join(" "));
   }

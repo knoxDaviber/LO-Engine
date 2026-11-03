@@ -188,7 +188,11 @@ test("challenger edits: locked fields rejected with E_EDIT_LOCKED; bad phase / h
 });
 
 test("edits apply from their phase on; a named leader replaces a dead leader only", () => {
-  const r = runBattle(realPack(), parse(draftRaw()));
+  const soft = realPack();
+  // Pin hero_hits to 1: under the content formula (hero_hits 4) with the Decision 135 equipment bases, the Infantry (char_005) dies in
+  // phase 1 of draft_city, before its phase-2 edited sheet applies, so there would be no phase-2/3 tactic evaluation to check.
+  soft.rules.damage.hero_hits = 1;
+  const r = runBattle(soft, parse(draftRaw()));
   const firstEval = (phase: number) => r.events.find((e) => e.type === "tactic_evaluation" && e.unit === "char_005" && e.phase === phase);
   const ev = (p: number) => { const e = firstEval(p); return e && e.type === "tactic_evaluation" ? e.evaluations[0]!.skill : null; };
   assert.equal(ev(1), "skl_004");

@@ -1,12 +1,19 @@
 # rules.yaml: every tunable constant in one place. The engine and validator read this; nothing is hard-coded elsewhere.
 # Values marked "placeholder" are expected to change after batch-simulator testing.
 
-# Damage base step (power = coef * stat * multiplier * matchup vs the defender's defense); crit, guard, reductions and min_damage come after,
-# unchanged by the formula. No variance. [DEFAULT] subtract until the designer chooses (compare with: npm run batch -- ... --formula=...).
+# Damage (design Section 8). No variance. [DEFAULT] pool (designer, 2026-11): damage = (ATK_total - DEF_total) x (1 + DMG bonus% - DMG reduction%).
+#   pool             core = max(min_damage, power - defense), power = coef * stat * multiplier (every stat modifier included);
+#                    pool = 1 + (class advantage/disadvantage %, pair damage_percent, bonus_vs_class %, bonus_on_terrain %)
+#                             - (guard damage_reduction_percent when it activates, reduce_damage %), at least 1 - total_reduction_cap_percent/100;
+#                    amount = max(min_damage, floor(core * pool * crit))
+#   The older formulas (compare with: npm run batch -- ... --formula=...) multiply the matchup into power, then crit, then guard/reductions
+#   multiplicatively (capped), each floored:
 #   subtract         base = max(min_damage, power - defense)
 #   ratio            base = max(min_damage, power * ratio_k / (ratio_k + defense))           defense ratio_k halves the damage
 #   scaled_subtract  base = max(min_damage, power * floor_pct / 100, power - defense * def_weight)   never below floor_pct of power
-damage:   { min_damage: 1, crit_multiplier: 1.5, formula: subtract, ratio_k: 100, floor_pct: 20, def_weight: 1 }
+# hero_hits [DEFAULT 4]: a hero's damage (actives, passives, reactions, item effects; any formula) is multiplied by it at the very end (floored, at
+# least min_damage). Squads already sum their 10 soldiers and are unaffected; heals are unaffected. What-if: --hero-hits=N (sim), lists on batch.
+damage:   { min_damage: 1, crit_multiplier: 1.5, formula: pool, ratio_k: 100, floor_pct: 20, def_weight: 1, hero_hits: 4 }
 guard:    { damage_reduction_percent: 50, total_reduction_cap_percent: 75 }
 matchup:  { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -15 }
 timeline: { interval_constant: 1000, min_spd: 5 }                                  # interval = round(constant / max(SPD, min_spd))
@@ -49,28 +56,30 @@ limits:                             # hard caps. null = not enforced yet
 # Equipment type standard (Decision 133) [DEFAULT values, scaled to a P = 100 hero]: every item of a type has these flat stat lines; items differ
 # only by pp_modifiers and effects. Every type needs an entry (stats left out are 0). Bases stay on HP / ATK / INT / DEF / MDEF; the few other
 # stats are type identities that balance against a smaller primary line: dagger CRIT, heavy armor SPD -5, shield GUARD, boots SPD.
+# Retune (designer 2026-11, Decision 135): weapons carry the big offensive line (sword ATK 150); defensive gear's main line is ~1/3-1/2 of a
+# weapon's (light armor DEF 50) but its raw total is a bit higher; defensive accessories about 2x, kept modest, so a high DEF is a deliberate build.
 equipment_bases:
-  sword:       { ATK: 30, DEF: 8 }
-  axe:         { ATK: 40 }
-  spear:       { ATK: 32, HP: 50 }
-  hammer:      { ATK: 34, DEF: 6, MDEF: 6 }
-  bow:         { ATK: 32 }
-  dagger:      { ATK: 24, CRIT: 10 }
-  staff:       { INT: 24, MDEF: 12, HP: 30 }
-  tome:        { INT: 34 }
-  heavy_armor: { HP: 150, DEF: 22, MDEF: 6, SPD: -5 }
-  light_armor: { HP: 100, DEF: 14, MDEF: 10 }
-  robe:        { HP: 70, DEF: 6, MDEF: 20 }
-  shield:      { HP: 40, DEF: 12, GUARD: 5 }
-  gloves:      { ATK: 12 }
-  boots:       { HP: 30, SPD: 5 }
-  ring:        { INT: 12 }
-  amulet:      { MDEF: 14, HP: 20 }
-  charm:       { HP: 60 }
-  bracelet:    { DEF: 12 }
-  earring:     { ATK: 6, INT: 6 }
-  cloak:       { DEF: 6, MDEF: 10 }
-  belt:        { HP: 40, DEF: 6 }
+  sword:       { ATK: 150, DEF: 24 }
+  axe:         { ATK: 200 }
+  spear:       { ATK: 160, HP: 150 }
+  hammer:      { ATK: 170, DEF: 18, MDEF: 18 }
+  bow:         { ATK: 160 }
+  dagger:      { ATK: 120, CRIT: 10 }
+  staff:       { INT: 120, MDEF: 36, HP: 90 }
+  tome:        { INT: 170 }
+  heavy_armor: { HP: 220, DEF: 70, MDEF: 15, SPD: -5 }
+  light_armor: { HP: 150, DEF: 50, MDEF: 20 }
+  robe:        { HP: 100, DEF: 20, MDEF: 60 }
+  shield:      { HP: 60, DEF: 25, GUARD: 5 }
+  gloves:      { ATK: 50 }
+  boots:       { HP: 60, SPD: 5 }
+  ring:        { INT: 50 }
+  amulet:      { MDEF: 30, HP: 40 }
+  charm:       { HP: 120 }
+  bracelet:    { DEF: 25 }
+  earring:     { ATK: 25, INT: 25 }
+  cloak:       { DEF: 12, MDEF: 25 }
+  belt:        { HP: 80, DEF: 12 }
 
 cost:                               # computed, never authored. All placeholders until the gauntlet calibrates them.
   stat_weights: { HP: 0.1, ATK: 1.0, INT: 1.0, DEF: 0.8, MDEF: 0.8, SPD: 1.2, HIT: 0.5, SKL: 0.5, CRIT: 0.5, GUARD: 0.5, EVA: 0.5 }
