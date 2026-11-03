@@ -65,6 +65,13 @@ label { display: inline-flex; gap: var(--space-1); align-items: center; }
   background: var(--panel); border-bottom: 1px solid var(--line);
 }
 .top .status { font-size: var(--fs-sm); }
+/* static hosted build (client.ts HOSTED) */
+.rail .badge { align-self: flex-start; margin: 0 var(--space-2) var(--space-3); padding: 0 var(--space-2); font-size: var(--fs-xs); color: var(--accent); background: var(--accent-soft); border-radius: var(--radius); }
+.top .note { font-size: var(--fs-xs); }
+.filebtn { position: relative; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 3px var(--space-3); background: var(--panel); cursor: pointer; }
+.filebtn:hover { background: var(--panel-2); border-color: var(--muted); }
+.filebtn:focus-within { outline: 2px solid var(--accent); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 main#main { padding: var(--space-4); outline: none; min-width: 0; }
 .loading, .empty { padding: var(--space-5); color: var(--muted); }
 

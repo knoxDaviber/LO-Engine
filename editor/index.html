@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tactics Editor</title>
+    <script>
+      // Hosted build: /LO-Engine without the trailing slash would resolve the relative ./assets against the site root.
+      if (!location.pathname.endsWith("/") && !/\.html?$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);
+    </script>
   </head>
   <body>
     <div id="root"></div>

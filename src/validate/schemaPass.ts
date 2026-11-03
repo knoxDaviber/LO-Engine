@@ -1,5 +1,5 @@
 import type { ZodType } from "zod/v4";
-import { FILES, type RawPack } from "../load";
+import { FILES, type RawPack } from "../content";
 import {
   characterSchema,
   equipmentSchema,

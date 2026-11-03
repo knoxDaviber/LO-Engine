@@ -1,5 +1,6 @@
-// Vite dev server for the local editor (npm run editor). The `editor-api` plugin mounts editor/api.ts as middleware under /api, so the
-// validator and engine run in Node; the browser only renders.
+// Vite config for both editor modes. Local (npm run editor): the dev server's `editor-api` plugin mounts editor/api.ts as middleware under
+// /api, so the validator and engine run in Node; the browser only renders. Static (npm run editor:build = vite build --mode static): a
+// relative-base build into editor/dist for GitHub Pages, where client.ts runs editor/core.ts in the browser over the bundled content.
 import type { IncomingMessage } from "node:http";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
@@ -61,4 +62,10 @@ function editorApi(): Plugin {
   };
 }
 
-export default defineConfig({ root, plugins: [react(), editorApi()], server: { port: PORT, strictPort: true, host: "127.0.0.1" } });
+export default defineConfig(({ mode }) => ({
+  root,
+  base: mode === "static" ? "./" : "/", // relative, so the build works under https://<user>.github.io/LO-Engine/
+  plugins: [react(), editorApi()],
+  server: { port: PORT, strictPort: true, host: "127.0.0.1" },
+  build: { outDir: "dist", emptyOutDir: true },
+}));

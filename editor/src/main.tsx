@@ -1,11 +1,12 @@
 // Local editor shell: side navigation (Battle / Units / Log, hash routes), theme, the pins strip above every page, and the battle state all
 // pages render from. Content and catalog are fetched once at startup; switching pages never refetches. All validation and simulation happens
-// on the server (editor/api.ts).
+// in editor/core.ts: on the server (editor/api.ts) locally, in-process in the static hosted build (client.ts HOSTED).
 import { StrictMode, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { parse } from "yaml";
 import type { ApiIssue, BreakdownResult, Catalog, ContentInfo, PpOverride, SimResult } from "../apiTypes";
 import { FORMULA_CHOICES, HERO_HITS_CHOICES } from "../apiTypes";
-import { get, post, RequestError } from "./client";
+import { get, HOSTED, post, RequestError } from "./client";
 import { FormationBoard } from "./Formation";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { CatalogProvider } from "./Hint";
@@ -125,6 +126,23 @@ function App() {
     }
   };
 
+  /** Hosted build: load a battle YAML from the user's computer (e.g. one saved earlier by download). Save will download it under the same name. */
+  const openLocal = async (f: File | undefined) => {
+    if (!f) return;
+    try {
+      const data = parse(await f.text()) as Json;
+      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("not a battle (expected a YAML mapping)");
+      const name = f.name.replace(/\.ya?ml$/i, "").replace(/[^A-Za-z0-9_.-]/g, "_").replace(/^[.]+/, "") || "battle";
+      setBattle(data);
+      setPath(`battles/${name}.yaml`);
+      setSim(null);
+      setSelected(null);
+      setStatus(`loaded ${f.name} from your computer`);
+    } catch (e) {
+      setStatus(`cannot open ${f.name}: ${(e as Error).message}`);
+    }
+  };
+
   /** Roster form: replace a side's roster with a content/rosters file (draft picks and edits are kept). */
   const importRoster = async (side: string, p: string) => {
     if (!p) return;
@@ -163,7 +181,7 @@ function App() {
   const save = async (overwrite = false) => {
     try {
       const r = await post<{ path: string }>("/api/save", { path, battle, overwrite });
-      setStatus(`saved ${r.path}`);
+      setStatus(HOSTED ? `downloaded ${r.path.split("/").pop()}` : `saved ${r.path}`);
       refreshContent();
     } catch (e) {
       if (e instanceof RequestError && e.status === 409 && !overwrite) {
@@ -280,6 +298,7 @@ function App() {
           <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}>Skip to content</a>
           <nav className="rail" aria-label="Pages">
             <div className="brand">Tactics editor</div>
+            {HOSTED && <span className="badge" title="Content is bundled into this page and cannot be changed here; save downloads the battle YAML">hosted (read-only content)</span>}
             {ROUTES.map((r) => (
               <a key={r} className="navlink" href={`#/${r}`} aria-current={route === r ? "page" : undefined}>
                 {NAV[r].label}<kbd title={`press g then ${NAV[r].key}`}>g {NAV[r].key}</kbd>
@@ -302,11 +321,16 @@ function App() {
                     <option value="">open file...</option>
                     {c.files.battles.map((f) => <option key={f}>{f}</option>)}
                   </select>
+                  {HOSTED && (
+                    <label className="filebtn">open local file
+                      <input type="file" accept=".yaml,.yml" onChange={(e) => { void openLocal(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                  )}
                   <button onClick={() => { setBattle(newBattle(c)); setPath("battles/new_battle.yaml"); setSim(null); setSelected(null); setStatus("new battle"); }}>new battle</button>
                   {battle && (
                     <>
                       <input className="path" aria-label="file path" value={path} onChange={(e) => setPath(e.target.value)} />
-                      <button onClick={() => save()} disabled={pending || errors > 0}>save</button>
+                      <button onClick={() => save()} disabled={pending || errors > 0} title={HOSTED ? "Downloads the YAML file" : undefined}>{HOSTED ? "save (download)" : "save"}</button>
                       <button className="primary" onClick={run} disabled={pending || errors > 0 || ppBad} title={ppBad ? "PP override must be blank or 0-10" : undefined}>run sim</button>
                     </>
                   )}
@@ -318,6 +342,7 @@ function App() {
                   ))}
                 </>
               )}
+              {HOSTED && route === "battle" && <span className="muted note">The hosted editor saves by download; open local file loads it back.</span>}
               {route !== "battle" && battle && <span className="muted">{battle.battle_id ?? path}</span>}
               <span className="muted status" role="status">{status}</span>
             </header>

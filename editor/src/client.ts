@@ -1,5 +1,11 @@
-// Fetch helpers for the editor API (editor/api.ts, mounted by the Vite plugin).
+// Request helpers for the editor API. Local editor (npm run editor): fetch against editor/api.ts, mounted by the Vite plugin. Static build
+// (vite build --mode static, GitHub Pages): the same requests go in-process to editor/core.ts (staticApi.ts), with the same response shapes
+// and error statuses.
 import type { ApiIssue } from "../apiTypes";
+import type { Core } from "../core";
+
+/** True in the static (hosted) build: content is bundled read-only and save downloads the file. */
+export const HOSTED = import.meta.env.MODE === "static";
 
 export class RequestError extends Error {
   constructor(message: string, public issues: ApiIssue[] = [], public status = 0) {
@@ -7,7 +13,19 @@ export class RequestError extends Error {
   }
 }
 
+let core: Promise<Core> | undefined;
+
+/** The static build's in-process call. Body and result go through JSON like a real request, so nothing is shared with the UI's state. */
+async function local<T>(method: "GET" | "POST", url: string, body?: unknown): Promise<T> {
+  const api = await (core ??= import("./staticApi").then((m) => m.core));
+  const out = api.handle(method, url, body === undefined ? undefined : JSON.parse(JSON.stringify(body)));
+  const json: any = out.json === undefined ? null : JSON.parse(JSON.stringify(out.json));
+  if (out.status >= 400) throw new RequestError(json?.error ?? `request failed (${out.status})`, json?.issues ?? [], out.status);
+  return json as T;
+}
+
 async function call<T>(method: "GET" | "POST", url: string, body?: unknown): Promise<T> {
+  if (HOSTED) return local<T>(method, url, body);
   const res = await fetch(url, {
     method,
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },

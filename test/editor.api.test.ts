@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { parse } from "yaml";
 import { createApi, requestGuard } from "../editor/api";
+import { readContentTexts } from "../src/load";
 
 const api = createApi("content");
 const battle = (name: string) => parse(readFileSync(`content/battles/${name}`, "utf-8"));
@@ -163,5 +164,54 @@ test("editor api: an optional hero_hits override reaches the sim and breakdown; 
   for (const hero_hits of [0, -1, "4", Infinity, Number.NaN, [4], { n: 4 }]) {
     assert.equal(api.handle("POST", "/api/sim", { battle: battle("sample.yaml"), hero_hits }).status, 400, String(hero_hits));
     assert.equal(api.handle("POST", "/api/breakdown", { battle: battle("sample.yaml"), hero_hits }).status, 400, String(hero_hits));
+  }
+});
+
+test("editor api: dangling symlinks, missing folders and directories named *.yaml are 4xx without absolute paths", () => {
+  const dir = mkdtempSync(join(tmpdir(), "editor-"));
+  try {
+    cpSync("content", dir, { recursive: true });
+    const tmp = createApi(dir);
+    // A dangling link in battles/ pointing outside: save must not create the target, read must not follow it.
+    symlinkSync(join(dir, "outside.yaml"), join(dir, "battles/dangling.yaml"));
+    for (const overwrite of [false, true]) {
+      const r = tmp.handle("POST", "/api/save", { path: "battles/dangling.yaml", battle: battle("sample.yaml"), overwrite });
+      assert.equal(r.status, 400, `overwrite ${overwrite}`);
+    }
+    assert.ok(!existsSync(join(dir, "outside.yaml")), "the link target was not created");
+    assert.equal(tmp.handle("GET", "/api/file?path=battles/dangling.yaml", undefined).status, 400);
+    // A directory named like a battle file.
+    mkdirSync(join(dir, "battles/folder.yaml"));
+    assert.ok(!tmp.content().files.battles.includes("battles/folder.yaml"), "directories are not listed");
+    for (const r of [tmp.handle("GET", "/api/file?path=battles/folder.yaml", undefined), tmp.handle("POST", "/api/save", { path: "battles/folder.yaml", battle: battle("sample.yaml"), overwrite: true })]) {
+      assert.equal(r.status, 400);
+      assert.ok(!JSON.stringify(r.json).includes(dir), JSON.stringify(r.json));
+    }
+    // No rosters folder in content: a 404 naming only the relative folder.
+    const r = tmp.handle("GET", "/api/file?path=rosters/x.yaml", undefined);
+    assert.equal(r.status, 404);
+    assert.ok(!JSON.stringify(r.json).includes(dir), JSON.stringify(r.json));
+    rmSync(join(dir, "battles"), { recursive: true });
+    const s = tmp.handle("POST", "/api/save", { path: "battles/new.yaml", battle: battle("sample.yaml") });
+    assert.equal(s.status, 404);
+    assert.ok(!JSON.stringify(s.json).includes(dir), JSON.stringify(s.json));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("readContentTexts: unreadable battle entries are skipped and reported, not thrown", () => {
+  const dir = mkdtempSync(join(tmpdir(), "content-"));
+  try {
+    cpSync("content", dir, { recursive: true });
+    symlinkSync(join(dir, "nowhere.yaml"), join(dir, "battles/dangling.yaml"));
+    mkdirSync(join(dir, "battles/folder.yaml"));
+    const skipped: string[] = [];
+    const texts = readContentTexts(dir, (rel) => skipped.push(rel));
+    assert.deepEqual(skipped.sort(), ["battles/dangling.yaml", "battles/folder.yaml"]);
+    assert.ok(texts["battles/sample.yaml"]);
+    assert.equal(createApi(dir).handle("GET", "/api/content", undefined).status, 200);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

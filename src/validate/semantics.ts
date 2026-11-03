@@ -1,5 +1,5 @@
 import { blessingKind } from "../devotion";
-import { FILES } from "../load";
+import { FILES } from "../content";
 import { EFFECT_REGISTRY, OFFICIAL_ONLY_STATUS_FLAGS } from "../registry/effects";
 import { CANONICAL_ID, COUNTED_DURATIONS, SLOT_TAGS, type Effect } from "../schema";
 import type { Collector, Tier } from "../types";

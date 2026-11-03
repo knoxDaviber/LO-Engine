@@ -1,8 +1,8 @@
-name: Deploy game to GitHub Pages
+name: Deploy editor to GitHub Pages
 
 on:
   push:
-    branches: [main]      # change to master if that's your default branch
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,9 +22,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run editor:build   # static editor build (content bundled, runs fully in the browser) into editor/dist
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: editor    # the folder containing your Godot web export (must have index.html)
+          path: editor/dist
       - id: deployment
         uses: actions/deploy-pages@v4

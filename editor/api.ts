@@ -1,41 +1,13 @@
-// The editor's JSON API, run in Node by the Vite dev server (editor/vite.config.ts) and directly by test/editor.api.test.ts. The server is
-// authoritative: the browser never runs the validator or the engine. The content pack is loaded once per API instance (restart the editor
-// after editing content/*.yaml); battle and roster file lists are read fresh on every request.
-import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
-import { parse, stringify } from "yaml";
-import { z } from "zod/v4";
-import { resolveDraft } from "../src/draft";
-import { equipmentStats, equipmentType } from "../src/equipmentBase";
-import { parseFormula, parseHeroHits, PP_OVERRIDE_MAX } from "../src/cliBattle";
-import { allBreakdowns, preBattleState, renderLog, runBattle, type BattleOptions } from "../src/engine";
-import { LEAF_REFS, LEAF_REGISTRY } from "../src/registry/conditions";
-import { isRosterBattle, parseBattleInput, ROWS, SELECTORS, STATS, TACTIC_FALLBACKS, type Battle } from "../src/schema";
-import { Collector } from "../src/types";
-import { validateContent } from "../src/validate";
-import { validateBattle } from "../src/validate/battle";
-import type { Pack } from "../src/validate/pack";
-import { buildCatalog } from "./catalog";
-import type { ApiIssue, BreakdownResult, ContentInfo, SimResult } from "./apiTypes";
+// The editor's JSON API in Node, run by the Vite dev server (editor/vite.config.ts) and directly by test/editor.api.test.ts: editor/core.ts
+// over the content/ folder on disk. The server is authoritative in this mode: the browser never runs the validator or the engine. The content
+// pack is loaded once per API instance (restart the editor after editing content/*.yaml); battle and roster file lists are read fresh on every
+// request.
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, writeFileSync, type Stats } from "node:fs";
+import { join, resolve, sep } from "node:path";
+import { readContentTexts } from "../src/load";
+import { ApiError, createCore, type ContentStore } from "./core";
 
-export class ApiError extends Error {
-  constructor(public status: number, message: string, public issues?: ApiIssue[]) {
-    super(message);
-  }
-}
-
-/** Selector metrics the engine understands (engine/tactics.ts metricValue). */
-const METRICS = ["hp_percent", "hp_current", "hp_missing", "active_pp", "passive_pp", ...STATS];
-const FOLDERS = ["battles", "rosters"] as const;
-const FILE_RE = /^(battles|rosters)\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.yaml$/;
-
-/** `battles/x.yaml` or `rosters/x.yaml` (no subfolders, no `..`); anything else is a 400. Save allows only `battles/`. */
-export function checkPath(path: unknown, folders: readonly string[] = FOLDERS): string {
-  if (typeof path !== "string" || !FILE_RE.test(path) || path.includes("..") || !folders.includes(path.split("/")[0]!)) {
-    throw new ApiError(400, `path must be ${folders.map((f) => `${f}/<name>.yaml`).join(" or ")}`);
-  }
-  return path;
-}
+export { ApiError, checkPath } from "./core";
 
 export const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
@@ -56,182 +28,63 @@ export function requestGuard(method: string, headers: Record<string, string | st
 
 export function createApi(contentDir = "content") {
   const dir = resolve(contentDir);
-  const { pack, report } = validateContent(dir);
-  const contentErrors = report.issues.filter((i) => i.severity === "error" && !i.file?.startsWith("battles/") && !i.file?.startsWith("rosters/"));
-  if (!pack || contentErrors.length > 0) throw new Error(`content has validation errors: ${contentErrors.map((i) => i.code).join(", ")}`);
-  const p: Pack = pack;
 
-  const listFiles = (folder: string) => {
-    const d = join(dir, folder);
-    return existsSync(d) ? readdirSync(d).filter((n) => n.endsWith(".yaml")).sort().map((n) => `${folder}/${n}`) : [];
+  /** The leaf's own lstat (a symlink is not followed), or undefined when nothing is there. */
+  const lstat = (full: string): Stats | undefined => {
+    try {
+      return lstatSync(full);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw e;
+    }
   };
 
-  function issuesOf(battle: unknown): ApiIssue[] {
-    const c = new Collector();
-    validateBattle(battle, p, c, { file: "editor", tier: "official" });
-    return c.issues.map((i) => ({ severity: i.severity, code: i.code, path: i.path ?? "", ...(i.id ? { id: i.id } : {}), message: i.message }));
+  /**
+   * Checks `rel` before a read or write and returns what is there (undefined = nothing). The folder must exist inside content/ (symlinks
+   * resolved); the leaf must not be a symlink (dangling or not: writeFileSync would follow it) and, when present, must be a regular file.
+   * Messages name only the relative path.
+   */
+  function check(rel: string): Stats | undefined {
+    const name = rel.split("/")[0]!;
+    const folderPath = join(dir, name);
+    if (!existsSync(folderPath)) throw new ApiError(404, `content/${name} does not exist`);
+    const folder = realpathSync(folderPath);
+    if (!folder.startsWith(realpathSync(dir) + sep)) throw new ApiError(400, `${rel} resolves outside content/${name}`);
+    const st = lstat(join(dir, rel));
+    if (st?.isSymbolicLink()) throw new ApiError(400, `${rel} is a symlink; the editor only reads and writes plain files in content/${name}`);
+    if (st && !st.isFile()) throw new ApiError(400, `${rel} is not a file`);
+    return st;
   }
 
-  /** A battle with no validation errors, parsed; 422 with the issues otherwise. */
-  function checked(battle: unknown) {
-    const issues = issuesOf(battle);
-    const errors = issues.filter((i) => i.severity === "error");
-    if (errors.length > 0) throw new ApiError(422, `battle has ${errors.length} validation error(s)`, errors);
-    return parseBattleInput(battle);
-  }
-
-  function content(): ContentInfo {
-    const skill = (id: string) => p.byId.skills.get(id);
-    return {
-      characters: [...p.byId.characters.values()].map((ch) => ({
-        id: ch.id, name: ch.name, class: ch.class, preferred_row: ch.preferred_row,
-        skills: ch.skills.flatMap((id) => {
-          const s = skill(id);
-          return s ? [{ id, name: s.name, kind: s.category, pp_pool: s.pp_pool, pp_cost: s.pp_cost, trigger: s.trigger, shape: s.targeting.shape, side: s.targeting.side }] : [];
-        }),
-      })),
-      equipment: [...p.byId.equipment.values()].map((e) => ({
-        id: e.id, name: e.name, slot: e.slot, type: equipmentType(e) ?? null,
-        base: Object.fromEntries(Object.entries(equipmentStats(e, p.rules.equipment_bases)).filter(([, v]) => v !== 0)), eligible: e.eligible,
-      })),
-      gods: [...p.byId.gods.values()].map((g) => ({ id: g.id, name: g.name, blessing: g.blessing.name })),
-      soldiers: [...p.byId.soldiers.values()].map((s) => ({
-        id: s.id, name: s.name, class: s.class, default_soldier_row: s.default_soldier_row, allowed_soldier_rows: s.allowed_soldier_rows, mounted: s.mounted,
-        eligible_heroes: s.eligible_heroes, eligible_classes: s.eligible_classes,
-      })),
-      terrains: [...p.byId.terrains.values()].map((t) => ({ id: t.id, name: t.name })),
-      statuses: [...p.byId.statuses.values()].map((s) => ({ id: s.id, name: s.name })),
-      factions: [...p.byId.factions.values()].map((f) => ({ id: f.id, name: f.name })),
-      rules: { max_tactics: p.rules.limits.max_tactics, fielded: p.rules.draft.fielded, roster_size: p.rules.draft.roster_size, columns: p.rules.board.columns },
-      slot_shape: { max_leaves: 2, combinator: "all" },
-      leaves: Object.entries(LEAF_REGISTRY)
-        .filter(([, spec]) => spec.contexts.includes("tactic"))
-        .map(([type, spec]) => ({ type, description: spec.description, params: z.toJSONSchema(spec.fields, { unrepresentable: "any" }) as Record<string, unknown> })),
-      leaf_refs: LEAF_REFS,
-      selectors: [...SELECTORS],
-      selector_metrics: METRICS,
-      selector_sides: ["self", "ally", "enemy", "target"],
-      fallbacks: [...TACTIC_FALLBACKS],
-      rows: [...ROWS],
-      files: { battles: listFiles("battles"), rosters: listFiles("rosters") },
-    };
-  }
-
-  let catalogCache: ReturnType<typeof buildCatalog> | undefined;
-  /** Full content + rules + leaf descriptions for the describe formatter (built once; the pack does not change while the server runs). */
-  const catalog = () => (catalogCache ??= buildCatalog(p));
-
-  function file(path: unknown): { path: string; data: unknown } {
-    const rel = checkPath(path);
-    const full = join(dir, rel);
-    if (!existsSync(full)) throw new ApiError(404, `${rel} does not exist`);
-    inside(full, rel); // before parsing: a parse error would echo the file's text
+  /** Runs a filesystem step; an unexpected error (not an ApiError) becomes a 500 naming only `rel` and the error code, never an absolute path. */
+  const fsStep = <T>(rel: string, fn: () => T): T => {
     try {
-      return { path: rel, data: parse(readFileSync(full, "utf-8")) };
+      return fn();
     } catch (e) {
-      throw new ApiError(400, `${rel} is not valid YAML: ${(e as Error).message}`);
+      if (e instanceof ApiError) throw e;
+      throw new ApiError(500, `${rel}: file system error ${(e as NodeJS.ErrnoException).code ?? ""}`.trim());
     }
-  }
+  };
 
-  /** Refuses a path whose real location (symlinks resolved) leaves its content folder. A file that does not exist yet is judged by its folder. */
-  function inside(full: string, rel: string): void {
-    const folder = realpathSync(join(dir, rel.split("/")[0]!));
-    const real = existsSync(full) ? realpathSync(full) : join(realpathSync(dirname(full)), full.slice(dirname(full).length + 1));
-    if (!real.startsWith(folder + sep) || !realpathSync(folder).startsWith(realpathSync(dir) + sep)) throw new ApiError(400, `${rel} resolves outside content/${rel.split("/")[0]}`);
-  }
-
-  const validate = (battle: unknown): { issues: ApiIssue[] } => ({ issues: issuesOf(battle) });
-
-  /** The engine's PP option from a request's optional `pp` field: integers 0..PP_OVERRIDE_MAX per pool, absent / null = content values; 400 otherwise. */
-  function ppOption(pp: unknown): BattleOptions {
-    if (pp === undefined || pp === null) return {};
-    const bad = () => new ApiError(400, `pp must be { active?, passive? } with integers 0..${PP_OVERRIDE_MAX}`);
-    if (typeof pp !== "object" || Array.isArray(pp)) throw bad();
-    const out: { active?: number; passive?: number } = {};
-    for (const [k, v] of Object.entries(pp as Record<string, unknown>)) {
-      if (k !== "active" && k !== "passive") throw bad();
-      if (v === null || v === undefined) continue;
-      if (typeof v !== "number" || !Number.isInteger(v) || v < 0 || v > PP_OVERRIDE_MAX) throw bad();
-      out[k] = v;
-    }
-    return { pp: out };
-  }
-
-  /** The engine's formula option from a request's optional `formula` string (`ratio:150`, as the CLI flag); absent / null / "" = rules.yaml; 400 otherwise. */
-  function formulaOption(formula: unknown): BattleOptions {
-    if (formula === undefined || formula === null || formula === "") return {};
-    const r = typeof formula === "string" ? parseFormula(formula) : "formula must be a string";
-    if (typeof r === "string") throw new ApiError(400, r);
-    return { formula: r.option };
-  }
-
-  /** The engine's hero_hits option from a request's optional `hero_hits` (a positive finite number, as the CLI flag); absent / null = rules.yaml; 400 otherwise. */
-  function heroHitsOption(hh: unknown): BattleOptions {
-    if (hh === undefined || hh === null) return {};
-    if (typeof hh !== "number" || !Number.isFinite(hh) || hh <= 0) throw new ApiError(400, "hero_hits must be a positive finite number");
-    return { heroHits: hh };
-  }
-
-  /** Section 9.1 breakdown of every hero and squad after the pre-battle steps of `phase` (edits applied; HP is not carried over). */
-  function breakdown(battle: unknown, phase = 1, pp?: unknown, formula?: unknown, heroHits?: unknown): BreakdownResult {
-    if (![1, 2, 3].includes(phase)) throw new ApiError(400, "phase must be 1, 2 or 3");
-    const opts = { ...ppOption(pp), ...formulaOption(formula), ...heroHitsOption(heroHits) };
-    const input = checked(battle);
-    let fielded: Battle;
-    if (isRosterBattle(input)) {
-      const d = resolveDraft(p, input);
-      if (!d.battle) throw new ApiError(422, "draft failed");
-      fielded = d.battle;
-    } else fielded = input;
-    const state = preBattleState(p, fielded, phase, opts);
-    return {
-      phase,
-      units: state.units.map((u) => ({
-        id: u.id, name: u.name, side: u.side, kind: u.kind, leader: u.leaderId ?? null, stats: allBreakdowns(u, p),
-        pp: u.kind === "hero" ? { active: u.pp.active.max, passive: u.pp.passive.max } : null,
-      })),
-    };
-  }
-
-  function sim(battle: unknown, pp?: unknown, formula?: unknown, heroHits?: unknown): SimResult {
-    const opts = { ...ppOption(pp), ...formulaOption(formula), ...heroHitsOption(heroHits) };
-    const result = runBattle(p, checked(battle), opts);
-    return { winner: result.winner, reason: result.reason, log: renderLog(result.events), events: result.events as SimResult["events"] };
-  }
-
-  /** Writes a battle with no errors. An existing file is only replaced with `overwrite: true` (409 otherwise, so the UI can ask first). */
-  function save(path: unknown, battle: unknown, overwrite = false): { path: string; saved: true } {
-    const rel = checkPath(path, ["battles"]);
-    const full = join(dir, rel);
-    inside(full, rel);
-    checked(battle);
-    if (existsSync(full) && overwrite !== true) throw new ApiError(409, `${rel} already exists`);
-    writeFileSync(full, stringify(battle, { lineWidth: 0 }));
-    return { path: rel, saved: true };
-  }
-
-  /** Routes one request; used by the Vite middleware. Errors become { error, issues? } with the ApiError status (500 otherwise). */
-  function handle(method: string, url: string, body: any): { status: number; json: unknown } {
-    const u = new URL(url, "http://local");
-    try {
-      const route = `${method} ${u.pathname}`;
-      const b = body ?? {};
-      switch (route) {
-        case "GET /api/content": return { status: 200, json: content() };
-        case "GET /api/catalog": return { status: 200, json: catalog() };
-        case "GET /api/file": return { status: 200, json: file(u.searchParams.get("path")) };
-        case "POST /api/validate": return { status: 200, json: validate(b.battle) };
-        case "POST /api/breakdown": return { status: 200, json: breakdown(b.battle, b.phase ?? 1, b.pp, b.formula, b.hero_hits) };
-        case "POST /api/sim": return { status: 200, json: sim(b.battle, b.pp, b.formula, b.hero_hits) };
-        case "POST /api/save": return { status: 200, json: save(b.path, b.battle, b.overwrite === true) };
-        default: return { status: 404, json: { error: `no route ${route}` } };
+  const store: ContentStore = {
+    list(folder) {
+      const d = join(dir, folder);
+      if (!existsSync(d)) return [];
+      return readdirSync(d, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith(".yaml")).map((e) => `${folder}/${e.name}`).sort();
+    },
+    read: (rel) => fsStep(rel, () => (check(rel) ? readFileSync(join(dir, rel), "utf-8") : undefined)), // checked before reading: a parse error would echo the file's text
+    write: (rel, text, overwrite) => fsStep(rel, () => {
+      const existing = check(rel);
+      if (existing && !overwrite) throw new ApiError(409, `${rel} already exists`);
+      try {
+        writeFileSync(join(dir, rel), text, { flag: existing ? "w" : "wx" }); // wx: never follow or replace something created since the check
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "EEXIST") throw new ApiError(409, `${rel} already exists`);
+        throw e;
       }
-    } catch (e) {
-      if (e instanceof ApiError) return { status: e.status, json: { error: e.message, ...(e.issues ? { issues: e.issues } : {}) } };
-      return { status: 500, json: { error: (e as Error).message } };
-    }
-  }
+    }),
+  };
 
-  return { content, catalog, file, validate, breakdown, sim, save, handle, pack: p };
+  return createCore(readContentTexts(dir), store);
 }
 export type Api = ReturnType<typeof createApi>;

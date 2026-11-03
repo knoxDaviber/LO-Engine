@@ -1,7 +1,7 @@
 import type { ConditionNode } from "../schema";
 import type { Effect } from "../schema";
 import type { CondContext } from "../registry/conditions";
-import { FILES } from "../load";
+import { FILES } from "../content";
 import type { Pack } from "./pack";
 
 export interface Where {
