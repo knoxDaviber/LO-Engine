@@ -222,3 +222,15 @@ section[aria-label="defender units"] > h2 { color: var(--side-defender); }
   .unitgrid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---------- always-visible party band and selected-hero panel ---------- */
+.stickytop { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+.stickytop .formations { max-height: 45vh; overflow: auto; margin: 0; padding: var(--space-2) var(--space-4); }
+.howto { margin: 0 0 var(--space-3); }
+.advanced > summary { cursor: pointer; font-weight: 600; }
+.advanced .panels { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-3); }
+.advanced .panels > section { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); }
+.unitpanel { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%); z-index: 20; overflow: auto; padding: var(--space-3); background: var(--panel); border-left: 1px solid var(--line); box-shadow: var(--shadow); }
+@media (min-width: 1100px) { .content.unit-open { margin-right: 460px; } }
+@media (max-width: 1099px) { .unitpanel { width: 100%; } } /* narrower than that the panel is a full-width overlay */
+@media (max-width: 767px) { .stickytop { position: static; } }

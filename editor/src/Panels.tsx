@@ -28,6 +28,9 @@ export function Issues({ issues, onPick }: { issues: ApiIssue[] | null; onPick: 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
 /** One stat line; the winners and suppressed effects (with the parts that were summed) expand under it. */
+const STAT_NAMES: Record<string, string> = { HP: "health", ATK: "physical attack", INT: "magic attack", DEF: "physical defense", MDEF: "magic defense", SPD: "speed", HIT: "accuracy", SKL: "skill", CRIT: "critical chance", GUARD: "block", EVA: "evasion" };
+const statLabel = (k: string) => (STAT_NAMES[k] ? `${k} (${STAT_NAMES[k]})` : k);
+
 export function StatRow({ s, defaultOpen = true }: { s: BreakdownStat; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const tips = useTips();
@@ -36,8 +39,8 @@ export function StatRow({ s, defaultOpen = true }: { s: BreakdownStat; defaultOp
       <tr className="stat">
         <td>
           {s.effects.length > 0
-            ? <button type="button" className="statbtn" aria-expanded={open} onClick={() => setOpen(!open)}>{s.stat}</button>
-            : <b>{s.stat}</b>}
+            ? <button type="button" className="statbtn" aria-expanded={open} onClick={() => setOpen(!open)}>{statLabel(s.stat)}</button>
+            : <b>{statLabel(s.stat)}</b>}
         </td>
         <td>{fmt(s.base)}</td><td>{fmt(s.flat)}</td><td>x{fmt(s.multiplier)}</td><td><b>{fmt(s.result)}</b></td>
       </tr>

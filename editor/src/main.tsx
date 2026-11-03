@@ -11,7 +11,7 @@ import { FormationBoard } from "./Formation";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { CatalogProvider } from "./Hint";
 import { RunLog } from "./Log";
-import { elementForPath, isRosterForm, newBattle, SIDES, type Json } from "./model";
+import { elementForPath, heroesOf, isRosterForm, newBattle, SIDES, type Json } from "./model";
 import { Breakdown, Issues } from "./Panels";
 import { PinProvider, PinStrip } from "./Pins";
 import { PIN_KEY, parseState, togglePin, type Pin, type PinState } from "./pinStore";
@@ -19,6 +19,7 @@ import { SidePanel } from "./Roster";
 import { useRoute } from "./route";
 import { loadJson, ROUTES, saveJson, THEMES, type Route, type Theme } from "./store";
 import { PinnedUnit, UnitList, UnitsPage, type UnitData } from "./Units";
+import { UnitPanel } from "./UnitPanel";
 import "./theme.css";
 import "./style.css";
 
@@ -69,6 +70,7 @@ function App() {
   useEffect(() => {
     let armed = 0;
     const on = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setSelected(null); return; }
       if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
       if (e.key === "g") { armed = Date.now(); return; }
       if (armed && Date.now() - armed < 1200) {
@@ -210,6 +212,7 @@ function App() {
   if (!c) return <p className="loading">Loading content...</p>;
 
   const roster = !!battle && isRosterForm(battle);
+  const sel = battle && selected && SIDES.some((s) => heroesOf(battle, s).some((h: Json) => h.char_id === selected)) ? selected : null; // a removed hero closes the panel
   const errors = issues?.filter((i) => i.severity === "error").length ?? 0;
   const unitData: UnitData = { c, cat, battle, bd: bd.data, bdError: bd.error, pp };
   const breakdown = <Breakdown data={bd.data} error={bd.error} selected={selected} phase={phase} setPhase={setPhase} />;
@@ -227,67 +230,76 @@ function App() {
     }
   };
 
-  const battlePage = !battle ? <p className="empty">Open a battle file or start a new battle.</p> : (
-    <div className="cols">
-      <div>
-        <section className="side">
-          <div className="fields">
-            <label data-path="battle_id">battle id<input value={battle.battle_id ?? ""} onChange={(e) => edit((b) => (b.battle_id = e.target.value))} /></label>
-            <label data-path="version">version<input className="num" value={battle.version ?? ""} onChange={(e) => edit((b) => (b.version = e.target.value))} /></label>
-            {!roster && (
-              <label data-path="battlefield">battlefield
-                <select value={battle.battlefield ?? ""} onChange={(e) => edit((b) => (b.battlefield = e.target.value || null))}>
-                  <option value="">(none)</option>
-                  {c.terrains.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.id})</option>)}
-                </select>
-              </label>
-            )}
-            <span data-path="seeds">seeds
-              {[0, 1, 2].map((k) => (
-                <input key={k} type="number" className="num" value={battle.seeds?.[k] ?? ""} onChange={(e) => edit((b) => {
-                  b.seeds = [...(b.seeds ?? [0, 0, 0])];
-                  b.seeds[k] = e.target.value === "" ? 0 : Number(e.target.value);
-                })} />
-              ))}
-            </span>
-            <span title="What-if PP for every hero, before gear PP (blank = content values, 0-10). Sent with sim and breakdown, never saved.">PP override
-              {(["active", "passive"] as const).map((k) => (
-                <input key={k} className={`num ${ppValue(ppText[k]) === undefined ? "bad" : ""}`} aria-label={`${k} PP override`} placeholder={k} value={ppText[k]}
-                  onChange={(e) => setPpText((t) => ({ ...t, [k]: e.target.value }))} />
-              ))}
-            </span>
-            <label title="What-if damage formula for the base step (blank = rules.yaml). Sent with sim and breakdown, never saved.">formula
-              <select aria-label="damage formula override" value={formula} onChange={(e) => setFormula(e.target.value)}>
-                {FORMULA_CHOICES.map((f) => <option key={f} value={f}>{f === "" ? "rules.yaml" : f}</option>)}
-              </select>
-            </label>
-            <label title="What-if hero damage multiplier (rules.damage.hero_hits; blank = rules.yaml). Squads and heals are unaffected. Sent with sim and breakdown, never saved.">hero hits
-              <select aria-label="hero hits override" value={heroHitsText} onChange={(e) => setHeroHitsText(e.target.value)}>
-                {HERO_HITS_CHOICES.map((h) => <option key={h} value={h}>{h === "" ? "rules.yaml" : `x${h}`}</option>)}
-              </select>
-            </label>
-          </div>
-        </section>
-        <div className="formations">
-          {SIDES.map((s) => (
-            <div key={s} className={s}>
-              <h2>{s}</h2>
-              <FormationBoard c={c} battle={battle} side={s} edit={edit} selected={selected} select={setSelected} />
-            </div>
-          ))}
+  const band = battle && (
+    <div className="formations">
+      {SIDES.map((s) => (
+        <div key={s} className={s}>
+          <h2>{s === "challenger" ? "Your side (challenger)" : "Opponent (defender)"}</h2>
+          <FormationBoard c={c} battle={battle} side={s} edit={edit} selected={selected} select={setSelected} />
         </div>
-        {sim && (
-          <div className="side runsummary" role="status">
-            <span>Last run: <b>{sim.winner}</b> wins ({sim.reason})</span>
-            <a href="#/log">view log</a>
-          </div>
-        )}
-        {SIDES.map((s) => <SidePanel key={s} c={c} battle={battle} side={s} edit={edit} selected={selected} select={setSelected} />)}
-      </div>
-      <aside className="panels" aria-label="Issues and breakdown">
-        {issuesPanel}
-        {breakdown}
-      </aside>
+      ))}
+    </div>
+  );
+
+  const battlePage = !battle ? <p className="empty">Open a saved battle or start a new one.</p> : (
+    <div>
+      <p className="muted howto">How this works: place heroes on the boards above (drag them, or hold Alt and use the arrow keys), click a hero to see and edit it, then press Run.</p>
+      <section className="side">
+        <div className="fields">
+          <label data-path="battle_id">battle name<input value={battle.battle_id ?? ""} onChange={(e) => edit((b) => (b.battle_id = e.target.value))} /></label>
+          {!roster && (
+            <label data-path="battlefield">terrain
+              <select value={battle.battlefield ?? ""} onChange={(e) => edit((b) => (b.battlefield = e.target.value || null))}>
+                <option value="">(none)</option>
+                {c.terrains.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
+      </section>
+      {errors > 0 && <p className="error" role="alert">{errors} problem{errors === 1 ? "" : "s"} to fix before you can run or save (open "Advanced" at the bottom of the Battle page to see them).</p>}
+      {sim && (
+        <div className="side runsummary" role="status">
+          <span>Last run: <b>{sim.winner}</b> wins ({sim.reason})</span>
+          <a href="#/log">view log</a>
+        </div>
+      )}
+      {SIDES.map((s) => <SidePanel key={s} c={c} battle={battle} side={s} edit={edit} selected={selected} select={setSelected} />)}
+      <details className="side advanced">
+        <summary>Advanced</summary>
+        <div className="fields">
+          <label>file path<input className="path" aria-label="file path" value={path} onChange={(e) => setPath(e.target.value)} /></label>
+          <label data-path="version">version<input className="num" value={battle.version ?? ""} onChange={(e) => edit((b) => (b.version = e.target.value))} /></label>
+          <span data-path="seeds">random seeds
+            {[0, 1, 2].map((k) => (
+              <input key={k} type="number" className="num" value={battle.seeds?.[k] ?? ""} onChange={(e) => edit((b) => {
+                b.seeds = [...(b.seeds ?? [0, 0, 0])];
+                b.seeds[k] = e.target.value === "" ? 0 : Number(e.target.value);
+              })} />
+            ))}
+          </span>
+          <span title="What-if PP for every hero, before gear PP (blank = content values, 0-10). Sent with sim and breakdown, never saved.">PP override
+            {(["active", "passive"] as const).map((k) => (
+              <input key={k} className={`num ${ppValue(ppText[k]) === undefined ? "bad" : ""}`} aria-label={`${k} PP override`} placeholder={k} value={ppText[k]}
+                onChange={(e) => setPpText((t) => ({ ...t, [k]: e.target.value }))} />
+            ))}
+          </span>
+          <label title="What-if damage formula for the base step (blank = rules.yaml). Sent with sim and breakdown, never saved.">formula
+            <select aria-label="damage formula override" value={formula} onChange={(e) => setFormula(e.target.value)}>
+              {FORMULA_CHOICES.map((f) => <option key={f} value={f}>{f === "" ? "rules.yaml" : f}</option>)}
+            </select>
+          </label>
+          <label title="What-if hero damage multiplier (rules.damage.hero_hits; blank = rules.yaml). Squads and heals are unaffected. Sent with sim and breakdown, never saved.">hero hits
+            <select aria-label="hero hits override" value={heroHitsText} onChange={(e) => setHeroHitsText(e.target.value)}>
+              {HERO_HITS_CHOICES.map((h) => <option key={h} value={h}>{h === "" ? "rules.yaml" : `x${h}`}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="panels" aria-label="Issues and breakdown">
+          {issuesPanel}
+          {breakdown}
+        </div>
+      </details>
     </div>
   );
 
@@ -311,14 +323,15 @@ function App() {
               </select>
             </label>
           </nav>
-          <div className="content">
+          <div className={`content ${sel ? "unit-open" : ""}`}>
             <PinStrip state={pinState} set={setPinState} render={renderPin} />
+            <div className="stickytop">
             <header className="top">
               <button type="button" aria-expanded={railOpen} aria-label="Toggle navigation" onClick={() => setRailOpen(!railOpen)}>menu</button>
               {route === "battle" && (
                 <>
                   <select value="" aria-label="open file" onChange={(e) => open(e.target.value)}>
-                    <option value="">open file...</option>
+                    <option value="">open saved battle...</option>
                     {c.files.battles.map((f) => <option key={f}>{f}</option>)}
                   </select>
                   {HOSTED && (
@@ -326,12 +339,11 @@ function App() {
                       <input type="file" accept=".yaml,.yml" onChange={(e) => { void openLocal(e.target.files?.[0]); e.target.value = ""; }} />
                     </label>
                   )}
-                  <button onClick={() => { setBattle(newBattle(c)); setPath("battles/new_battle.yaml"); setSim(null); setSelected(null); setStatus("new battle"); }}>new battle</button>
+                  <button onClick={() => { setBattle(newBattle(c)); setPath("battles/new_battle.yaml"); setSim(null); setSelected(null); setStatus("new battle"); }}>New battle</button>
                   {battle && (
                     <>
-                      <input className="path" aria-label="file path" value={path} onChange={(e) => setPath(e.target.value)} />
                       <button onClick={() => save()} disabled={pending || errors > 0} title={HOSTED ? "Downloads the YAML file" : undefined}>{HOSTED ? "save (download)" : "save"}</button>
-                      <button className="primary" onClick={run} disabled={pending || errors > 0 || ppBad} title={ppBad ? "PP override must be blank or 0-10" : undefined}>run sim</button>
+                      <button className="primary" onClick={run} disabled={pending || errors > 0 || ppBad} title={ppBad ? "PP override (Advanced) must be blank or 0-10" : undefined}>Run</button>
                     </>
                   )}
                   {roster && c.files.rosters.length > 0 && SIDES.map((side) => (
@@ -346,6 +358,8 @@ function App() {
               {route !== "battle" && battle && <span className="muted">{battle.battle_id ?? path}</span>}
               <span className="muted status" role="status">{status}</span>
             </header>
+            {band}
+            </div>
             <main id="main" tabIndex={-1}>
               <ErrorBoundary key={route}>
                 {route === "battle" && battlePage}
@@ -353,6 +367,7 @@ function App() {
                 {route === "log" && <div className="side"><RunLog result={sim} /></div>}
               </ErrorBoundary>
             </main>
+            {sel && <UnitPanel d={unitData} id={sel} edit={edit} close={() => setSelected(null)} />}
           </div>
         </div>
       </PinProvider>
