@@ -107,7 +107,7 @@ test("holy has class advantage over monster", () => {
 test("more than max tactics", () => {
   const raw = fresh(); const r: any = roster(raw);
   const sk = find(raw.characters, "char_001").skills[0];
-  r.heroes[0].tactic_sheet = Array.from({ length: 11 }, (_, i) => ({ priority: i + 1, skill_id: sk, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: "skip" }));
+  r.heroes[0].tactic_sheet = Array.from({ length: 11 }, (_, i) => ({ priority: i + 1, skill_id: sk, enabled: true, main: null, sub: null }));
   raw.rosters = [{ name: "challenger.yaml", data: r }];
   assert.ok(codes(raw).includes("E_TACTIC_COUNT"));
 });
@@ -143,7 +143,7 @@ const hpLeaf = { type: "hp_percent", side: "self", op: "<", value: 50 };
 const withActivation = (activation: unknown) => {
   const raw = fresh(); const r: any = roster(raw);
   const sk = find(raw.characters, "char_001").skills[0];
-  r.heroes[0].tactic_sheet = [{ priority: 1, skill_id: sk, enabled: true, activation, targeting: { main: null, sub: null }, fallback: "skip" }];
+  r.heroes[0].tactic_sheet = [{ priority: 1, skill_id: sk, enabled: true, main: activation, sub: null }];
   raw.rosters = [{ name: "challenger.yaml", data: r }];
   return codes(raw);
 };
@@ -153,10 +153,11 @@ test("damage effect without range is a schema error", () => {
   assert.ok(codes(raw).includes("E_SCHEMA"));
 });
 
-test("player slot: one leaf or two ANDed leaves only", () => {
-  assert.deepEqual(withActivation({ all: [phaseLeaf, hpLeaf] }), []);
+test("player slot: one leaf or a selector; any group is E_TACTIC_SHAPE", () => {
   assert.deepEqual(withActivation(phaseLeaf), []);
-  for (const bad of [{ any: [phaseLeaf, hpLeaf] }, { not: phaseLeaf }, { all: [phaseLeaf, { all: [hpLeaf, phaseLeaf] }] }, { all: [phaseLeaf, hpLeaf, phaseLeaf] }]) {
+  assert.deepEqual(withActivation({ select: "prefer", filter: { type: "row_is", value: "front" } }), []);
+  assert.deepEqual(withActivation({ select: "lowest", metric: "max_hp" }), []);
+  for (const bad of [{ all: [phaseLeaf, hpLeaf] }, { any: [phaseLeaf, hpLeaf] }, { not: phaseLeaf }, { select: "prefer", filter: { all: [phaseLeaf] } }, { select: "prefer" }, { select: "nearest", metric: "hp_percent" }]) {
     assert.ok(withActivation(bad).includes("E_TACTIC_SHAPE"), JSON.stringify(bad));
   }
 });

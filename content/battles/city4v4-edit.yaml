@@ -24,27 +24,18 @@ challenger:
         - priority: 1
           skill_id: skl_004
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_020
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
     - char_id: char_007
       squad_id: soldier_005
       equipment:
@@ -56,27 +47,18 @@ challenger:
         - priority: 1
           skill_id: skl_006
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_018
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
       sigils:
         weapon: god_002
         armor: god_002
@@ -93,35 +75,23 @@ challenger:
         - priority: 1
           skill_id: skl_007
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_002
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_passive_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 4
           skill_id: skl_019
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
       sigils:
         weapon: god_002
         armor: god_002
@@ -138,47 +108,35 @@ challenger:
         - priority: 1
           skill_id: skl_003
           enabled: true
-          activation:
-            type: class_is
+          main:
+            type: side_has
             side: enemy
-            value: monster
-          targeting:
-            main:
-              type: is_leader
-              side: enemy
-            sub: null
-          fallback: skip
+            class: monster
+            present: true
+          sub:
+            type: is_leader
+            side: enemy
         - priority: 2
           skill_id: skl_012
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub:
-              select: lowest
-              metric: hp_percent
-              side: ally
-          fallback: skip
+          main: null
+          sub:
+            select: lowest
+            metric: hp_percent
         - priority: 3
           skill_id: skl_003
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 4
           skill_id: skl_passive_003
           enabled: true
-          activation:
+          main:
             type: hp_percent
             side: ally
             op: <
             value: 100
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          sub: null
       sigils:
         weapon: god_005
         armor: god_005
@@ -203,27 +161,18 @@ defender:
         - priority: 1
           skill_id: skl_016
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_021
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
     - char_id: char_011
       squad_id: soldier_010
       equipment:
@@ -240,35 +189,23 @@ defender:
         - priority: 1
           skill_id: skl_009
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_passive_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 4
           skill_id: skl_018
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
     - char_id: char_010
       squad_id: soldier_008
       equipment:
@@ -280,27 +217,18 @@ defender:
         - priority: 1
           skill_id: skl_010
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_003
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_passive_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
     - char_id: char_006
       squad_id: soldier_004
       equipment:
@@ -312,24 +240,15 @@ defender:
         - priority: 1
           skill_id: skl_005
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_001
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null
         - priority: 3
           skill_id: skl_019
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: null
-          fallback: skip
+          main: null
+          sub: null

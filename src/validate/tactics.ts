@@ -1,5 +1,6 @@
 import type { Tactic, BanSheet } from "../schema";
 import type { ConditionNode } from "../schema";
+import { isGroup, isSelector } from "../schema";
 import type { Collector, Location, Tier } from "../types";
 import { checkCondition } from "./conditions";
 import type { Pack } from "./pack";
@@ -14,6 +15,11 @@ export function checkSlotShape(node: ConditionNode, loc: Location, c: Collector)
   c.error("E_TACTIC_SHAPE", "a player slot is one condition, or `all` of exactly two conditions (no any, not, nesting or more than two)", loc);
 }
 
+/** A player tactic slot (main, sub, a prefer filter) holds exactly one condition leaf: no all / any / not (Decision 136). */
+export function checkPlayerLeaf(node: ConditionNode, loc: Location, c: Collector): void {
+  if (isGroup(node)) c.error("E_TACTIC_SHAPE", "a player tactic slot is one condition or a selector (no all, any or not)", loc);
+}
+
 /** Checks one hero's tactic sheet: size, priorities, skills the hero owns, and every condition in tactic context. */
 export function checkTacticSheet(sheet: Tactic[], heroSkills: readonly string[], loc: Location, c: Collector, pack: Pack, tier: Tier): void {
   const max = pack.rules.limits.max_tactics;
@@ -24,18 +30,14 @@ export function checkTacticSheet(sheet: Tactic[], heroSkills: readonly string[],
     if (priorities.has(t.priority)) c.error("E_TACTIC_PRIORITY", `priority ${t.priority} is used twice`, here("priority"));
     priorities.add(t.priority);
     if (!heroSkills.includes(t.skill_id)) c.error("E_TACTIC_SKILL", `'${t.skill_id}' is not one of this hero's skills`, here("skill_id"));
-    if (t.activation) {
-      checkSlotShape(t.activation, here("activation"), c);
-      checkCondition(t.activation, "tactic", here("activation"), c, pack, tier);
-    }
-    if (t.targeting.main) {
-      checkSlotShape(t.targeting.main, here("targeting.main"), c);
-      checkCondition(t.targeting.main, "tactic", here("targeting.main"), c, pack, tier);
-    }
-    const sub = t.targeting.sub;
-    if (sub && "select" in sub === false) {
-      checkSlotShape(sub as ConditionNode, here("targeting.sub"), c);
-      checkCondition(sub as ConditionNode, "tactic", here("targeting.sub"), c, pack, tier);
+    for (const name of ["main", "sub"] as const) {
+      const slot = t[name];
+      if (!slot) continue;
+      const leaf = isSelector(slot) ? slot.filter : slot;
+      const at = here(isSelector(slot) ? `${name}.filter` : name);
+      if (!leaf) continue;
+      checkPlayerLeaf(leaf, at, c);
+      checkCondition(leaf, "tactic", at, c, pack, tier);
     }
   });
 }

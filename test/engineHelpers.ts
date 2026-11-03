@@ -35,7 +35,7 @@ export function sampleState(phase = 1, opts: { squads?: boolean; auras?: boolean
 export const unit = (s: BattleState, id: string): Unit => s.units.find((u) => u.id === id)!;
 
 export const tactic = (skill_id: string, over: Partial<Tactic> = {}): Tactic => ({
-  priority: 1, skill_id, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: "skip", ...over,
+  priority: 1, skill_id, enabled: true, main: null, sub: null, ...over,
 });
 
 export const LEON = "char_001", EMPEROR = "char_002", JASMINE = "char_003", LIEF = "char_004";

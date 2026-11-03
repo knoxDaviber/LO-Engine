@@ -1,7 +1,8 @@
 // Hero passives (design Sections 4.4 and 7, roadmap 3a).
 //
 // Which passives run: a passive skill of the hero that sits enabled on its tactic sheet [DECIDED, Section 4: a skill not on the sheet and
-// enabled never executes]. Its tactic `activation` replaces the skill's `default_activation` (as for actives); the condition is checked when the
+// enabled never executes]. Its condition is the skill's `default_activation` ANDed with the tactic's main / sub leaves (tactics.ts tacticCondition; selectors
+// do not apply to passives); it is checked when the
 // trigger fires, with the event in context (event leaves) and the event's unit as `target`.
 // Triggers:
 //   on_event         subscribes on the bus (order PASSIVE_ORDER) for the bus event of its trigger_event (events.ts EVENT_SPECS; hit events use
@@ -33,7 +34,7 @@ import { at } from "./log";
 import type { BattleState, Unit } from "./state";
 import { isDebuffStatus } from "./stats";
 import { checkEquipment } from "./equipment";
-import { recordSkillUse, resolveTargets, skillReady } from "./tactics";
+import { recordSkillUse, resolveTargets, skillReady, tacticCondition } from "./tactics";
 
 export const PASSIVE_ORDER = 30; // bus order: after engine handlers (0), before auras (50) and soldier skills (100)
 
@@ -62,7 +63,7 @@ export function sheetPassives(state: BattleState, u: Unit): { skill: Skill; tact
 const effectsLabel = (skill: Skill): string => skill.effects.map((e) => e.type).join("+");
 
 function activation(state: BattleState, owner: Unit, skill: Skill, tactic: Tactic, ev?: EventCtx, target?: Unit | null): CondResult {
-  return evaluateCondition(tactic.activation ?? skill.default_activation, { state, self: owner, target: target ?? (ev ? eventUnit(ev) : null), ...(ev ? { event: ev } : {}) });
+  return evaluateCondition(tacticCondition(tactic, skill), { state, self: owner, target: target ?? (ev ? eventUnit(ev) : null), ...(ev ? { event: ev } : {}) });
 }
 const unimplemented = (r: CondResult): string[] => r.reasons.filter((m) => m.startsWith("not implemented"));
 
@@ -117,7 +118,7 @@ function fire(x: ExecCtx, owner: Unit, skill: Skill, tactic: Tactic, ev: EventCt
   log.emit({ type: "pp_spend", ...at(state), unit: owner.id, skill: skill.id, pool: skill.pp_pool, cost: skill.pp_cost, before, after: pool.cur });
   recordSkillUse(owner, skill, state.bus.actor === owner);
   const shape = skill.targeting.shape ?? "single";
-  const effSkill: EffectSkill = { id: skill.id, name: skill.name, shape, interactions: skill.interactions, activation: tactic.activation ?? skill.default_activation, trigger: skill.trigger };
+  const effSkill: EffectSkill = { id: skill.id, name: skill.name, shape, interactions: skill.interactions, activation: tacticCondition(tactic, skill), trigger: skill.trigger };
   const touched = new Set<Unit>([owner]);
   for (const e of skill.effects) runEffect(x, owner, effSkill, e, targets, touched, false, { applier: "passive", inAction, ...(ev ? { event: ev } : {}) });
   return true;

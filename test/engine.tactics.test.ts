@@ -65,18 +65,17 @@ test("unsupported skills are skipped with 'not implemented'; Last Chance (Fairy'
   assert.equal(d.skillId, LASTCHANCE);
 });
 
-test("activation: phase condition gates a tactic; skill default activation is used when the tactic has none", () => {
+test("a board leaf in main gates a tactic (only-if); an unknown leaf is false with a reason", () => {
   const s1 = sampleState(1), s2 = sampleState(2);
   const act = { type: "phase", op: ">=", value: 2 };
   for (const [s, want] of [[s1, ASSAULT], [s2, HOOVES]] as const) {
-    unit(s, LEON).tactics = [tactic(HOOVES, { priority: 1, activation: act }), tactic(ASSAULT, { priority: 2 })];
+    unit(s, LEON).tactics = [tactic(HOOVES, { priority: 1, main: act }), tactic(ASSAULT, { priority: 2 })];
     const d = decideTactic(s, unit(s, LEON), rng());
     assert.equal(d.skillId, want);
   }
-  assert.match(decideTactic(s1, unit(s1, LEON), rng()).evaluations[0]!.reason, /activation condition false/);
-  // unknown leaf in activation: false + reason
+  assert.match(decideTactic(s1, unit(s1, LEON), rng()).evaluations[0]!.reason, /condition false: main phase >= 2/);
   const leon = unit(s1, LEON);
-  leon.tactics = [tactic(HOOVES, { activation: { type: "made_up_leaf", op: ">", value: 0 } as any })];
+  leon.tactics = [tactic(HOOVES, { main: { type: "made_up_leaf", op: ">", value: 0 } as any })];
   const d = decideTactic(s1, leon, rng());
   assert.equal(d.tactic, null);
   assert.match(d.evaluations[0]!.reason, /not implemented: made_up_leaf/);
@@ -85,10 +84,10 @@ test("activation: phase condition gates a tactic; skill default activation is us
 test("phase in targeting: main condition filters candidates", () => {
   const s = sampleState(2);
   const leon = unit(s, LEON);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: { all: [{ type: "phase", op: "=", value: 1 }] }, sub: null } })];
+  leon.tactics = [tactic(ASSAULT, { main: { type: "phase", op: "=", value: 1 }, sub: null })];
   const d = decideTactic(s, leon, rng());
   assert.equal(d.tactic, null);
-  assert.match(d.evaluations[0]!.reason, /no valid target/);
+  assert.match(d.evaluations[0]!.reason, /condition false: main/);
   s.phase = 1;
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]);
 });
@@ -96,23 +95,23 @@ test("phase in targeting: main condition filters candidates", () => {
 test("main condition on row picks the back row; sub selector lowest hp_percent", () => {
   const s = sampleState();
   const leon = unit(s, LEON);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: { type: "row_is", value: "back" }, sub: null } })];
+  leon.tactics = [tactic(ASSAULT, { main: { type: "row_is", value: "back" }, sub: null })];
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: null, sub: { select: "lowest", metric: "hp_percent" } } })];
+  leon.tactics = [tactic(ASSAULT, { main: null, sub: { select: "lowest", metric: "hp_percent" } })];
   unit(s, JASMINE).hp = 30;
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: null, sub: { select: "highest", metric: "hp_current" } } })];
+  leon.tactics = [tactic(ASSAULT, { main: null, sub: { select: "highest", metric: "hp_current" } })];
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // 200 vs 30
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: null, sub: { select: "farthest" } } })];
+  leon.tactics = [tactic(ASSAULT, { main: null, sub: { select: "farthest" } })];
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: null, sub: { select: "lowest", stat: "DEF", metric: "stat" } } })];
+  leon.tactics = [tactic(ASSAULT, { main: null, sub: { select: "lowest", metric: "DEF" } })];
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // DEF 20 vs 50
 });
 
 test("selector ties go to column index then unit id", () => {
   const s = sampleState();
   const leon = unit(s, LEON);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: null, sub: { select: "lowest", metric: "hp_percent" } } })];
+  leon.tactics = [tactic(ASSAULT, { main: null, sub: { select: "lowest", metric: "hp_percent" } })];
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // both 100%: front row, column 1
   unit(s, JASMINE).row = "front";
   unit(s, JASMINE).column = 1; // same row and column as the Emperor: unit id decides (char_002 < char_003)
@@ -122,7 +121,7 @@ test("selector ties go to column index then unit id", () => {
 test("random_seeded draws from the rng: same seed same pick, and it consumes the stream", () => {
   const s = sampleState();
   const leon = unit(s, LEON);
-  leon.tactics = [tactic(ASSAULT, { targeting: { main: null, sub: { select: "random_seeded" } } })];
+  leon.tactics = [tactic(ASSAULT, { main: null, sub: { select: "random_seeded" } })];
   const picks = (seed: number) => { const r = createRng(seed); return Array.from({ length: 30 }, () => ids(decideTactic(s, leon, r))[0]); };
   assert.deepEqual(picks(5), picks(5));
   assert.ok(new Set(picks(5)).size === 2); // both enemies get picked over 30 draws
@@ -139,12 +138,12 @@ test("shapes: row (Dirge), column (Vine Stab), caster_row (Iron Fist), self side
   const emp = unit(s, EMPEROR);
   emp.tactics = [tactic(DIRGE)];
   assert.deepEqual(ids(decideTactic(s, emp, rng())), [LEON, LIEF]); // front row of the challenger
-  emp.tactics = [tactic(DIRGE, { targeting: { main: { type: "class_is", side: "target", value: "lancer" }, sub: null } })];
+  emp.tactics = [tactic(DIRGE, { main: { type: "class_is", side: "target", value: "lancer" }, sub: null })];
   assert.deepEqual(ids(decideTactic(s, emp, rng())), [LEON, LIEF]); // Lief anchors the row
   const lief = unit(s, LIEF);
   lief.tactics = [tactic(VINE)];
   assert.deepEqual(ids(decideTactic(s, lief, rng())), [EMPEROR, JASMINE]); // column 1 of the defenders, front and back
-  lief.tactics = [tactic(VINE, { targeting: { main: { type: "row_is", value: "back" }, sub: null } })];
+  lief.tactics = [tactic(VINE, { main: { type: "row_is", value: "back" }, sub: null })];
   assert.deepEqual(ids(decideTactic(s, lief, rng())), [EMPEROR, JASMINE]); // anchor Jasmine, same column
   emp.tactics = [tactic(IRON)];
   assert.deepEqual(ids(decideTactic(s, emp, rng())), [EMPEROR]); // caster row, no other defender in front
@@ -161,22 +160,69 @@ test("dead units are never candidates", () => {
   assert.equal(decideTactic(s, unit(s, LEON), rng()).tactic, null);
 });
 
-test("fallback: skip skips the tactic, next_valid_target takes the next candidate", () => {
+test("a leaf in sub filters candidates; no candidate passing skips the tactic", () => {
   const s = sampleState();
   const leon = unit(s, LEON);
   const sub = { type: "hp_percent", side: "target", op: "<", value: 50 }; // nobody qualifies
-  leon.tactics = [tactic(HOOVES, { priority: 1, targeting: { main: null, sub }, fallback: "skip" }), tactic(ASSAULT, { priority: 2 })];
+  leon.tactics = [tactic(HOOVES, { priority: 1, main: null, sub }), tactic(ASSAULT, { priority: 2 })];
   const d = decideTactic(s, leon, rng());
   assert.equal(d.skillId, ASSAULT);
-  assert.match(d.evaluations[0]!.reason, /no valid target.*fallback skip/);
-  leon.tactics = [tactic(HOOVES, { targeting: { main: null, sub }, fallback: "next_valid_target" })];
+  assert.match(d.evaluations[0]!.reason, /condition false: sub hp_percent target < 50/);
+  unit(s, JASMINE).hp = 10;
+  assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // now someone satisfies the sub condition
+});
+
+test("a self-only leaf in main skips the tactic when false, keeps every candidate when true", () => {
+  const s = sampleState();
+  const leon = unit(s, LEON);
+  leon.tactics = [tactic(HOOVES, { priority: 1, main: { type: "hp_percent", side: "self", op: "<", value: 50 } }), tactic(ASSAULT, { priority: 2 })];
+  const d = decideTactic(s, leon, rng());
+  assert.equal(d.skillId, ASSAULT);
+  assert.match(d.evaluations[0]!.reason, /condition false: main hp_percent self < 50/);
+  leon.hp = 10;
   const d2 = decideTactic(s, leon, rng());
   assert.equal(d2.skillId, HOOVES);
-  assert.deepEqual(ids(d2), [EMPEROR]);
-  assert.match(d2.evaluations[0]!.reason, /next valid target/);
-  unit(s, JASMINE).hp = 10;
-  leon.tactics = [tactic(HOOVES, { targeting: { main: null, sub }, fallback: "skip" })];
-  assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // now someone satisfies the sub condition
+  assert.deepEqual(ids(d2), [EMPEROR]); // default order among all candidates
+});
+
+test("prefer orders without skipping; main's selector beats sub's", () => {
+  const s = sampleState();
+  const leon = unit(s, LEON);
+  const backFirst = { select: "prefer", filter: { type: "row_is", value: "back" } } as const;
+  leon.tactics = [tactic(ASSAULT, { main: backFirst })];
+  assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
+  leon.tactics = [tactic(ASSAULT, { main: { type: "unit_kind", is: "hero" }, sub: { select: "prefer", filter: { type: "class_is", side: "target", value: "mage" } } })];
+  assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // nobody preferred: default order, never a skip
+  unit(s, EMPEROR).hp = 10;
+  leon.tactics = [tactic(ASSAULT, { main: backFirst, sub: { select: "lowest", metric: "hp_percent" } })];
+  assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // main first
+  leon.tactics = [tactic(ASSAULT, { main: { select: "lowest", metric: "hp_percent" }, sub: backFirst })];
+  assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]);
+  unit(s, EMPEROR).hp = unit(s, EMPEROR).maxHp;
+  leon.tactics = [tactic(ASSAULT, { main: { select: "lowest", metric: "hp_percent" }, sub: backFirst })];
+  assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // tie on main: sub breaks it
+});
+
+test("the skill's default_main always applies with the player's conditions; default_sub only without a selector", () => {
+  const s = sampleState();
+  const leon = unit(s, LEON);
+  const sk = s.pack.byId.skills.get(ASSAULT)!;
+  const saved = structuredClone(sk.targeting);
+  try {
+    sk.targeting.default_main = { type: "row_is", value: "back" };
+    leon.tactics = [tactic(ASSAULT, { main: { type: "unit_kind", is: "hero" } })];
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
+    leon.tactics = [tactic(ASSAULT, { main: { type: "class_is", side: "target", value: "infantry" } })]; // the Emperor, but he is front row
+    assert.match(decideTactic(s, leon, rng()).evaluations[0]!.reason, /condition false: main class_is/);
+    sk.targeting.default_main = null;
+    sk.targeting.default_sub = { type: "row_is", value: "back" };
+    leon.tactics = [tactic(ASSAULT)];
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
+    leon.tactics = [tactic(ASSAULT, { sub: { select: "nearest" } })];
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // a selector turns default_sub off
+  } finally {
+    sk.targeting = saved;
+  }
 });
 
 test("every skip carries a reason string and decisions are deterministic", () => {

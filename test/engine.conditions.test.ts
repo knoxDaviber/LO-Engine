@@ -89,3 +89,45 @@ test("a leaf outside the registry is false with 'not implemented: <type>', also 
   assert.deepEqual(n.reasons, ["not implemented: made_up_leaf"]);
   assert.equal(ev({ any: [leaf, { type: "phase", op: "=", value: 1 }] }, c).value, true);
 });
+
+test("race_is, time_is, side_has, is_self / not_self", () => {
+  const s = sampleState();
+  const leon = unit(s, LEON), emp = unit(s, EMPEROR);
+  assert.equal(ev({ type: "race_is", side: "target", value: "human" }, { state: s, self: leon, target: emp }).value, true);
+  emp.race = "demon";
+  assert.equal(ev({ type: "race_is", side: "enemy", value: "demon" }, { state: s, self: leon }).value, true);
+  assert.equal(ev({ type: "race_is", side: "self", value: "demon" }, { state: s, self: leon }).value, false);
+  assert.equal(ev({ type: "time_is", value: "day" }, { state: s, self: leon }).value, true);
+  s.time = "night";
+  assert.equal(ev({ type: "time_is", value: "day" }, { state: s, self: leon }).value, false);
+  assert.equal(ev({ type: "side_has", side: "enemy", class: "infantry", present: true }, { state: s, self: leon }).value, true);
+  assert.equal(ev({ type: "side_has", side: "enemy", class: "infantry", present: false }, { state: s, self: leon }).value, false);
+  assert.equal(ev({ type: "side_has", side: "ally", race: "demon", present: false }, { state: s, self: leon }).value, true);
+  emp.alive = false;
+  assert.equal(ev({ type: "side_has", side: "enemy", class: "infantry", present: true }, { state: s, self: leon }).value, false); // living only
+  assert.equal(ev({ type: "is_self" }, { state: s, self: leon, target: leon }).value, true);
+  assert.equal(ev({ type: "not_self" }, { state: s, self: leon, target: unit(s, LIEF) }).value, true);
+});
+
+test("row_size, row_rank, column_full, combatants, average_hp_percent, buffs", () => {
+  const s = sampleState(); // heroes only: challenger Leon + Lief front; defender Emperor front, Jasmine back (both column 1)
+  const leon = unit(s, LEON), emp = unit(s, EMPEROR), jas = unit(s, JASMINE);
+  const at = (node: any, target: any) => ev(node, { state: s, self: leon, target }).value;
+  assert.equal(at({ type: "row_size", op: "=", value: 2 }, leon), true);
+  assert.equal(at({ type: "row_size", op: "=", value: 1 }, emp), true);
+  assert.equal(at({ type: "row_rank", value: "most" }, emp), true); // 1 vs 1: a tie counts as both
+  assert.equal(at({ type: "row_rank", value: "least" }, jas), true);
+  jas.row = "front"; jas.column = 2;
+  assert.equal(at({ type: "row_rank", value: "most" }, emp), true);
+  assert.equal(at({ type: "column_full" }, emp), false);
+  jas.row = "back"; jas.column = 1;
+  assert.equal(at({ type: "column_full" }, emp), true);
+  assert.equal(at({ type: "column_full" }, leon), false);
+  assert.equal(ev({ type: "combatants", side: "enemy", op: "=", value: 2 }, { state: s, self: leon }).value, true);
+  emp.hp = emp.maxHp / 2;
+  assert.equal(at({ type: "average_hp_percent", op: "=", value: 75 }, jas), true);
+  assert.equal(ev({ type: "average_hp_percent", side: "self", op: "=", value: 100 }, { state: s, self: leon, target: emp }).value, true);
+  assert.equal(at({ type: "has_any_buff", side: "target" }, emp), false);
+  assert.equal(at({ type: "lacks_any_buff", side: "target" }, emp), true);
+  assert.equal(at({ type: "lacks_any_debuff", side: "target" }, emp), true);
+});

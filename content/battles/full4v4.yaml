@@ -13,14 +13,14 @@ challenger:
       squad_id: soldier_002
       equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
       tactic_sheet:
-        - { priority: 1, skill_id: skl_cav_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-        - { priority: 2, skill_id: skl_cav_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+        - { priority: 1, skill_id: skl_cav_active_002, enabled: true, main: null, sub: null }
+        - { priority: 2, skill_id: skl_cav_active_001, enabled: true, main: null, sub: null }
     - char_id: char_002   # The Emperor
       squad_id: soldier_001
       equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
       tactic_sheet:
-        - { priority: 1, skill_id: skl_inf_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-        - { priority: 2, skill_id: skl_inf_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+        - { priority: 1, skill_id: skl_inf_active_002, enabled: true, main: null, sub: null }
+        - { priority: 2, skill_id: skl_inf_active_001, enabled: true, main: null, sub: null }
 
 defender:
   leader: char_003
@@ -32,12 +32,11 @@ defender:
         - priority: 1
           skill_id: skl_heal_active_001
           enabled: true
-          activation: null
-          targeting: { main: null, sub: { select: lowest, metric: hp_percent, side: ally } }
-          fallback: skip
+          main: null
+          sub: { select: lowest, metric: hp_percent }
     - char_id: char_004   # Lief
       squad_id: soldier_001
       equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
       tactic_sheet:
-        - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-        - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+        - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, main: null, sub: null }
+        - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, main: null, sub: null }

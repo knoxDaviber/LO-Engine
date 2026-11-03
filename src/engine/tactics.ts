@@ -2,23 +2,20 @@
 // Pure: it reads the state, draws random numbers only from the Rng it is given, and mutates nothing.
 //
 // Decisions (slice):
-//  - tactic main/sub fall back to the skill's default_main/default_sub when null; nothing set = nearest (front row first),
-//    ties by column index then unit id.
-//  - main filters the candidate set on the skill's targeting side and valid_rows. A sub *selector* picks one candidate; a sub
-//    *condition* keeps only the candidates that satisfy it (first in default order wins). The picked unit is the anchor:
-//    single = it, row/column = everyone alive in its row/column on its side, all = every candidate main kept,
+//  - targeting (Decision 136, resolveTargets): a tactic is a skill plus two slots, main and sub, each a condition leaf (filters candidates) or a
+//    selector (orders them, never skips). The skill's default_activation (no target) and default_main always apply too; default_sub only when
+//    neither slot is a selector. Nothing set = nearest (front row first), ties by column index then unit id. The first candidate is the anchor:
+//    single = it, row/column = everyone alive in its row/column on its side, all = every candidate that passed the filters,
 //    self = the caster, caster_row = the caster's row.
-//  - [DEFAULT] a selector's `side` narrows the candidates to that side of the caster (target: no narrowing); metrics are hp_percent /
-//    hp_current / hp_missing / active_pp / passive_pp / a stat name / `stat` with `stat:`.
+//  - selector metrics: hp_percent / hp_current / hp_missing / max_hp / active_pp / passive_pp / max_active_pp / max_passive_pp / a stat name.
 //  - use_limit / cooldown (skillReady below): a skill that is not ready is skipped with the reason.
-//  - fallback `skip` skips the tactic when the sub cannot pick; `next_valid_target` then takes the next candidate in
-//    default order. The skill-level fallback (re_evaluate/skip) both mean "continue with the next tactic" in the slice.
+//  - The skill-level fallback (re_evaluate/skip) both mean "continue with the next tactic" in the slice.
 //  - Confusion (a status with ignores_tactics, design 9): the sheet's conditions and targeting are ignored. [DEFAULT] The unit uses its first
 //    enabled, runnable, affordable skill with a damage effect (sheet order) on a random living unit drawn from the rng: any side but itself when
 //    overrides_targeting is random_any, else an enemy (soldier mode and valid_rows still apply; row/column/all expand around it). No such
 //    skill: it idles. The status ends after that attack by its own duration (1 turn) or, if until_used, at once.
-import type { Skill, Stat, Tactic } from "../schema";
-import { STATS } from "../schema";
+import type { ConditionNode, Selector, Skill, Stat, Tactic } from "../schema";
+import { isSelector, STATS } from "../schema";
 import type { Pack } from "../validate/pack";
 import { evaluateCondition } from "./conditions";
 import type { Rng } from "./rng";
@@ -95,51 +92,52 @@ const rowRank = (u: Unit): number => boardRank(u);
 const byDefault = (a: Unit, b: Unit) => rowRank(a) - rowRank(b) || a.column - b.column || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 const byFormation = (a: Unit, b: Unit) => a.formationIndex - b.formationIndex;
 
-function metricValue(u: Unit, metric: string, stat: Stat | undefined, pack: Pack): number | null {
+function metricValue(u: Unit, metric: string, pack: Pack): number | null {
   switch (metric) {
     case "hp_percent": return (u.hp / u.maxHp) * 100;
     case "hp_current": return u.hp;
     case "hp_missing": return u.maxHp - u.hp;
+    case "max_hp": return u.maxHp;
     case "active_pp": return u.pp.active.cur;
     case "passive_pp": return u.pp.passive.cur;
-    default: {
-      const s = (metric === "stat" ? stat : (STATS as readonly string[]).includes(metric) ? (metric as Stat) : undefined);
-      if (!s) return null;
-      return effectiveStat(u, s, pack);
-    }
+    case "max_active_pp": return u.pp.active.max;
+    case "max_passive_pp": return u.pp.passive.max;
+    default: return (STATS as readonly string[]).includes(metric) ? effectiveStat(u, metric as Stat, pack) : null;
   }
 }
 
-interface Picked {
-  unit: Unit | null;
-  note: string;
-}
-
-function pickBySelector(all: Unit[], sel: any, caster: Unit, state: BattleState, rng: Rng): Picked {
-  // [DEFAULT] A selector `side` narrows the candidates to that side of the caster (self = the caster; target = no narrowing).
-  const ordered = sel.side === "ally" ? all.filter((u) => u.side === caster.side) : sel.side === "enemy" ? all.filter((u) => u.side !== caster.side)
-    : sel.side === "self" ? all.filter((u) => u === caster) : all;
-  if (ordered.length === 0) return { unit: null, note: `no candidate on side ${sel.side}` };
+/** A selector as a sort key over the candidates (lower first), or a reason it cannot run. random_seeded draws one candidate, which sorts first. */
+function selectorKey(sel: Selector, cands: Unit[], caster: Unit, state: BattleState, rng: Rng): { key: Map<Unit, number>; note: string } | string {
+  const key = new Map<Unit, number>();
   switch (sel.select) {
-    case "nearest": return { unit: ordered[0] ?? null, note: "nearest" };
-    case "farthest": {
-      const far = [...ordered].sort((a, b) => rowRank(b) - rowRank(a) || a.column - b.column || (a.id < b.id ? -1 : 1));
-      return { unit: far[0] ?? null, note: "farthest" };
+    case "nearest": cands.forEach((u) => key.set(u, 0)); return { key, note: "nearest" }; // default order already is nearest
+    case "farthest": cands.forEach((u) => key.set(u, -rowRank(u))); return { key, note: "farthest" };
+    case "random_seeded": {
+      const r = rng.int(cands.length);
+      cands.forEach((u, i) => key.set(u, i === r ? 0 : 1));
+      return { key, note: "random_seeded" };
     }
-    case "random_seeded": return { unit: ordered.length ? ordered[rng.int(ordered.length)]! : null, note: "random_seeded" };
+    case "prefer":
+      cands.forEach((u) => key.set(u, evaluateCondition(sel.filter, { state, self: caster, target: u }).value ? 0 : 1));
+      return { key, note: `prefer ${describe(sel.filter!)}` };
     case "lowest":
     case "highest": {
-      const metric: string = sel.metric ?? sel.type ?? (sel.stat ? "stat" : "hp_percent");
-      const vals = ordered.map((u) => metricValue(u, metric, sel.stat, state.pack));
-      if (vals.some((v) => v === null)) return { unit: null, note: `not implemented: selector metric ${metric}` };
-      const sign = sel.select === "lowest" ? 1 : -1;
-      let best = 0;
-      // ordered is in default order, so a strict comparison keeps ties on column index then unit id.
-      for (let i = 1; i < ordered.length; i++) if (sign * (vals[i]! - vals[best]!) < 0) best = i;
-      return { unit: ordered[best] ?? null, note: `${sel.select} ${metric}` };
+      const metric = sel.metric ?? "hp_percent";
+      for (const u of cands) {
+        const v = metricValue(u, metric, state.pack);
+        if (v === null) return `not implemented: selector metric ${metric}`;
+        key.set(u, sel.select === "lowest" ? v : -v);
+      }
+      return { key, note: `${sel.select} ${metric}` };
     }
-    default: return { unit: null, note: `not implemented: selector ${String(sel.select)}` };
+    default: return `not implemented: selector ${String(sel.select)}`;
   }
+}
+
+/** Short text for a condition leaf in reasons: its type and parameter values. */
+function describe(node: ConditionNode): string {
+  const { type, ...rest } = node as Record<string, unknown>;
+  return [type ?? JSON.stringify(node), ...Object.values(rest).map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))].join(" ");
 }
 
 function expand(skill: Skill, caster: Unit, anchor: Unit, pool: Unit[], kept: Unit[], state: BattleState): Unit[] {
@@ -164,8 +162,23 @@ function expand(skill: Skill, caster: Unit, anchor: Unit, pool: Unit[], kept: Un
   return max !== null && shape !== "single" ? out.slice(0, max) : out;
 }
 
+/**
+ * One condition for a tactic outside targeting (passive triggers, while_condition statuses): the skill's default_activation ANDed with the
+ * player's main / sub leaves (selectors do not apply). null = no condition.
+ */
+export function tacticCondition(tactic: Tactic | null | undefined, skill: Pick<Skill, "default_activation">): ConditionNode | null {
+  const parts = [skill.default_activation, tactic?.main, tactic?.sub].filter((c): c is ConditionNode => !!c && !isSelector(c));
+  return parts.length === 0 ? null : parts.length === 1 ? parts[0]! : { all: parts };
+}
+
 type TargetResult = { targets: Unit[]; reason: string };
 
+/**
+ * Targets for a player tactic (Decision 136). Candidates = the skill's target pool (side, soldier mode, valid_rows). Filters, in order: the
+ * skill's default_main, a leaf in main, a leaf in sub, then default_sub (only when neither slot is a selector). A candidate passes a leaf iff it
+ * is true for (self = caster, target = candidate), so a self/board leaf is an "only if" check. Selectors only order: main's first, sub's breaks
+ * ties, then default order. The first candidate anchors the shape.
+ */
 export function resolveTargets(skill: Skill, tactic: Tactic, caster: Unit, state: BattleState, rng: Rng): TargetResult {
   const t = skill.targeting;
   const shape = t.shape ?? "single";
@@ -178,41 +191,40 @@ export function resolveTargets(skill: Skill, tactic: Tactic, caster: Unit, state
   if (skill.interactions.soldiers === "skip_soldiers") pool = pool.filter((u) => u.kind === "hero");
   else if (skill.interactions.soldiers === "soldiers_only") pool = pool.filter((u) => u.kind === "squad");
   pool = pool.filter((u) => (t.valid_rows as string[]).includes(u.row));
+  if (pool.length === 0) return { targets: [], reason: "no valid target: no candidate in the skill's target pool" };
 
-  const main = tactic.targeting.main ?? t.default_main;
-  const notes: string[] = [];
-  const kept = pool.filter((u) => {
-    const r = evaluateCondition(main, { state, self: caster, target: u });
-    notes.push(...r.reasons);
-    return r.value;
-  });
-  const uniqueNotes = [...new Set(notes)];
-  if (kept.length === 0) return { targets: [], reason: `no valid target: no candidate passes the main condition${uniqueNotes.length ? ` (${uniqueNotes.join("; ")})` : ""}` };
-
-  const ordered = [...kept].sort(byDefault);
-  const sub = tactic.targeting.sub ?? t.default_sub;
-  let pick: Picked;
-  if (!sub) pick = { unit: ordered[0]!, note: "nearest, front row first" };
-  else if ("select" in (sub as object)) pick = pickBySelector(ordered, sub, caster, state, rng);
-  else {
-    const hit = ordered.find((u) => {
-      const r = evaluateCondition(sub as any, { state, self: caster, target: u });
+  const leaf = (c: Tactic["main"]): ConditionNode | null => (c && !isSelector(c) ? c : null);
+  const anySelector = isSelector(tactic.main) || isSelector(tactic.sub);
+  const filters: [string, ConditionNode | null][] = [
+    ["skill default_main", t.default_main], ["main", leaf(tactic.main)], ["sub", leaf(tactic.sub)], ["skill default_sub", anySelector ? null : t.default_sub],
+  ];
+  let kept = pool;
+  for (const [name, cond] of filters) {
+    if (!cond) continue;
+    const notes: string[] = [];
+    kept = kept.filter((u) => {
+      const r = evaluateCondition(cond, { state, self: caster, target: u });
       notes.push(...r.reasons);
       return r.value;
     });
-    pick = { unit: hit ?? null, note: hit ? "sub condition" : `no candidate satisfies the sub condition${[...new Set(notes)].length ? ` (${[...new Set(notes)].join("; ")})` : ""}` };
+    const uniq = [...new Set(notes)];
+    if (kept.length === 0) return { targets: [], reason: `condition false: ${name} ${describe(cond)} holds for no candidate${uniq.length ? ` (${uniq.join("; ")})` : ""}` };
   }
-  let via = pick.note;
-  if (!pick.unit) {
-    if (tactic.fallback === "next_valid_target") {
-      pick = { unit: ordered[0]!, note: "next valid target" };
-      via = `${pick.note} (sub failed: ${via})`;
-    } else {
-      return { targets: [], reason: `no valid target: ${via}; tactic fallback skip (skill fallback ${t.fallback})` };
-    }
+
+  let ordered = [...kept].sort(byDefault);
+  const via: string[] = [];
+  const keys: Map<Unit, number>[] = [];
+  for (const [name, sel] of [["main", tactic.main], ["sub", tactic.sub]] as const) {
+    if (!isSelector(sel)) continue;
+    const k = selectorKey(sel, ordered, caster, state, rng);
+    if (typeof k === "string") return { targets: [], reason: `no valid target: ${name} ${k}` };
+    keys.push(k.key);
+    via.push(`${name} ${k.note}`);
   }
-  const targets = expand(skill, caster, pick.unit!, pool, kept, state);
-  return { targets, reason: `targets ${targets.map((u) => u.id).join(", ")} via ${via}` };
+  // Stable sort: main's key first, sub's breaks ties, default order last.
+  if (keys.length) ordered = ordered.sort((a, b) => { for (const k of keys) { const d = k.get(a)! - k.get(b)!; if (d) return d; } return 0; });
+  const targets = expand(skill, caster, ordered[0]!, pool, kept, state);
+  return { targets, reason: `targets ${targets.map((u) => u.id).join(", ")} via ${via.length ? via.join(", ") : "nearest, front row first"}` };
 }
 
 /** A confused unit's action (see the header): first affordable damage skill, random target. */
@@ -252,8 +264,8 @@ export function decideTactic(state: BattleState, unit: Unit, rng: Rng): TacticDe
     if (unsupported) { skip(tactic, unsupported); continue; }
     const notReady = skillReady(unit, skill);
     if (notReady) { skip(tactic, notReady); continue; }
-    const act = evaluateCondition(tactic.activation ?? skill.default_activation, { state, self: unit });
-    if (!act.value) { skip(tactic, `activation condition false${act.reasons.length ? ` (${[...new Set(act.reasons)].join("; ")})` : ""}`); continue; }
+    const act = evaluateCondition(skill.default_activation, { state, self: unit });
+    if (!act.value) { skip(tactic, `condition false: skill default_activation${act.reasons.length ? ` (${[...new Set(act.reasons)].join("; ")})` : ""}`); continue; }
     if (unit.pp.active.cur < skill.pp_cost) { skip(tactic, `not enough Active PP (${unit.pp.active.cur} < ${skill.pp_cost})`); continue; }
     const res = resolveTargets(skill, tactic, unit, state, rng);
     if (res.targets.length === 0) { skip(tactic, res.reason); continue; }

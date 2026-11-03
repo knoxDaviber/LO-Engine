@@ -21,9 +21,9 @@ challenger:
         - char_id: char_005
           squad_row: back
           tactic_sheet:
-            - { priority: 1, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-            - { priority: 2, skill_id: skl_004, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Cleave
-            - { priority: 3, skill_id: skl_020, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Counter (passive)
+            - { priority: 1, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+            - { priority: 2, skill_id: skl_004, enabled: true, main: null, sub: null }   # Cleave
+            - { priority: 3, skill_id: skl_020, enabled: true, main: null, sub: null }   # Counter (passive)
     - phase: 3
       leader: char_009   # skips the Archer
   roster:
@@ -38,48 +38,48 @@ challenger:
         equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_020, accessory_2: equip_021 }
         sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }   # Full Moon 4-piece
         tactic_sheet:
-          - { priority: 1, skill_id: skl_004, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Cleave
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_020, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Counter (passive)
+          - { priority: 1, skill_id: skl_004, enabled: true, main: null, sub: null }   # Cleave
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_020, enabled: true, main: null, sub: null }   # Counter (passive)
       - char_id: char_012   # Holy
         squad_id: soldier_009
         equipment: { weapon: equip_011, armor: equip_019, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_013, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Blessing
-          - { priority: 2, skill_id: skl_012, enabled: true, activation: null, targeting: { main: null, sub: { select: lowest, metric: hp_percent, side: ally } }, fallback: skip }   # Mend
-          - { priority: 3, skill_id: skl_003, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Bolt
-          - { priority: 4, skill_id: skl_passive_003, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Quick Heal (passive)
+          - { priority: 1, skill_id: skl_013, enabled: true, main: null, sub: null }   # Blessing
+          - { priority: 2, skill_id: skl_012, enabled: true, main: null, sub: { select: lowest, metric: hp_percent } }   # Mend
+          - { priority: 3, skill_id: skl_003, enabled: true, main: null, sub: null }   # Bolt
+          - { priority: 4, skill_id: skl_passive_003, enabled: true, main: null, sub: null }   # Quick Heal (passive)
       - char_id: char_007   # Cavalry
         squad_id: soldier_005
         equipment: { weapon: equip_010, armor: equip_018, accessory_1: null, accessory_2: null }
         sigils: { weapon: god_005, armor: god_005 }   # Breeze 2-piece
         tactic_sheet:
-          - { priority: 1, skill_id: skl_006, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Charge
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_018, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Follow-Up (passive)
+          - { priority: 1, skill_id: skl_006, enabled: true, main: null, sub: null }   # Charge
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_018, enabled: true, main: null, sub: null }   # Follow-Up (passive)
       - char_id: char_008   # Archer
         squad_id: soldier_006
         equipment: { weapon: equip_012, armor: equip_017, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_007, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Volley
-          - { priority: 2, skill_id: skl_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Shot
-          - { priority: 3, skill_id: skl_passive_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Quick Guard (passive)
-          - { priority: 4, skill_id: skl_019, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Pursuit (passive)
+          - { priority: 1, skill_id: skl_007, enabled: true, main: null, sub: null }   # Volley
+          - { priority: 2, skill_id: skl_002, enabled: true, main: null, sub: null }   # Shot
+          - { priority: 3, skill_id: skl_passive_001, enabled: true, main: null, sub: null }   # Quick Guard (passive)
+          - { priority: 4, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
       - char_id: char_009   # Flyer
         squad_id: soldier_007
         equipment: { weapon: null, armor: equip_017, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_008, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Dive
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_passive_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Quick Guard (passive)
-          - { priority: 4, skill_id: skl_019, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Pursuit (passive)
+          - { priority: 1, skill_id: skl_008, enabled: true, main: null, sub: null }   # Dive
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_passive_001, enabled: true, main: null, sub: null }   # Quick Guard (passive)
+          - { priority: 4, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
       - char_id: char_013   # Aquatic
         squad_id: soldier_011
         equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_015, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Tidal Crash
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_020, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Counter (passive)
+          - { priority: 1, skill_id: skl_015, enabled: true, main: null, sub: null }   # Tidal Crash
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_020, enabled: true, main: null, sub: null }   # Counter (passive)
 
 defender:
   roster:
@@ -97,44 +97,44 @@ defender:
         squad_id: soldier_004
         equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-          - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-          - { priority: 3, skill_id: skl_passive_005, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+          - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, main: null, sub: null }
+          - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, main: null, sub: null }
+          - { priority: 3, skill_id: skl_passive_005, enabled: true, main: null, sub: null }
       - char_id: char_014   # Monster (anchor)
         squad_id: soldier_012
         equipment: { weapon: equip_015, armor: equip_018, accessory_1: equip_021, accessory_2: equip_021 }
         sigils: { weapon: god_004, armor: god_004, accessory_1: god_004, accessory_2: god_004 }   # Gift 4-piece
         tactic_sheet:
-          - { priority: 1, skill_id: skl_016, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Rend
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_021, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Frenzy (passive)
+          - { priority: 1, skill_id: skl_016, enabled: true, main: null, sub: null }   # Rend
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_021, enabled: true, main: null, sub: null }   # Frenzy (passive)
       - char_id: char_006   # Lancer
         squad_id: soldier_004
         equipment: { weapon: equip_016, armor: equip_018, accessory_1: equip_021, accessory_2: equip_021 }
         sigils: { weapon: god_003, armor: god_003, accessory_1: god_005, accessory_2: god_005 }   # Plate + Breeze 2-piece
         tactic_sheet:
-          - { priority: 1, skill_id: skl_005, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Pierce
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_019, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Pursuit (passive)
+          - { priority: 1, skill_id: skl_005, enabled: true, main: null, sub: null }   # Pierce
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
       - char_id: char_002   # The Emperor
         squad_id: soldier_001
         equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_inf_active_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-          - { priority: 2, skill_id: skl_inf_active_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
-          - { priority: 3, skill_id: skl_passive_002, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }
+          - { priority: 1, skill_id: skl_inf_active_002, enabled: true, main: null, sub: null }
+          - { priority: 2, skill_id: skl_inf_active_001, enabled: true, main: null, sub: null }
+          - { priority: 3, skill_id: skl_passive_002, enabled: true, main: null, sub: null }
       - char_id: char_011   # Assassin
         squad_id: soldier_010
         equipment: { weapon: equip_013, armor: equip_017, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_009, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Backstab
-          - { priority: 2, skill_id: skl_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Strike
-          - { priority: 3, skill_id: skl_passive_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Quick Guard (passive)
-          - { priority: 4, skill_id: skl_018, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Follow-Up (passive)
+          - { priority: 1, skill_id: skl_009, enabled: true, main: null, sub: null }   # Backstab
+          - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
+          - { priority: 3, skill_id: skl_passive_001, enabled: true, main: null, sub: null }   # Quick Guard (passive)
+          - { priority: 4, skill_id: skl_018, enabled: true, main: null, sub: null }   # Follow-Up (passive)
       - char_id: char_010   # Mage
         squad_id: soldier_008
         equipment: { weapon: equip_014, armor: equip_019, accessory_1: null, accessory_2: null }
         tactic_sheet:
-          - { priority: 1, skill_id: skl_010, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Fireball
-          - { priority: 2, skill_id: skl_003, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Bolt
-          - { priority: 3, skill_id: skl_passive_001, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: skip }   # Quick Guard (passive)
+          - { priority: 1, skill_id: skl_010, enabled: true, main: null, sub: null }   # Fireball
+          - { priority: 2, skill_id: skl_003, enabled: true, main: null, sub: null }   # Bolt
+          - { priority: 3, skill_id: skl_passive_001, enabled: true, main: null, sub: null }   # Quick Guard (passive)

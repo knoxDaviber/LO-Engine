@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { ID_PATTERN, ROWS } from "./enums";
+import { ID_PATTERN, ROWS, TIMES } from "./enums";
 import { rosterHeroSchema, rosterSchema, tacticSchema } from "./roster";
 
 const id = z.string().regex(ID_PATTERN);
@@ -45,6 +45,7 @@ export const battleSchema = z.strictObject({
   battle_id: z.string().min(1),
   version: z.string().min(1),
   battlefield: id.nullable().optional(), // terrain id; absent/null = no terrain. E_BATTLE_TERRAIN if unknown
+  time: z.enum(TIMES).optional(), // time of day, absent = day (time_is leaf)
   seeds,
   challenger: battleSideSchema,
   defender: battleSideSchema,
@@ -66,6 +67,7 @@ export type RosterSide = z.infer<typeof rosterSideSchema>;
 export const rosterBattleSchema = z.strictObject({
   battle_id: z.string().min(1),
   version: z.string().min(1),
+  time: z.enum(TIMES).optional(), // time of day, absent = day (time_is leaf)
   seeds,
   challenger: rosterSideSchema,
   defender: rosterSideSchema,

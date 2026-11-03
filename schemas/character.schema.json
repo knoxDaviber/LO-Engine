@@ -25,6 +25,18 @@
         "monster"
       ]
     },
+    "race": {
+      "type": "string",
+      "enum": [
+        "human",
+        "elf",
+        "beastfolk",
+        "dwarf",
+        "dragon",
+        "demon",
+        "angel"
+      ]
+    },
     "factions": {
       "type": "array",
       "items": {
@@ -1834,6 +1846,7 @@
     "id",
     "name",
     "class",
+    "race",
     "factions",
     "role",
     "lore",

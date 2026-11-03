@@ -19,7 +19,17 @@
 //   has_any_debuff           a status of a debuff category (stats.ts DEBUFF_CATEGORIES) or an aura instance with a negative modifier
 //   stat_compare             effective stat (stats.ts); active_pp / passive_pp the current pool (a squad has none: 0)
 //   enemies_alive / allies_alive   living heroes (allies include the actor); enemy_soldiers_remaining: living soldiers of enemy squads
-//   action_count             the actor's own completed actions this phase (skills and idles)
+//   action_count             the actor's own completed actions this phase (skills and idles): "first action" = action_count = 0
+//   has_any_buff / lacks_*   buff = a `buff`-category status or an aura instance with a positive modifier (debuff as above)
+//   is_self / not_self       the unit is / is not the actor
+//   row_size / row_rank      living combatants (a hero 1, a squad its living soldiers) in the unit's board row on its side; row_rank compares
+//                            with the side's non-empty board rows (ties count as both most and least)
+//   column_full              a hero whose column holds a living hero in both hero rows of its side (a squad: false)
+//   average_hp_percent       mean HP% over the unit's side, every living hero and every living soldier one entry
+//   time_is / combatants / side_has   board leaves: battle time; living combatants of a side; any living unit (squads included) of the class /
+//                            race on that side (present: false = none)
+//   attacked_since_last_action  params filter the hits in the window (damage_type: hybrid matches either; shape: event_unit / attacker count as
+//                            single, caster_row as row; by_class / by_race: the attacker's; a squad's race is human)
 //   action_is_single_target  the unit is the current actor and its action is a single-target attack (EventBus.singleAttack, set by executeSkill
 //                            for an active damage skill of shape single); false for squads, passives and reactions
 //   soldier_mounted          the unit's deployed soldier type (a squad's own, a leader's squad's); no deployed squad: false
@@ -29,12 +39,12 @@
 // predicates the passive triggers use (events.ts EVENT_SPECS). Outside an event (a tactic activation) they mean "since my last action": true
 // when any event in the actor's window (EventBus.windowOf: from its last after_action on, reactions' events included) matches.
 // was_attacked_since_last_action always reads the window (a hit aimed at the actor, landed or not).
-import type { ConditionNode } from "../schema";
-import type { EventCtx } from "./events";
+import type { ConditionNode, Status } from "../schema";
+import type { EventCtx, HitRef } from "./events";
 import { EVENT_SPECS, eventAttacker, eventUnit } from "./events";
 import { effectiveStat, isDebuffStatus } from "./stats";
-import type { BattleState, Unit } from "./state";
-import { alliesOf, enemiesOf, livingOf, otherSide, targetsOf } from "./state";
+import type { BattleState, Side, Unit } from "./state";
+import { alliesOf, boardRank, enemiesOf, livingOf, otherSide, targetsOf } from "./state";
 
 export interface CondContext {
   state: BattleState;
@@ -118,12 +128,27 @@ const LEAVES: Record<string, LeafFn> = {
   action_is_single_target: (u, _l, c) => c.state.bus.singleAttack && c.state.bus.actor === u,
   has_status: (u, l) => u.statuses.some((s) => s.statusId === l.status_id),
   lacks_status: (u, l) => !u.statuses.some((s) => s.statusId === l.status_id),
-  has_any_debuff: (u, _l, c) =>
-    u.statuses.some((s) => {
-      if (s.inline) return s.inline.modifiers.some((m) => m.value < 0);
-      const st = c.state.pack.byId.statuses.get(s.statusId);
-      return st !== undefined && isDebuffStatus(st);
-    }),
+  has_any_debuff: (u, _l, c) => hasDebuff(u, c),
+  has_any_buff: (u, _l, c) => hasBuff(u, c),
+  lacks_any_buff: (u, _l, c) => !hasBuff(u, c),
+  lacks_any_debuff: (u, _l, c) => !hasDebuff(u, c),
+  race_is: (u, l) => u.race === l.value,
+  is_self: (u, _l, c) => u === c.self,
+  not_self: (u, _l, c) => u !== c.self,
+  row_size: (u, l, c) => compare(rowCount(c.state, u.side, boardRank(u)), l.op, l.value),
+  row_rank: (u, l, c) => {
+    // Among the side's non-empty board rows; ties count as both most and least.
+    const counts = [0, 1, 2, 3].map((r) => rowCount(c.state, u.side, r)).filter((n) => n > 0);
+    const mine = rowCount(c.state, u.side, boardRank(u));
+    return mine === (l.value === "most" ? Math.max(...counts) : Math.min(...counts));
+  },
+  column_full: (u, _l, c) =>
+    u.kind === "hero" && (["front", "back"] as const).every((row) => livingOf(c.state, u.side).some((h) => h.row === row && h.column === u.column)),
+  average_hp_percent: (u, l, c) => {
+    // [DEFAULT] every living hero and every living soldier counts as one unit.
+    const pcts = targetsOf(c.state, u.side).flatMap((v) => (v.kind === "squad" ? v.soldiers.filter((s) => s.alive).map((s) => (s.hp / s.maxHp) * 100) : [hpPercent(v)]));
+    return pcts.length > 0 && compare(pcts.reduce((a, b) => a + b, 0) / pcts.length, l.op, l.value);
+  },
   stat_compare: (u, l, c) => compare(effectiveStat(u, l.stat, c.state.pack), l.op, l.value),
   active_pp: (u, l) => compare(u.pp.active.cur, l.op, l.value),
   passive_pp: (u, l) => compare(u.pp.passive.cur, l.op, l.value),
@@ -136,12 +161,46 @@ const LEAVES: Record<string, LeafFn> = {
   is_official: (u, l) => u.kind === "hero" && l.value === true,
 };
 
+/** Living combatants: a hero counts 1, a squad its living soldiers. */
+const combatantCount = (u: Unit): number => (u.kind === "squad" ? u.soldiers.filter((s) => s.alive).length : 1);
+/** Living combatants in board row `rank` (boardRank) of a side. */
+const rowCount = (state: BattleState, side: Side, rank: number): number =>
+  targetsOf(state, side).filter((v) => boardRank(v) === rank).reduce((n, v) => n + combatantCount(v), 0);
+const statusIs = (u: Unit, c: CondContext, inline: (v: number) => boolean, cat: (st: Status) => boolean) =>
+  u.statuses.some((s) => {
+    if (s.inline) return s.inline.modifiers.some((m) => inline(m.value));
+    const st = c.state.pack.byId.statuses.get(s.statusId);
+    return st !== undefined && cat(st);
+  });
+/** Debuff: a DEBUFF_CATEGORIES status or an aura with a negative modifier; buff: a `buff` status or an aura with a positive one. */
+const hasDebuff = (u: Unit, c: CondContext) => statusIs(u, c, (v) => v < 0, isDebuffStatus);
+const hasBuff = (u: Unit, c: CondContext) => statusIs(u, c, (v) => v > 0, (st) => st.category === "buff");
+/** Shape family of an attacking skill's shape: event_unit / attacker are single-target, caster_row a row. */
+const shapeFamily = (shape: string | undefined): string | undefined =>
+  shape === "event_unit" || shape === "attacker" ? "single" : shape === "caster_row" ? "row" : shape;
+
 /** Leaves about the actor and the board rather than a unit picked by `side`. */
 const BOARD: Record<string, (leaf: Record<string, any>, ctx: CondContext) => boolean> = {
   phase: (l, c) => compare(c.state.phase, l.op, l.value),
   action_count: (l, c) => compare(c.self.actions, l.op, l.value),
   enemies_alive: (l, c) => compare(livingOf(c.state, otherSide(c.self.side)).length, l.op, l.value),
   allies_alive: (l, c) => compare(livingOf(c.state, c.self.side).length, l.op, l.value),
+  time_is: (l, c) => c.state.time === l.value,
+  combatants: (l, c) => compare(targetsOf(c.state, l.side === "ally" ? c.self.side : otherSide(c.self.side)).reduce((n, u) => n + combatantCount(u), 0), l.op, l.value),
+  side_has: (l, c) => {
+    const pool = targetsOf(c.state, l.side === "ally" ? c.self.side : otherSide(c.self.side));
+    return pool.some((u) => (l.class !== undefined ? u.class === l.class : u.race === l.race)) === l.present;
+  },
+  // The actor was hit (aimed at, landed or not) since its last action by an attack matching every given param; hybrid matches either type.
+  attacked_since_last_action: (l, c) =>
+    c.state.bus.windowOf(c.self).some((e) => {
+      if (!EVENT_SPECS.self_attacked!.match(c.self, e)) return false;
+      const h = e.payload as HitRef;
+      return (l.damage_type === undefined || h.damageType === l.damage_type || h.damageType === "hybrid") &&
+        (l.shape === undefined || shapeFamily(h.shape) === l.shape) &&
+        (l.by_class === undefined || h.attacker.class === l.by_class) &&
+        (l.by_race === undefined || h.attacker.race === l.by_race);
+    }),
   enemy_soldiers_remaining: (l, c) => {
     const squads = targetsOf(c.state, otherSide(c.self.side)).filter((u) => u.kind === "squad");
     return compare(squads.reduce((n, q) => n + q.soldiers.filter((s) => s.alive).length, 0), l.op, l.value);

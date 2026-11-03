@@ -190,22 +190,34 @@ test("event leaves outside an event read 'since my last action': attacked / heal
   assert.deepEqual(["was_attacked_since_last_action", "just_healed"].map((t) => c(t, emp)), [false, false]);
 });
 
+test("attacked_since_last_action filters the window by damage type, shape and attacker class / race", () => {
+  const { u, act, cond } = setup();
+  const emp = u(EMPEROR), leon = u(LEON);
+  const c = (params: Record<string, unknown>) => cond({ type: "attacked_since_last_action", ...params }, { self: emp }).value;
+  assert.equal(c({}), false);
+  act(leon); // Charging Assault: physical, single target, cavalry, human
+  assert.deepEqual([c({}), c({ damage_type: "physical" }), c({ damage_type: "magical" }), c({ shape: "single" }), c({ shape: "row" })], [true, true, false, true, false]);
+  assert.deepEqual([c({ by_class: "cavalry" }), c({ by_class: "infantry" }), c({ by_race: "human" }), c({ by_race: "elf", damage_type: "physical" })], [true, false, true, false]);
+  assert.equal(cond({ type: "attacked_since_last_action" }, { self: leon }).value, false);
+});
+
 // ------------------------------------------------------------------ selectors
 
-test("selectors: lowest / highest by stat or PP, farthest, random_seeded, and a selector side narrows the candidates", () => {
+test("selectors: lowest / highest by stat, PP or max HP, farthest, random_seeded", () => {
   const { state, u, pack, x } = setup();
   const leon = u(LEON);
   const sk = pack.byId.skills.get(ASSAULT)!;
   const pick = (sub: any, side: Skill["targeting"]["side"] = "enemy") =>
-    resolveTargets({ ...sk, targeting: { ...sk.targeting, side } }, tactic(ASSAULT, { targeting: { main: null, sub } }), leon, state, x.rng).targets.map((t) => t.id);
+    resolveTargets({ ...sk, targeting: { ...sk.targeting, side } }, tactic(ASSAULT, { main: null, sub }), leon, state, x.rng).targets.map((t) => t.id);
   u(EMPEROR).pp.passive.cur = 0;
   assert.deepEqual(pick({ select: "lowest", metric: "passive_pp" }), [EMPEROR]);
   assert.deepEqual(pick({ select: "highest", metric: "passive_pp" }), [JASMINE]);
   assert.deepEqual(pick({ select: "farthest" }), [JASMINE]); // back row
-  assert.deepEqual(pick({ select: "highest", stat: "INT" }), [JASMINE]);
-  assert.deepEqual(resolveTargets(sk, tactic(ASSAULT, { targeting: { main: null, sub: { select: "random_seeded" } } }), leon, state, scripted([0.9])).targets.map((t) => t.id), [JASMINE]);
-  assert.deepEqual(pick({ select: "lowest", metric: "hp_percent", side: "ally" }, "any"), [LEON]);
-  assert.deepEqual(pick({ select: "lowest", metric: "hp_percent", side: "ally" }), []); // no ally among the enemy candidates
+  assert.deepEqual(pick({ select: "highest", metric: "INT" }), [JASMINE]);
+  assert.deepEqual(resolveTargets(sk, tactic(ASSAULT, { main: null, sub: { select: "random_seeded" } }), leon, state, scripted([0.9])).targets.map((t) => t.id), [JASMINE]);
+  u(LEON).hp = 1;
+  assert.deepEqual(pick({ select: "lowest", metric: "hp_percent" }, "any"), [LEON]);
+  assert.deepEqual(pick({ select: "highest", metric: "max_hp" }), [[EMPEROR, JASMINE].sort((a, b) => u(b).maxHp - u(a).maxHp || (a < b ? -1 : 1))[0]]);
 });
 
 // ------------------------------------------------------------------ effects

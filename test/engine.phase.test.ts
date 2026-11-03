@@ -35,11 +35,11 @@ test("a hero with no usable active skill is exhausted", () => {
   assert.equal(isExhausted(state, state.units.find((u) => u.id === LIEF)!), false);
 });
 
-const never: Tactic["activation"] = { type: "phase", op: "=", value: 9 };
+const never: Tactic["main"] = { type: "phase", op: "=", value: 9 };
 
 test("idle safety ends a stalled phase after one full cycle without a skill", () => {
   const { pack, battle } = setup();
-  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) for (const t of h.tactic_sheet) t.activation = never;
+  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) for (const t of h.tactic_sheet) t.main = never;
   const log = new EventLog();
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
   const res = runPhase(state, rng, log);
@@ -52,7 +52,7 @@ test("idle safety ends a stalled phase after one full cycle without a skill", ()
 test("idle cycle restarts when a skill is executed", () => {
   const { pack, battle } = setup();
   // Leon can act exactly once (PP 2, Hooves cost 2); everyone else stalls. Leon acts at 20, 37, 54...
-  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) if (h.char_id !== LEON) for (const t of h.tactic_sheet) t.activation = never;
+  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) if (h.char_id !== LEON) for (const t of h.tactic_sheet) t.main = never;
   sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_002")];
   const log = new EventLog();
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
@@ -145,24 +145,24 @@ test("HP and deaths persist into the next phase; PP refreshes, statuses clear, t
   assert.equal(p2.state.timeline.pending.has(JASMINE), false);
 });
 
-test("`phase` condition works in activation", () => {
+test("`phase` condition in main: an only-if check", () => {
   const { pack, battle } = setup();
-  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_001", { activation: { type: "phase", op: ">=", value: 2 } })];
+  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_001", { main: { type: "phase", op: ">=", value: 2 } })];
   const r = runBattle(pack, battle);
   const first = (p: number) => evals(r.events, LEON, p)[0]!;
   assert.equal(first(1).chosen, null);
-  assert.match(first(1).evaluations[0]!.reason, /activation condition false/);
+  assert.match(first(1).evaluations[0]!.reason, /condition false: main phase >= 2/);
   assert.equal(first(2).chosen, "skl_cav_active_001");
   assert.equal(first(3).chosen, "skl_cav_active_001");
 });
 
 test("`phase` condition works in targeting", () => {
   const { pack, battle } = setup();
-  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_001", { targeting: { main: { type: "phase", op: "=", value: 2 }, sub: null } })];
+  sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_001", { main: { type: "phase", op: "=", value: 2 }, sub: null })];
   const r = runBattle(pack, battle);
   const first = (p: number) => evals(r.events, LEON, p)[0]!;
   assert.equal(first(1).chosen, null);
-  assert.match(first(1).evaluations[0]!.reason, /no valid target/);
+  assert.match(first(1).evaluations[0]!.reason, /condition false: main phase = 2/);
   assert.equal(first(2).chosen, "skl_cav_active_001");
   assert.equal(first(3).chosen, null);
 });

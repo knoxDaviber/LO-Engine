@@ -1,5 +1,5 @@
 // Battle state types and construction. Plain data; functions elsewhere take the state and mutate it explicitly.
-import type { Battle, Character, ConditionNode, DamageFormulaName, Effect, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
+import type { Battle, Character, ConditionNode, DamageFormulaName, Effect, Race, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
 import { STATS } from "../schema";
 import { columnsOffBoard, resolvePlacements, resolveSquadPlacement, rowOverflows, slotConflicts } from "../formation";
 import { equipmentStats } from "../equipmentBase";
@@ -79,6 +79,8 @@ export interface Unit {
   charId: string;
   name: string;
   class: UnitClass;
+  /** Heroes: the character's race. Squads: [DEFAULT] human (soldier types carry no race). */
+  race: Race;
   factions: string[];
   isLeader: boolean;
   /** Heroes: hero row. Squads: the squad_row, i.e. the soldier row in front of (front) or behind (back) the hero rows. */
@@ -131,6 +133,8 @@ export interface BattleState {
   battleId: string;
   /** Terrain id of the battle (`battle.battlefield`), or null for none. Read by the terrain pre-battle step and bonus_on_terrain. */
   battlefield: string | null;
+  /** Time of day (`battle.time`, default day): the time_is leaf. */
+  time: "day" | "night";
   phase: number; // 1-based
   units: Unit[]; // challenger heroes then defender heroes, each in formation order
   timeline: Timeline;
@@ -225,7 +229,7 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     const capA = opts.pp?.active === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppA);
     const capP = opts.pp?.passive === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppP);
     const unit: Unit = {
-      id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, factions: [...ch.factions], isLeader: h.char_id === s.leader,
+      id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, race: ch.race, factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
       baseStats: { ...ch.base_stats }, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
       pp: {
@@ -290,7 +294,7 @@ function buildSquad(pack: Pack, side: Side, battle: Battle, heroes: Unit[], note
   const stats = { ...st.per_soldier_stats } as Record<Stat, number>;
   const squad: Unit = {
     id, kind: "squad", soldiers: [], innate, leaderId: sp.leaderCharId, soldierTypeId: st.id, side, charId: sp.leaderCharId,
-    name: `${leader.name}'s ${st.name}`, class: st.class, factions: [], isLeader: false,
+    name: `${leader.name}'s ${st.name}`, class: st.class, race: "human", factions: [], isLeader: false,
     row: sp.row, column: 0, formationIndex: sp.row === "front" ? -1 : heroes.length,
     baseStats: stats, equipFlat: zeroStats(), equipment: [], hp: 0, maxHp: 0,
     pp: { active: { cur: 0, max: 0 }, passive: { cur: 0, max: 0 } },
@@ -327,7 +331,7 @@ export function createBattleState(pack: Pack, battle: Battle, phase = 1, opts: B
     }
   }
   const state: BattleState = {
-    pack, battleId: battle.battle_id, battlefield: battle.battlefield ?? null, phase, units,
+    pack, battleId: battle.battle_id, battlefield: battle.battlefield ?? null, time: battle.time ?? "day", phase, units,
     timeline: { now: 0, pending: new Map(), seqCounter: 0 },
     actionCount: 0, statusSeq: 0, buildNotes,
     bus: new EventBus(),

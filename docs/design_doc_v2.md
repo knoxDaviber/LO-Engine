@@ -80,7 +80,7 @@ The defender's snapshot designates one **anchor** hero, visible at reveal and un
 Result: each side loses exactly 2 and fields exactly 4. There is no self-cut.
 
 **Defender rule sheet** [DEFAULT]:
-- A list of ordered ban rules (filter + selector), matched against derived hero attributes (class, faction, leader aura type, skill tags, cost, stats, official/community). Same two-slot limit as player tactics [DECIDED]: one filter condition, optionally a second ANDed with it, plus the selector; no nesting, OR or NOT Enforced (E_TACTIC_SHAPE).
+- A list of ordered ban rules (filter + selector), matched against derived hero attributes (class, faction, leader aura type, skill tags, cost, stats, official/community). Two-slot limit [DECIDED]: one filter condition, optionally a second ANDed with it, plus the selector; no nesting, OR or NOT Enforced (E_TACTIC_SHAPE).
 - At each defender step, rules are evaluated top to bottom against eligible heroes and the first rule that picks a hero bans it. A rule that has already fired is skipped. If no rule matches, the fallback bans the **highest-cost eligible hero**. Ties break by cost, then ID. Exactly one ban per step, always.
 - Rule sheets are hidden until resolved, but expected to leak over many attempts, so balance rests on the counts, not on secrecy.
 
@@ -157,33 +157,33 @@ Each hero has an ordered list of up to **10 tactics** [DECIDED]. Active and pass
 1. Priority (position in the list)
 2. Skill reference (ID)
 3. Enabled flag
-4. **Activation condition** (whether to attempt): **one condition, optionally with a second ANDed** [DECIDED]
-5. **Targeting:** a main condition (who to consider; again one condition, optionally with a second ANDed) plus a sub selector or condition (how to choose among them)
-6. Optional tactic-level fallback: `skip` or `next_valid_target` (distinct from the skill-level `re_evaluate | skip`)
+4. **Main** condition
+5. **Sub** condition
 
-Activation and targeting are separate systems [DECIDED]. **Player-written sheets use at most two ANDed conditions per slot, with no nesting, OR or NOT** [DECIDED]; authored content keeps full condition trees The validator enforces this (E_TACTIC_SHAPE), also on skills' default activation and targeting.
+A tactic is a skill plus two conditions [DECIDED, Decision 136]. Each of Main and Sub is either **one condition leaf** (no AND, OR, NOT or nesting) or a **selector**; either may be empty. There is no separate activation slot and no tactic-level fallback. Authored content keeps full condition trees; skills' default_activation / default_main / default_sub stay limited to one leaf or two ANDed leaves. The validator enforces both (E_TACTIC_SHAPE).
 
 ### 4.2 Evaluation when a hero acts
-For each tactic top to bottom: enabled? skill eligible? activation condition true? PP sufficient? valid target found? If all yes, execute it and stop. Otherwise log the skip reason and continue. If none qualify, the hero does nothing this action [DECIDED]. Only one tactic executes per scheduled action.
+For each tactic top to bottom: enabled? skill eligible and ready? the skill's default activation true? PP sufficient? a candidate left after the conditions? If all yes, execute it and stop. Otherwise log the skip reason and continue. If none qualify, the hero does nothing this action [DECIDED]. Only one tactic executes per scheduled action.
 
 ### 4.3 Condition library
-Conditions are typed nodes. Authored content may combine them with AND / OR / NOT and nest them; player sheets are limited to two ANDed conditions per slot (Section 4.1). Every condition supports comparators (>, <, ≥, ≤ =, ≠) and, for targeting, selectors (lowest, highest, nearest, farthest, random with seed).
+Conditions are typed nodes. Authored content may combine them with AND / OR / NOT and nest them; a player slot holds one leaf or one selector (Section 4.1). Comparators: >, <, ≥, ≤, =, ≠. Selectors: lowest / highest (by HP %, current / missing / max HP, current / max Active and Passive PP, or a stat), nearest, farthest, random with seed, and **prefer** (candidates that satisfy a leaf first: "Prioritise Front Row", "Prioritise Infantry", "Prioritise Buffed").
 
 | Category | Examples |
 |---|---|
 | HP-based | HP % > 80, HP % < 50, lowest HP, highest HP, current HP absolute, missing HP |
 | Unit type | hero only, soldier only, ignore soldiers, leader only, not leader |
-| Class | is Cavalry, class has advantage over me |
+| Class / race | is Cavalry, class has advantage over me, race is Elf, Infantry enemies present / no Infantry enemies |
 | Faction | member of Empire |
-| Position | front row, back row, soldier row (front or back), same column as X, row empty |
-| Status | has buff/debuff X, has any debuff, missing buff X |
+| Position | front row, back row, soldier row (front or back), same column as X, row size, row with most / least units, column full (both hero rows) |
+| Identity | is me, is not me |
+| Status | has buff/debuff X, has any debuff / buff, has no debuff / buff, missing buff X |
 | Stat-based | highest ATK, lowest DEF, SPD < X |
 | Resource | my Active PP ≥ N, target has Passive PP |
-| Counts | enemies alive ≥ N, allies alive ≤ N, enemy soldiers remaining |
-| Self/events | I was attacked since my last action, ally was attacked, I was just healed |
-| Battle | **current phase = N**, action count ≥ N |
+| Counts | enemies alive ≥ N, allies alive ≤ N, enemy soldiers remaining, combatants (heroes plus soldiers) on a side, average HP % of a side |
+| Self/events | I was attacked since my last action (optionally: physically / magically, by a row / column / all attack, by a class or race), ally was attacked, I was just healed |
+| Battle | **current phase = N**, action count (first action = 0), daytime / night-time |
 
-Main/sub semantics [DEFAULT]: the main condition filters the candidate set and picks a group; the sub-condition sorts or tie-breaks within it. A missing sub-condition never invalidates the main condition. Default with nothing set: nearest valid target, front row first, ties broken by column index then unit ID (never database order) [DECIDED].
+Main/sub semantics [DECIDED, Decision 136]: the candidates are the skill's target pool (side, valid rows, soldier mode). A leaf in Main or Sub keeps a candidate iff it is true with the caster as self and the candidate as target; a leaf that reads only the caster or the board ("Own HP < 50%", "Daytime", "Infantry enemies present") is therefore an "only if": when false no candidate passes and the tactic is skipped ("condition false: ..."). A selector never skips; it only orders: Main's selector first, Sub's breaks ties, then the default order. The first candidate anchors the skill's shape. The skill's authored default_activation and default_main always apply as well (ANDed); default_sub applies only when neither slot is a selector. Default order: nearest valid target, front row first, ties broken by column index then unit ID (never database order) [DECIDED]. Passives use the two leaves (ANDed with the default activation) and ignore selectors.
 
 Filters to support from day one (they carry the soldier-vs-hero strategy): *heroes only*, *soldiers only*, *front row first / back row first*, *leader*.
 
@@ -405,22 +405,15 @@ Designer rule: all equipment of one type has the same base stats; types differ f
 - A schema-driven in-game editor generates dropdowns for stats, tags, conditions and references, and validates IDs, duplicates and missing fields before a battle.
 - Build order for the editor: **tactics board first**, then skills, equipment, characters.
 
-Example tactic (illustrative structure, not content). A player sheet allows one activation condition plus an optional second ANDed (here two ANDed leaves), one targeting condition plus an optional second, and a sub selector; no nesting, OR or NOT:
+Example tactic (illustrative structure, not content). A player tactic is a skill plus Main and Sub, each one leaf or one selector (Decision 136); here Main is an "only if" on the board and Sub picks the most wounded candidate:
 
 ```json
 {
   "priority": 1,
   "skill_id": "skl_heal_active_001",
   "enabled": true,
-  "activation": { "all": [
-    { "type": "phase", "op": ">=", "value": 2 },
-    { "type": "active_pp", "side": "self", "op": ">=", "value": 2 }
-  ]},
-  "targeting": {
-    "main": { "type": "unit_kind", "is": "hero" },
-    "sub":  { "select": "lowest", "metric": "hp_percent" }
-  },
-  "fallback": "skip"
+  "main": { "type": "phase", "op": ">=", "value": 2 },
+  "sub":  { "select": "lowest", "metric": "hp_percent" }
 }
 ```
 
@@ -530,7 +523,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 68 | Turtling | DECIDED (known risk) | Keep "survivors after phase 3 = challenger loss" and rely on bans. The anchor is unbannable, so defenders will make their best wall the anchor. Batch simulator must report timeout rate |
 | 69 | Per-hit effects | DECIDED | Regen, on-hit reactives and PP reduction (Longinus) trigger once per attacking action regardless of hit count; squads still deal 10 hits of damage (revised by 130: a squad attack is one hit) |
 | 70 | Squad attack | DECIDED (overturned by 130) | Each living soldier attacks (10 real hits) |
-| 71 | Player tactic and ban rows | DECIDED | One activation condition and one targeting condition, each optionally with a second ANDed; no nesting, OR or NOT in player sheets. Ban rules: one filter, optional second ANDed, plus selector. Authored content keeps full trees (enforced) |
+| 71 | Player tactic and ban rows | DECIDED (player part superseded by 136) | One activation condition and one targeting condition, each optionally with a second ANDed; no nesting, OR or NOT in player sheets. Ban rules: one filter, optional second ANDed, plus selector. Authored content keeps full trees (enforced) |
 | 72 | Cost override | DECIDED | `cost_override` on a hero, skill or item replaces the computed cost (official only) |
 | 73 | Squad healing | DECIDED | Always treated as AoE; see 43 |
 | 74 | Devotion (prayer) | DECIDED concept | 7 base gods (open-ended, 113); each gear piece carries one fixed sigil; 2 and 4 same-god sigils unlock that god's blessing; new stacking category `prayer`; priced by cost; built in step 3; god names and blessings TBD (Section 9A). Revised by 125: sigils are chosen by the player per slot, not fixed on the item |
@@ -595,6 +588,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 133 | Equipment type standard | DECIDED rule, DEFAULT values | "All equipment of one type has the same base stats; types differ from each other." An item has exactly one type (weapon type, armor type or accessory category: shield, gloves, boots, ring, amulet, charm, bracelet, earring, cloak, belt; replaces `none`); its flat stat lines are `rules.equipment_bases[type]` and items no longer author `stat_modifiers`. Named items differ by pp_modifiers and effects. Bases stay on HP/ATK/INT/DEF/MDEF except type identities (dagger CRIT, heavy armor SPD -5, shield GUARD, boots SPD). Table in Section 12.1. Existing items re-typed; their old stat lines dropped (kept in `meta.pre_standard_stats`) |
 | 134 | Additive-pool damage, hero hits, Speed Boots | DECIDED formula shape, DEFAULT values | "ATK (from all sources) - DEF (from all sources) x (DMG bonus - DMG reduction)": `pool` formula, `(ATK_total - DEF_total) x (1 + bonus% - reduction%)`, class advantage / pair / bonus_vs_class / bonus_on_terrain in the bonus part, guard and reduce_damage in the reduction part, cap 75%, crit after (Section 8). "Heroes hit for 4x to begin with": `rules.damage.hero_hits` 4 multiplies hero damage (not squads, not heals), sweepable. Older formulas kept selectable. equip_006 Speed Ring re-typed to boots as Speed Boots |
 | 135 | Equipment base retune | DEFAULT values (designer guide) | "Increase weapon stats by roughly 3x, then defence gear roughly 1/3 - 1/2 of weapons; sword ATK 150 DEF 24, Leather Armour (light_armor) DEF 50 HP 150. Armour should give a better stat total, ATK is just very powerful. Building up a high defence should be an intentional build." The designer asked "roughly 3x" with the sword anchored at ATK 150 / DEF 24; the anchor set weapon ATK at 5x the previous base table (sword ATK 30), weapon secondary lines ~3x; armor main defensive line 1/3-1/2 of a weapon line with a slightly higher raw total; offensive accessories scale with weapons; defensive accessories about 2x, kept modest, so stacking DEF is deliberate; CRIT / GUARD / SPD identities unchanged. Table in Section 12.1 |
+| 136 | Tactic = skill + Main + Sub | DECIDED (DEFAULT details) | Player tactics drop `activation`, `targeting` and `fallback`: `{ priority, skill_id, enabled, main, sub }`, each slot one condition leaf or a selector (Section 4.1-4.3). Leaves filter the candidates (self / board leaves act as "only if"), selectors only order (Main first, Sub tie-break; new `prefer` with a `filter` leaf, metrics max_hp / max_active_pp / max_passive_pp; selector `side` dropped). Skill default_activation and default_main always apply; default_sub only without a selector. Races (`race` on characters: human, elf, beastfolk, dwarf, dragon, demon, angel; [DEFAULT] squads human), battle `time: day / night` (default day; no race day/night bonuses yet) and new leaves: time_is, race_is, has_any_buff / lacks_any_buff / lacks_any_debuff, row_size, row_rank (ties count as both, among occupied rows), column_full, average_hp_percent ([DEFAULT] every living hero and soldier counts once), combatants, side_has, is_self / not_self, attacked_since_last_action with damage_type / shape / by_class / by_race filters |
 
 ---
 
@@ -639,7 +633,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - A unit killed before its scheduled action loses its unspent PP (kill race).
 - A column skill hits every living soldier of a squad separately, whichever column it is in.
 - Per-hit effects (Regen, on-hit reactives, Longinus PP reduction) trigger once per attacking action; a squad attack is one combined hit (Decision 130).
-- A player tactic row with nesting, OR, NOT or more than two ANDed conditions per slot is rejected (E_TACTIC_SHAPE); a defender ban rule likewise allows one filter, an optional second ANDed, plus the selector.
+- A player tactic slot holding anything but one leaf or one selector is rejected (E_TACTIC_SHAPE, Decision 136); a defender ban rule likewise allows one filter, an optional second ANDed, plus the selector.
 - A Flyer has much higher EVA against melee attacks than ranged ones; hit% stays within 70..100 and crit% within 0..100.
 - Skill and soldier `range` (melee / ranged) is required on damage skills and soldier types.
 - Prayer-category effects multiply with passive, active, equipment and soldier effects; 2 and 4 same-god sigils unlock the 2-piece and 4-piece blessing tiers (when devotion is built).

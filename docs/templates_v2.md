@@ -10,6 +10,10 @@ IDs are stable strings and are never reused. New content should use a type prefi
 
 ```yaml
 stats: [HP, ATK, INT, DEF, MDEF, SPD, HIT, SKL, CRIT, GUARD, EVA]
+races: [human, elf, beastfolk, dwarf, dragon, demon, angel]   # a character's `race`; squads count as human
+times: [day, night]                                       # battle input `time` (default day)
+selectors: [lowest, highest, nearest, farthest, random_seeded, prefer]
+selector_metrics: [hp_percent, hp_current, hp_missing, max_hp, active_pp, passive_pp, max_active_pp, max_passive_pp]   # or any stat name
 classes: [infantry, lancer, cavalry, archer, flyer, mage, assassin, holy, aquatic, monster]   # more classes will come
 equipment_slots: [weapon, armor, accessory]        # accessory fills Accessory 1 or 2
 equipment_tags: [sword, spear, axe, staff, tome, bow, dagger, hammer, light_armor, heavy_armor, robe, shield, gloves, boots, ring, amulet, charm, bracelet, earring, cloak, belt]   # one per item (Decision 133)
@@ -31,7 +35,6 @@ soldier_row: [front, back]       # a squad fills an entire 1x3 soldier row on th
 aura_trigger: [always, on_event]
 trigger_timing: [before_hit, after_hit]   # on_event passives
 skill_fallback: [re_evaluate, skip]         # skill `targeting.fallback`
-tactic_fallback: [skip, next_valid_target]  # tactic-row `fallback` (a different field)
 terrain: []                                 # battlefield types (land, water, forest, mountains, cliffside, ...), TBD; schema change pending
 draft_action: [ban, protect]
 draft_source: [human, rule_sheet]
@@ -46,6 +49,7 @@ skill_tags: [revive, stun, aoe, heal, debuff, buff, dot, damage]    # extend as 
 id: char_000
 name: ""
 class: ""              # one of classes (required)
+race: human            # one of races (required)
 factions: []           # faction IDs
 role: ""               # tank / damage / support / other (informational)
 lore: ""
@@ -297,9 +301,9 @@ designer_notes: ""
 
 ---
 
-## 6. Condition node (used for tactic activation and targeting)
+## 6. Condition node (used for tactic conditions and skill defaults)
 
-A condition is either a leaf or a group. Groups combine with `all` (AND), `any` (OR), `not`. **Authored content may use full trees. Player tactic and ban-sheet slots are limited** to one leaf, or `all` of exactly two leaves (no nesting, OR or NOT); the validator enforces this (E_TACTIC_SHAPE), including on skills' default_activation and default_main/default_sub.
+A condition is either a leaf or a group. Groups combine with `all` (AND), `any` (OR), `not`. **Authored content may use full trees.** A player tactic slot (`main`, `sub`, a `prefer` filter) holds exactly one leaf or a selector (Decision 136). Ban-sheet slots and skills' default_activation / default_main / default_sub are limited to one leaf, or `all` of exactly two leaves (no nesting, OR or NOT). The validator enforces both (E_TACTIC_SHAPE).
 
 ```yaml
 # group
@@ -320,17 +324,26 @@ Leaf `type` options for the prototype and beyond:
 | Class | `class_is`, `has_class_advantage` | `side`, `value` |
 | Faction | `faction_is` | `side`, `value` |
 | Position | `row_is`, `column_is`, `same_column_as` | `value` (board rows: soldier_front, front, back, soldier_back; the registry uses BOARD_ROWS. A squad's `squad_row` choice `front` / `back` maps to `soldier_front` / `soldier_back`) |
-| Status | `has_status`, `lacks_status`, `has_any_debuff` | `side`, `status_id` |
+| Position (counts) | `row_size` (`op`, `value`), `row_rank` (`value: most \| least`), `column_full` (none) | optional `side`; combatants = heroes plus soldiers one by one |
+| Identity | `is_self`, `not_self` | none |
+| Race | `race_is` | `side`, `value` (race) |
+| Status | `has_status`, `lacks_status` | `side`, `status_id` |
+| Status (any) | `has_any_debuff`, `lacks_any_debuff`, `has_any_buff`, `lacks_any_buff` | `side` |
 | Stat | `stat_compare` | `side`, `stat`, `op`, `value` |
 | Resource | `active_pp`, `passive_pp` | `side`, `op`, `value` |
 | Counts | `enemies_alive`, `allies_alive`, `enemy_soldiers_remaining` | `op`, `value` |
+| Counts (combatants) | `combatants` | `side: ally \| enemy`, `op`, `value` |
+| Presence | `side_has` | `side: ally \| enemy`, exactly one of `class` / `race`, `present: true \| false` |
+| Side HP | `average_hp_percent` | optional `side`, `op`, `value` |
+| Attacked | `attacked_since_last_action` | optional `damage_type` (physical \| magical), `shape` (single \| row \| column \| all), `by_class`, `by_race` |
 | Events | `was_attacked_since_last_action`, `ally_attacked`, `just_healed`, `self_attacked`, `unit_attacked`, `self_targeted_by_physical_attack`, `self_action_completed`, `unit_hit_by_single_target_attack` | none |
-| Battle | `phase`, `action_count` | `op`, `value` |
+| Battle | `phase`, `action_count` | `op`, `value` (first action: `action_count = 0`) |
+| Time | `time_is` | `value: day \| night` |
 | Authored content only | `hero_is`, `party_has_hero` | `side`, `value` (hero ID) |
 
 **Hero-ID leaves** (`hero_is`, `party_has_hero`) exist for authored content such as leader auras, faction effects and equipment (e.g. Leon's aura requires The Emperor in the party). They are **forbidden in player tactic sheets and ban sheets**; the validator rejects them there. Player conditions use class, faction, status and other attributes only.
 
-Selectors for targeting (applied to the candidate set): `lowest`, `highest`, `nearest`, `farthest`, `random_seeded`, each with an optional `stat` or `metric` (e.g. `hp_percent`, `ATK`).
+Selectors (player slots; they order the candidates and never skip a tactic): `lowest` / `highest` with an optional `metric` (default `hp_percent`; selector_metrics or a stat name such as `ATK`), `nearest`, `farthest`, `random_seeded`, and `prefer` with a `filter` leaf (candidates satisfying it sort first: "Prioritise Front Row" = `{ select: prefer, filter: { type: row_is, value: front } }`).
 
 ---
 
@@ -364,14 +377,13 @@ Any effect may also carry `trigger` (`always`, `pre_battle`, `on_event`, `on_hit
 priority: 1                 # 1 = highest; max 10 tactics per hero
 skill_id: skl_000
 enabled: true
-activation: null            # condition node; null = always eligible (player sheets: one condition, optionally a second ANDed; no nesting/OR/NOT)
-targeting:
-  main: null                # condition node: who to consider (player sheets: one condition, optionally a second ANDed)
-  sub: null                 # condition node / selector: how to choose among them
-fallback: skip              # tactic_fallback: skip | next_valid_target (the skill's own `targeting.fallback` is re_evaluate | skip)
+main: null                  # one condition leaf or a selector; null = none
+sub: null                   # the same; a sub selector breaks ties of main's
 ```
 
-Rules the validator enforces: max 10 tactics; at most two ANDed conditions per slot on player sheets (E_TACTIC_SHAPE); no duplicate `priority`; every `skill_id` must be on the hero's skill list; a skill's `pp_pool` must match its `category`.
+A leaf keeps the candidates (the skill's target pool) for which it is true with the candidate as `target`; a leaf about the hero itself or the board ("Own HP < 50%", `time_is`, `side_has`) is an "only if": false skips the tactic. A selector only orders. The skill's default_activation and default_main always apply too; default_sub only when neither slot is a selector. Example: `{ priority: 1, skill_id: skl_012, enabled: true, main: { type: hp_percent, side: target, op: "<", value: 70 }, sub: { select: lowest, metric: hp_percent } }`.
+
+Rules the validator enforces: max 10 tactics; each player slot is one leaf or a selector (E_TACTIC_SHAPE); no duplicate `priority`; every `skill_id` must be on the hero's skill list; a skill's `pp_pool` must match its `category`.
 
 ---
 

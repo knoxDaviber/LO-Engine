@@ -36,6 +36,8 @@ export interface HitMeta {
   damageType?: "physical" | "magical" | "hybrid";
   range?: "melee" | "ranged";
   single?: boolean;
+  /** The attacking skill's target shape (attacked_since_last_action `shape`). */
+  shape?: string;
 }
 
 export interface HitRef extends HitMeta {

@@ -6,7 +6,7 @@
 //                   ban      : defender ban sheets
 //   communitySafe false = official content only (community packs are rejected at the community tier)
 import { z } from "zod/v4";
-import { AURA_TYPES, BOARD_ROWS, CLASSES, COMPARATORS, SKILL_TAGS, STATS } from "../schema/enums";
+import { AURA_TYPES, BOARD_ROWS, CLASSES, COMPARATORS, RACES, SKILL_TAGS, STATS, TIMES } from "../schema/enums";
 
 export type CondContext = "tactic" | "authored" | "ban";
 
@@ -26,6 +26,9 @@ const none = z.strictObject({});
 const PLAYER: readonly CondContext[] = ["tactic", "authored"];
 const AUTHORED: readonly CondContext[] = ["authored"];
 const BAN: readonly CondContext[] = ["ban"];
+
+const allyEnemy = z.enum(["ally", "enemy"]);
+const player = (fields: z.ZodType, description: string): LeafSpec => ({ fields, contexts: PLAYER, communitySafe: true, description });
 
 const cmp = (extra: z.ZodRawShape = {}) => z.strictObject({ side, op, value: num, ...extra });
 const event = (description: string): LeafSpec => ({ fields: none, contexts: PLAYER, communitySafe: true, description });
@@ -69,10 +72,19 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
     description: "Board column",
   },
   same_column_as: { fields: z.strictObject({ value: z.string().min(1) }), contexts: PLAYER, communitySafe: true, description: "Same column as a reference unit" },
+  row_size: player(z.strictObject({ side: side.optional(), op, value: num }), "Number of living combatants (heroes, and soldiers one by one) in the unit's board row on its side"),
+  row_rank: player(z.strictObject({ side: side.optional(), value: z.enum(["most", "least"]) }), "The unit's board row holds the most / least combatants of its side's occupied rows (ties count as both)"),
+  column_full: player(z.strictObject({ side: side.optional() }), "The unit's column holds a living hero in both the front and the back hero row"),
+  is_self: player(none, "The unit is the acting hero itself"),
+  not_self: player(none, "The unit is not the acting hero"),
+  race_is: player(z.strictObject({ side, value: z.enum(RACES) }), "Unit race (squads count as human)"),
   // Status
   has_status: { fields: z.strictObject({ side, status_id: idStr }), contexts: PLAYER, communitySafe: true, description: "Has a status" },
   lacks_status: { fields: z.strictObject({ side, status_id: idStr }), contexts: PLAYER, communitySafe: true, description: "Lacks a status" },
   has_any_debuff: { fields: z.strictObject({ side }), contexts: PLAYER, communitySafe: true, description: "Has any debuff" },
+  lacks_any_debuff: player(z.strictObject({ side }), "Has no debuff"),
+  has_any_buff: player(z.strictObject({ side }), "Has any buff (a buff-category status or a positive aura)"),
+  lacks_any_buff: player(z.strictObject({ side }), "Has no buff"),
   // Stats / resources
   stat_compare: {
     fields: z.strictObject({ side: side.optional(), stat: z.enum(STATS), op, value: num }),
@@ -86,8 +98,24 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   enemies_alive: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Enemies alive" },
   allies_alive: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Allies alive" },
   enemy_soldiers_remaining: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Enemy soldiers remaining" },
+  combatants: player(z.strictObject({ side: allyEnemy, op, value: num }), "Living combatants on a side (heroes, and soldiers one by one)"),
+  side_has: player(
+    z.strictObject({ side: allyEnemy, class: z.enum(CLASSES).optional(), race: z.enum(RACES).optional(), present: z.boolean() })
+      .refine((v) => (v.class !== undefined) !== (v.race !== undefined), { message: "give exactly one of 'class' or 'race'" }),
+    "A side has (present: true) or has no (present: false) living unit of a class or race, squads included",
+  ),
+  average_hp_percent: player(z.strictObject({ side: side.optional(), op, value: num }), "Average HP % of the unit's side (every living hero and soldier counts once)"),
   // Events
   was_attacked_since_last_action: event("Attacked since this unit's last action"),
+  attacked_since_last_action: player(
+    z.strictObject({
+      damage_type: z.enum(["physical", "magical"]).optional(),
+      shape: z.enum(["single", "row", "column", "all"]).optional(),
+      by_class: z.enum(CLASSES).optional(),
+      by_race: z.enum(RACES).optional(),
+    }),
+    "This hero was attacked since its last action by an attack matching every given filter (damage type, attack shape, attacker class / race)",
+  ),
   ally_attacked: event("An ally was attacked"),
   just_healed: event("Was just healed"),
   self_attacked: event("This unit was attacked"),
@@ -100,7 +128,8 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   self_hit_by_melee: event("This unit was hit by a melee attack"),
   // Battle
   phase: { fields: z.strictObject({ op, value: z.number().int().min(1).max(3) }), contexts: PLAYER, communitySafe: true, description: "Current phase" },
-  action_count: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Actions taken" },
+  action_count: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Own actions taken this phase (first action: action_count = 0)" },
+  time_is: player(z.strictObject({ value: z.enum(TIMES) }), "Time of day of the battle"),
   // Authored-only (may name heroes; forbidden in player tactic sheets and ban sheets)
   hero_is: { fields: z.strictObject({ side, value: idStr }), contexts: AUTHORED, communitySafe: false, description: "Is a specific hero (hero id)" },
   party_has_hero: { fields: z.strictObject({ side, value: idStr }), contexts: AUTHORED, communitySafe: false, description: "A specific hero is fielded (hero id)" },

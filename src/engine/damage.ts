@@ -80,7 +80,7 @@ import { evaluateCondition } from "./conditions";
 import { applyStatus, completeAction, effectiveStat, summedStat } from "./stats";
 import type { StatusInstance } from "./state";
 import type { TacticDecision } from "./tactics";
-import { recordSkillUse } from "./tactics";
+import { recordSkillUse, tacticCondition } from "./tactics";
 import { advancePending, delayPending, rescheduleOnSpdChange, scheduleNext, unschedule } from "./timeline";
 import type { BattleState, Soldier, Unit } from "./state";
 import { alliesOf, otherSide, squadOf, syncSquad, targetsOf } from "./state";
@@ -272,7 +272,7 @@ export type SkillRef = Pick<Skill, "id" | "interactions"> & { shape?: string };
 /** Shapes that strike one unit: single, and a passive's event_unit / attacker. */
 export const isSingleShape = (shape: string | undefined): boolean => shape === undefined || shape === "single" || shape === "event_unit" || shape === "attacker";
 
-export const hitMeta = (skill: SkillRef, effect: DamageEffect): HitMeta => ({ damageType: effect.damage_type, range: effect.range, single: isSingleShape(skill.shape) });
+export const hitMeta = (skill: SkillRef, effect: DamageEffect): HitMeta => ({ damageType: effect.damage_type, range: effect.range, single: isSingleShape(skill.shape), shape: skill.shape });
 
 /** The defender's reduce_damage effects in force that cover the damage type (hybrid: any). */
 const reductionsOn = (state: BattleState, defender: Unit, effect: DamageEffect): Reduction[] =>
@@ -545,7 +545,7 @@ export function executeSkill(x: ExecCtx, actor: Unit, decision: TacticDecision):
   state.bus.singleAttack = isSingleShape(skill.targeting.shape ?? "single") && skill.effects.some((e) => e.type === "damage");
   if (state.bus.singleAttack) checkEquipment(x);
 
-  const activation = decision.tactic?.activation ?? skill.default_activation;
+  const activation = tacticCondition(decision.tactic, skill);
   const ctxSkill: EffectSkill = { id: skill.id, name: skill.name, shape: skill.targeting.shape ?? "single", interactions: skill.interactions, activation, trigger: skill.trigger };
   const onHits = (e: Effect) => e.trigger === "on_hit" || e.trigger === "on_attack";
   for (const effect of skill.effects) if (!onHits(effect)) runEffect(x, actor, ctxSkill, effect, decision.targets, touched, false);

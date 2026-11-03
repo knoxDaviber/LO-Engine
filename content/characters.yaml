@@ -7,6 +7,7 @@
 - id: char_001
   name: Leon
   class: cavalry
+  race: human
   factions: [faction_001]
   role: "Damage dealer"
   lore: "A loyal knight with dashing looks, blue eyes, blonde hair. As powerful as he is handsome. He serves the empire and it's emperor with unwavering spirit. Tales across the land sing of his heroics, and while his enemies fear him, they can't help but be awestruck by his very presence."
@@ -48,6 +49,7 @@
 - id: char_002
   name: "The Emperor"
   class: infantry
+  race: human
   factions: [faction_001, faction_002]
   role: "Tank/Damage dealer"
   lore: "The Emperor of the Empire who has been ruling for as long as it's people remember. He has greyed and aged but his skills have not. He rules his people with an Iron fist but is still respected and close to deified. He has conquered evil and has taken evil's power for himself. Evil submits to him."
@@ -82,6 +84,7 @@
 - id: char_003
   name: Jasmine
   class: holy
+  race: human
   factions: [faction_003, faction_005]
   role: "Heal/Support"
   lore: "Childhood friend of Leon, secret child of The Emperor. Wishes for peace across the lands but born in a warring time. She retreats to the monastery to lead a life of piety, praying for peace and taking care of the vulnerable. But the monastery is attacked and now she wanders the continent trying to help those who need it the most."
@@ -117,6 +120,7 @@
 - id: char_004
   name: Lief
   class: lancer
+  race: human
   factions: [faction_003, faction_004]
   role: "Damage Dealer"
   lore: "A young spearman from the forests to the south. He ventured out of his reclusive home in order to temper himself but finds himself in a continental conflict as he fights against the Empire's desire to conquer to continent."
@@ -155,6 +159,7 @@
 - id: char_005
   name: Infantry
   class: infantry
+  race: human
   factions: []
   role: "Tank"
   lore: "A sturdy foot soldier who holds the line."
@@ -185,6 +190,7 @@
 - id: char_006
   name: Lancer
   class: lancer
+  race: human
   factions: []
   role: "Damage dealer"
   lore: "A spear fighter trained to break cavalry charges."
@@ -215,6 +221,7 @@
 - id: char_007
   name: Cavalry
   class: cavalry
+  race: human
   factions: []
   role: "Damage dealer"
   lore: "A mounted knight who strikes fast and hard."
@@ -248,6 +255,7 @@
 - id: char_008
   name: Archer
   class: archer
+  race: human
   factions: []
   role: "Ranged damage dealer"
   lore: "A marksman who fights from the back line."
@@ -278,6 +286,7 @@
 - id: char_009
   name: Flyer
   class: flyer
+  race: human
   factions: []
   role: "Skirmisher"
   lore: "A rider of winged beasts who dives on the enemy."
@@ -308,6 +317,7 @@
 - id: char_010
   name: Mage
   class: mage
+  race: human
   factions: []
   role: "Magic damage dealer"
   lore: "A scholar of the arcane who wields destructive spells."
@@ -338,6 +348,7 @@
 - id: char_011
   name: Assassin
   class: assassin
+  race: human
   factions: []
   role: "Damage dealer"
   lore: "A killer who strikes from the shadows."
@@ -368,6 +379,7 @@
 - id: char_012
   name: Holy
   class: holy
+  race: human
   factions: []
   role: "Heal/Support"
   lore: "A devout healer who mends allies with prayer."
@@ -398,6 +410,7 @@
 - id: char_013
   name: Aquatic
   class: aquatic
+  race: human
   factions: []
   role: "Bruiser"
   lore: "A warrior of the seas and rivers."
@@ -428,6 +441,7 @@
 - id: char_014
   name: Monster
   class: monster
+  race: demon
   factions: []
   role: "Bruiser"
   lore: "A hero who gave in to madness or took evil into their heart, trading control for power."

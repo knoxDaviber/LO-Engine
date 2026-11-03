@@ -1,25 +1,36 @@
 import { z } from "zod/v4";
 import { conditionNode } from "./condition";
-import { BAN_SELECTS, ID_PATTERN, ROWS, SELECTORS, STATS, TACTIC_FALLBACKS } from "./enums";
+import { BAN_SELECTS, ID_PATTERN, ROWS, SELECTOR_METRICS, SELECTORS, STATS } from "./enums";
 
 const id = z.string().regex(ID_PATTERN);
 
-/** `sub` picks among the candidates `main` kept: either a selector ({ select: lowest, metric: hp_percent }) or a condition. */
-const selector = z.strictObject({
-  select: z.enum(SELECTORS),
-  type: z.string().optional(),
-  metric: z.string().optional(),
-  stat: z.enum(STATS).optional(),
-  side: z.enum(["self", "ally", "enemy", "target"]).optional(),
-});
+/**
+ * Selector: orders the candidates, never removes one. lowest / highest by `metric` (default hp_percent; a SELECTOR_METRICS name or a stat),
+ * nearest / farthest by board order, random_seeded from the phase rng, prefer = candidates satisfying the `filter` leaf first.
+ */
+export const selectorSchema = z
+  .strictObject({
+    select: z.enum(SELECTORS),
+    metric: z.enum([...SELECTOR_METRICS, ...STATS]).optional(),
+    filter: conditionNode.optional(),
+  })
+  .superRefine((v, ctx) => {
+    if ((v.select === "prefer") !== (v.filter !== undefined)) ctx.addIssue({ code: "custom", message: "[E_TACTIC_SHAPE] `filter` is required on select: prefer and only allowed there", path: ["filter"] });
+    if (v.metric !== undefined && v.select !== "lowest" && v.select !== "highest") ctx.addIssue({ code: "custom", message: "[E_TACTIC_SHAPE] `metric` is only allowed on lowest / highest", path: ["metric"] });
+  });
+export type Selector = z.infer<typeof selectorSchema>;
 
+/** A player condition slot: one condition leaf (shape checked by the validator, E_TACTIC_SHAPE) or a selector. */
+const slot = z.union([selectorSchema, conditionNode]).nullable();
+export const isSelector = (c: unknown): c is Selector => !!c && typeof c === "object" && "select" in c;
+
+/** A player tactic (Decision 136): a skill plus two condition slots, Main and Sub. */
 export const tacticSchema = z.strictObject({
   priority: z.number().int().min(1),
   skill_id: id,
   enabled: z.boolean(),
-  activation: conditionNode.nullable(),
-  targeting: z.strictObject({ main: conditionNode.nullable(), sub: z.union([selector, conditionNode]).nullable() }),
-  fallback: z.enum(TACTIC_FALLBACKS),
+  main: slot,
+  sub: slot,
 });
 export type Tactic = z.infer<typeof tacticSchema>;
 

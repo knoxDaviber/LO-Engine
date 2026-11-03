@@ -87,9 +87,9 @@ test("a squad is selected as ONE target (the default target when it stands in fr
 });
 
 test("a back squad is the last target; soldier-kind conditions select or skip the squad", () => {
-  const front = setup((_p, b) => { sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001", { targeting: { main: { type: "unit_kind", ignore: "soldier" }, sub: null } })]; });
+  const front = setup((_p, b) => { sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001", { main: { type: "unit_kind", ignore: "soldier" }, sub: null })]; });
   assert.deepEqual(decideTactic(front.state, front.u(LEON), front.x.rng).targets.map((t) => t.id), [EMPEROR]); // heroes only, the squad is skipped
-  const rowSoldier = setup((_p, b) => { sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001", { targeting: { main: { type: "row_is", value: "soldier_front" }, sub: null } })]; });
+  const rowSoldier = setup((_p, b) => { sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001", { main: { type: "row_is", value: "soldier_front" }, sub: null })]; });
   assert.deepEqual(decideTactic(rowSoldier.state, rowSoldier.u(LEON), rowSoldier.x.rng).targets.map((t) => t.id), [SQ_D]);
   const back = setup((p, b) => { sheetOf(b, EMPEROR).squad_row = "back"; sheetOf(b, LEON).tactic_sheet = [tactic("skl_cav_active_001")]; void p; });
   const d = decideTactic(back.state, back.u(LEON), back.x.rng);
@@ -97,7 +97,7 @@ test("a back squad is the last target; soldier-kind conditions select or skip th
 });
 
 test("a column skill hits the squad once (it defends as one), whichever column it is in", () => {
-  const { state, x, u, ev } = setup((_p, b) => { sheetOf(b, LIEF).tactic_sheet = [tactic("skl_lancer_active_001", { targeting: { main: { type: "class_is", side: "enemy", value: "holy" }, sub: null } })]; });
+  const { state, x, u, ev } = setup((_p, b) => { sheetOf(b, LIEF).tactic_sheet = [tactic("skl_lancer_active_001", { main: { type: "class_is", side: "enemy", value: "holy" }, sub: null })]; });
   u(JASMINE).column = 3; // anchor in column 3: the squad is in every column, so it is in this one too
   u(SQ_D).soldiers[2]!.alive = false;
   u(SQ_D).soldiers[2]!.hp = 0;
@@ -120,7 +120,7 @@ test("a row skill aimed at a squad hits it once; the Dirge row through the hero 
   executeSkill(x, emp, d);
   assert.equal(ev("damage").filter((e) => e.target === SQ_C).length, 1); // 150 power vs 182 summed DEF: the minimum, on one soldier
   assert.equal(ev("roll").filter((e) => e.target === SQ_C && e.kind === "hit").length, 1);
-  const heroRow = setup((_p, b) => { sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002", { targeting: { main: { type: "unit_kind", is: "hero" }, sub: null } })]; });
+  const heroRow = setup((_p, b) => { sheetOf(b, EMPEROR).tactic_sheet = [tactic("skl_inf_active_002", { main: { type: "unit_kind", is: "hero" }, sub: null })]; });
   const d2 = decideTactic(heroRow.state, heroRow.u(EMPEROR), heroRow.x.rng);
   assert.deepEqual(d2.targets.map((t) => t.id), [LEON, LIEF]); // the hero front row, no squad
 });
@@ -303,7 +303,7 @@ test("squads never keep a phase alive: no usable hero skill ends the phase at on
 
 test("squads take no part in the idle cycle either: heroes idling ends the phase while squads keep acting in between", () => {
   const { pack, battle } = loadReal({ squads: true });
-  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) for (const t of h.tactic_sheet) t.activation = { type: "phase", op: "=", value: 9 };
+  for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) for (const t of h.tactic_sheet) t.main = { type: "phase", op: "=", value: 9 };
   const log = new EventLog();
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
   const res = runPhase(state, rng, log);

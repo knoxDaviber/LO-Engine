@@ -234,7 +234,7 @@ export function resolveDraft(pack: Pack, input: RosterBattle): DraftOutcome {
   if (issues.length > 0) return fail();
 
   const battle: Battle = {
-    battle_id: input.battle_id, version: input.version, battlefield: input.defender.roster.battlefield ?? null, seeds: [...input.seeds],
+    battle_id: input.battle_id, version: input.version, battlefield: input.defender.roster.battlefield ?? null, ...(input.time ? { time: input.time } : {}), seeds: [...input.seeds],
     challenger: fieldedSides.challenger, defender: fieldedSides.defender,
   };
   return { battle, steps: records, sides, issues };

@@ -153,105 +153,126 @@
                 "enabled": {
                   "type": "boolean"
                 },
-                "activation": {
+                "main": {
                   "anyOf": [
                     {
-                      "$ref": "#/$defs/__schema0"
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "select": {
+                              "type": "string",
+                              "enum": [
+                                "lowest",
+                                "highest",
+                                "nearest",
+                                "farthest",
+                                "random_seeded",
+                                "prefer"
+                              ]
+                            },
+                            "metric": {
+                              "type": "string",
+                              "enum": [
+                                "hp_percent",
+                                "hp_current",
+                                "hp_missing",
+                                "max_hp",
+                                "active_pp",
+                                "passive_pp",
+                                "max_active_pp",
+                                "max_passive_pp",
+                                "HP",
+                                "ATK",
+                                "INT",
+                                "DEF",
+                                "MDEF",
+                                "SPD",
+                                "HIT",
+                                "SKL",
+                                "CRIT",
+                                "GUARD",
+                                "EVA"
+                              ]
+                            },
+                            "filter": {
+                              "$ref": "#/$defs/__schema0"
+                            }
+                          },
+                          "required": [
+                            "select"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "$ref": "#/$defs/__schema0"
+                        }
+                      ]
                     },
                     {
                       "type": "null"
                     }
                   ]
                 },
-                "targeting": {
-                  "type": "object",
-                  "properties": {
-                    "main": {
+                "sub": {
+                  "anyOf": [
+                    {
                       "anyOf": [
                         {
-                          "$ref": "#/$defs/__schema0"
+                          "type": "object",
+                          "properties": {
+                            "select": {
+                              "type": "string",
+                              "enum": [
+                                "lowest",
+                                "highest",
+                                "nearest",
+                                "farthest",
+                                "random_seeded",
+                                "prefer"
+                              ]
+                            },
+                            "metric": {
+                              "type": "string",
+                              "enum": [
+                                "hp_percent",
+                                "hp_current",
+                                "hp_missing",
+                                "max_hp",
+                                "active_pp",
+                                "passive_pp",
+                                "max_active_pp",
+                                "max_passive_pp",
+                                "HP",
+                                "ATK",
+                                "INT",
+                                "DEF",
+                                "MDEF",
+                                "SPD",
+                                "HIT",
+                                "SKL",
+                                "CRIT",
+                                "GUARD",
+                                "EVA"
+                              ]
+                            },
+                            "filter": {
+                              "$ref": "#/$defs/__schema0"
+                            }
+                          },
+                          "required": [
+                            "select"
+                          ],
+                          "additionalProperties": false
                         },
                         {
-                          "type": "null"
+                          "$ref": "#/$defs/__schema0"
                         }
                       ]
                     },
-                    "sub": {
-                      "anyOf": [
-                        {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "select": {
-                                  "type": "string",
-                                  "enum": [
-                                    "lowest",
-                                    "highest",
-                                    "nearest",
-                                    "farthest",
-                                    "random_seeded"
-                                  ]
-                                },
-                                "type": {
-                                  "type": "string"
-                                },
-                                "metric": {
-                                  "type": "string"
-                                },
-                                "stat": {
-                                  "type": "string",
-                                  "enum": [
-                                    "HP",
-                                    "ATK",
-                                    "INT",
-                                    "DEF",
-                                    "MDEF",
-                                    "SPD",
-                                    "HIT",
-                                    "SKL",
-                                    "CRIT",
-                                    "GUARD",
-                                    "EVA"
-                                  ]
-                                },
-                                "side": {
-                                  "type": "string",
-                                  "enum": [
-                                    "self",
-                                    "ally",
-                                    "enemy",
-                                    "target"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "select"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "$ref": "#/$defs/__schema0"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+                    {
+                      "type": "null"
                     }
-                  },
-                  "required": [
-                    "main",
-                    "sub"
-                  ],
-                  "additionalProperties": false
-                },
-                "fallback": {
-                  "type": "string",
-                  "enum": [
-                    "skip",
-                    "next_valid_target"
                   ]
                 }
               },
@@ -259,9 +280,8 @@
                 "priority",
                 "skill_id",
                 "enabled",
-                "activation",
-                "targeting",
-                "fallback"
+                "main",
+                "sub"
               ],
               "additionalProperties": false
             }

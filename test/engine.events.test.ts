@@ -150,7 +150,7 @@ test("until_next_hit statuses tick once per attacking action on a squad, through
 });
 
 test("a hero skill still consumes until_next_hit on a hero (Dirge's Ire ends after the hit it guarantees)", () => {
-  const { state, x, u, ev } = setup((_p, b) => { b.challenger.heroes.find((h) => h.char_id === LEON)!.tactic_sheet = [tactic("skl_cav_active_001", { targeting: { main: { type: "unit_kind", is: "hero" }, sub: null } })]; });
+  const { state, x, u, ev } = setup((_p, b) => { b.challenger.heroes.find((h) => h.char_id === LEON)!.tactic_sheet = [tactic("skl_cav_active_001", { main: { type: "unit_kind", is: "hero" }, sub: null })]; });
   applyStatus(state, u(EMPEROR), "status_003", "active", EMPEROR);
   const leon = u(LEON);
   executeSkill(x, leon, decideTactic(state, leon, x.rng));

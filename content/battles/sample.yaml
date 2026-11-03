@@ -13,15 +13,13 @@ challenger:
         - priority: 1
           skill_id: skl_cav_active_002   # Thousand Azure Hooves
           enabled: true
-          activation: null
-          targeting: { main: null, sub: null }
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_cav_active_001   # Charging Assault
           enabled: true
-          activation: null
-          targeting: { main: null, sub: null }
-          fallback: skip
+          main: null
+          sub: null
     - char_id: char_004   # Lief
       squad_id: soldier_001
       equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
@@ -29,15 +27,13 @@ challenger:
         - priority: 1
           skill_id: skl_lancer_active_002   # Defensive Strike
           enabled: true
-          activation: null
-          targeting: { main: null, sub: null }
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_lancer_active_001   # Vine Stab
           enabled: true
-          activation: null
-          targeting: { main: null, sub: null }
-          fallback: skip
+          main: null
+          sub: null
 
 defender:
   leader: char_002
@@ -49,15 +45,13 @@ defender:
         - priority: 1
           skill_id: skl_inf_active_002   # Dark Dragon's Dirge
           enabled: true
-          activation: null
-          targeting: { main: null, sub: null }
-          fallback: skip
+          main: null
+          sub: null
         - priority: 2
           skill_id: skl_inf_active_001   # Iron Fist
           enabled: true
-          activation: null
-          targeting: { main: null, sub: null }
-          fallback: skip
+          main: null
+          sub: null
     - char_id: char_003   # Jasmine
       squad_id: soldier_001
       equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
@@ -65,8 +59,5 @@ defender:
         - priority: 1
           skill_id: skl_heal_active_001   # Last Chance
           enabled: true
-          activation: null
-          targeting:
-            main: null
-            sub: { select: lowest, metric: hp_percent, side: ally }
-          fallback: skip
+          main: null
+          sub: { select: lowest, metric: hp_percent }
