@@ -101,7 +101,7 @@ function Terrain({ cat, battle, cls, roster }: { cat: Catalog; battle: Json; cls
   );
 }
 
-export function UnitCard({ d, v, rows }: { d: UnitData; v: UnitView; rows: Record<string, string> }) {
+export function UnitCard({ d, v, rows, children }: { d: UnitData; v: UnitView; rows: Record<string, string>; children?: ReactNode }) {
   const { c, cat, battle } = d;
   const tips = useTips();
   const roster = isRosterForm(battle);
@@ -130,6 +130,8 @@ export function UnitCard({ d, v, rows }: { d: UnitData; v: UnitView; rows: Recor
         </div>
         <PinButton pin={unitPin(v)} />
       </div>
+
+      {children}
 
       <Section title={`Stats (final, phase ${d.bd?.phase ?? "?"})`}>
         {bu ? <StatTable stats={bu.stats} defaultOpen={false} /> : (
@@ -244,11 +246,11 @@ export function UnitList({ d }: { d: UnitData }) {
 }
 
 /** A single card pinned by ref; says so when the unit is no longer in the battle. */
-export function PinnedUnit({ d, ref_ }: { d: UnitData; ref_: string }) {
+export function PinnedUnit({ d, ref_, children }: { d: UnitData; ref_: string; children?: ReactNode }) {
   const views = useMemo(() => unitViews(d.c, d.battle), [d.c, d.battle]);
   const rows = useMemo(() => rowMap(d.c, d.battle), [d.c, d.battle]);
   const v = views.find((x) => x.ref === ref_);
-  return v ? <UnitCard d={d} v={v} rows={rows} /> : <p className="muted">{ref_} is not in the open battle.</p>;
+  return v ? <UnitCard d={d} v={v} rows={rows}>{children}</UnitCard> : <p className="muted">{ref_} is not in the open battle.</p>;
 }
 
 export function UnitsPage({ d, phase, setPhase }: { d: UnitData; phase: number; setPhase: (p: number) => void }) {

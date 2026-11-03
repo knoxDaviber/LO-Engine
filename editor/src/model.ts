@@ -21,7 +21,7 @@ export const heroesOf = (b: Json, side: SideKey): Json[] => (isRosterForm(b) ? b
 export function defaultTactics(ch: CharacterInfo): Json[] {
   return ch.skills
     .filter((s) => s.kind === "active")
-    .map((s, i) => ({ priority: i + 1, skill_id: s.id, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: "skip" }));
+    .map((s, i) => ({ priority: i + 1, skill_id: s.id, enabled: true, main: null, sub: null }));
 }
 
 export function defaultHero(c: ContentInfo, ch: CharacterInfo): Json {

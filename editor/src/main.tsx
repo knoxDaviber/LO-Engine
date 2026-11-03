@@ -83,6 +83,24 @@ function App() {
     return () => window.removeEventListener("keydown", on);
   }, []);
 
+  // First load: open the sample battle if the content has one.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    const sample = c?.files.battles.find((f) => f.endsWith("sample.yaml"));
+    if (!c || battle || autoOpened.current || !sample) return;
+    autoOpened.current = true;
+    void open(sample);
+  }, [c, battle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The drawer starts below the sticky party band at tablet widths; publish the band height for the CSS.
+  useEffect(() => {
+    const band = document.querySelector<HTMLElement>(".stickytop");
+    if (!band) return;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty("--band-h", `${band.offsetHeight}px`));
+    ro.observe(band);
+    return () => ro.disconnect();
+  }, [c, route, battle]);
+
   const ppValue = (t: string): number | null | undefined => (t.trim() === "" ? null : /^\d+$/.test(t.trim()) && Number(t) <= 10 ? Number(t) : undefined);
   const ppBad = ppValue(ppText.active) === undefined || ppValue(ppText.passive) === undefined;
   const pp: PpOverride = useMemo(() => ({ active: ppValue(ppText.active) ?? null, passive: ppValue(ppText.passive) ?? null }), [ppText]);

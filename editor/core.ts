@@ -10,7 +10,7 @@ import { equipmentStats, equipmentType } from "../src/equipmentBase";
 import { parseFormula, parseHeroHits, PP_OVERRIDE_MAX } from "../src/options";
 import { allBreakdowns, preBattleState, renderLog, runBattle, type BattleOptions } from "../src/engine";
 import { LEAF_REFS, LEAF_REGISTRY } from "../src/registry/conditions";
-import { isRosterBattle, parseBattleInput, ROWS, SELECTORS, STATS, TACTIC_FALLBACKS, type Battle } from "../src/schema";
+import { isRosterBattle, parseBattleInput, ROWS, type Battle } from "../src/schema";
 import { Collector } from "../src/types";
 import { validateRaw } from "../src/validate/raw";
 import { validateBattle } from "../src/validate/battle";
@@ -34,8 +34,6 @@ export class ApiError extends Error {
   }
 }
 
-/** Selector metrics the engine understands (engine/tactics.ts metricValue). */
-const METRICS = ["hp_percent", "hp_current", "hp_missing", "active_pp", "passive_pp", ...STATS];
 const FOLDERS = ["battles", "rosters"] as const;
 const FILE_RE = /^(battles|rosters)\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.yaml$/;
 
@@ -87,18 +85,13 @@ export function createCore(texts: Record<string, string>, store: ContentStore) {
         eligible_heroes: s.eligible_heroes, eligible_classes: s.eligible_classes,
       })),
       terrains: [...p.byId.terrains.values()].map((t) => ({ id: t.id, name: t.name })),
-      statuses: [...p.byId.statuses.values()].map((s) => ({ id: s.id, name: s.name })),
+      statuses: [...p.byId.statuses.values()].map((s) => ({ id: s.id, name: s.name, category: s.category })),
       factions: [...p.byId.factions.values()].map((f) => ({ id: f.id, name: f.name })),
       rules: { max_tactics: p.rules.limits.max_tactics, fielded: p.rules.draft.fielded, roster_size: p.rules.draft.roster_size, columns: p.rules.board.columns },
-      slot_shape: { max_leaves: 2, combinator: "all" },
       leaves: Object.entries(LEAF_REGISTRY)
         .filter(([, spec]) => spec.contexts.includes("tactic"))
         .map(([type, spec]) => ({ type, description: spec.description, params: z.toJSONSchema(spec.fields, { unrepresentable: "any" }) as Record<string, unknown> })),
       leaf_refs: LEAF_REFS,
-      selectors: [...SELECTORS],
-      selector_metrics: METRICS,
-      selector_sides: ["self", "ally", "enemy", "target"],
-      fallbacks: [...TACTIC_FALLBACKS],
       rows: [...ROWS],
       files: { battles: store.list("battles"), rosters: store.list("rosters") },
     };

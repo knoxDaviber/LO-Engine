@@ -1,9 +1,11 @@
-// Tactics board for one hero: ordered rows, each the player-sheet slot shape (design 4.1): activation and targeting main are one leaf or
-// `all` of two leaves, sub is a selector or one such condition. Leaf parameter inputs are generated from the leaf's JSON Schema.
-import { useEffect, useState } from "react";
+// Tactics board for one hero: ordered rows { priority, skill_id, enabled, main, sub } (Decision 136); main and sub are picked from the presets in
+// conditionPresets.ts. The raw leaf editor (inputs generated from the leaf's JSON Schema) stays behind the gear button for custom values.
+import { useEffect, useMemo, useState } from "react";
 import type { CharacterInfo, ContentInfo, LeafInfo } from "../apiTypes";
 import { Info, titleOf, useTips } from "./Hint";
+import { buildPresets, canon, type Preset } from "./conditionPresets";
 import type { Json } from "./model";
+import "./conditionPicker.css";
 
 type Edit = (fn: (draft: Json) => void) => void;
 interface Props { c: ContentInfo; hero: CharacterInfo | undefined; sheet: Json[]; path: string; edit: (fn: (sheet: Json[]) => void) => void }
@@ -69,7 +71,7 @@ function ParamInput({ c, leaf, k, s, required, path, edit }: { c: ContentInfo; l
   return <label className="param" data-path={`${path}.${k}`}>{k}{input}</label>;
 }
 
-function LeafEditor({ c, leaf, path, edit, onRemove }: { c: ContentInfo; leaf: Json; path: string; edit: Edit; onRemove?: () => void }) {
+function LeafEditor({ c, leaf, path, edit }: { c: ContentInfo; leaf: Json; path: string; edit: Edit }) {
   const info = c.leaves.find((l) => l.type === leaf.type);
   const tips = useTips();
   const props = (info?.params.properties ?? {}) as Record<string, Json>;
@@ -85,61 +87,35 @@ function LeafEditor({ c, leaf, path, edit, onRemove }: { c: ContentInfo; leaf: J
       </select>
       <Info tip={tips.condition(leaf)} />
       {Object.entries(props).map(([k, s]) => <ParamInput key={k} c={c} leaf={leaf} k={k} s={s} required={required.includes(k)} path={path} edit={edit} />)}
-      {onRemove && <button className="small" onClick={onRemove}>x</button>}
     </span>
   );
 }
 
-/** A condition slot: none, one leaf, or `all` of two leaves. Anything else (any/not/nesting) is shown as unsupported with a clear button. */
-export function ConditionSlot({ c, value, path, set }: { c: ContentInfo; value: Json; path: string; set: (v: Json) => void }) {
-  const first = c.leaves[0]!;
-  if (value == null) return <span data-path={path}><button className="small" onClick={() => set(newLeaf(c, first))}>+ condition</button></span>;
-  const leaves: Json[] | null = isLeaf(value) ? [value] : Array.isArray(value.all) && value.all.length === 2 && value.all.every(isLeaf) ? value.all : null;
-  if (!leaves) return <span className="bad" data-path={path}>unsupported shape (player slots: one condition or two ANDed) <button className="small" onClick={() => set(null)}>clear</button></span>;
-  const write = (list: Json[]) => set(list.length === 0 ? null : list.length === 1 ? list[0] : { all: list });
-  const editAt = (i: number): Edit => (fn) => { const list = structuredClone(leaves); fn(list[i]); write(list); };
-  const leafPath = (i: number) => (leaves.length === 1 ? path : `${path}.all[${i}]`);
+/** Main / Sub slot: a categorised preset list. A value matching no preset shows as "Custom: ..." and stays intact; the gear button edits a leaf raw. */
+function CondPicker({ c, presets, value, path, set, label }: { c: ContentInfo; presets: Preset[]; value: Json; path: string; set: (v: Json) => void; label: string }) {
+  const tips = useTips();
+  const [adv, setAdv] = useState(false);
+  const match = value == null ? undefined : presets.find((p) => canon(p.value) === canon(value));
+  const selected = value == null ? "" : match ? match.id : "custom";
+  const groups = [...new Set(presets.map((p) => p.category))];
+  const customText = isLeaf(value) ? tips.condition(value)?.summary ?? value.type : `${value?.select ?? "?"}${value?.metric ? ` ${value.metric}` : ""}${value?.filter ? ` ${tips.condition(value.filter)?.summary ?? value.filter.type}` : ""}`;
   return (
-    <span data-path={path}>
-      {leaves.map((l, i) => (
-        <span key={i}>
-          {i > 0 && <b> AND </b>}
-          <LeafEditor c={c} leaf={l} path={leafPath(i)} edit={editAt(i)} onRemove={() => write(leaves.filter((_, j) => j !== i))} />
-        </span>
-      ))}
-      {leaves.length < c.slot_shape.max_leaves && <button className="small" onClick={() => write([...leaves, newLeaf(c, first)])}>+ AND</button>}
-    </span>
-  );
-}
-
-function SubSlot({ c, value, path, set }: { c: ContentInfo; value: Json; path: string; set: (v: Json) => void }) {
-  const mode = value == null ? "none" : "select" in value ? "selector" : "condition";
-  return (
-    <span data-path={path}>
-      <select value={mode} onChange={(e) => {
-        const m = e.target.value;
-        set(m === "none" ? null : m === "selector" ? { select: "lowest", metric: "hp_percent" } : newLeaf(c, c.leaves[0]!));
+    <span className="cond-pick" data-path={path}>
+      <select aria-label={label} value={selected} title={match?.tip} onChange={(e) => {
+        if (e.target.value === "custom") return;
+        set(e.target.value === "" ? null : structuredClone(presets.find((p) => p.id === e.target.value)!.value));
       }}>
-        <option value="none">default</option>
-        <option value="selector">selector</option>
-        <option value="condition">condition</option>
+        <option value="">(none)</option>
+        {selected === "custom" && <option value="custom">Custom: {customText}</option>}
+        {groups.map((g) => (
+          <optgroup key={g} label={g}>
+            {presets.filter((p) => p.category === g).map((p) => <option key={p.id} value={p.id} title={p.tip}>{p.label}</option>)}
+          </optgroup>
+        ))}
       </select>
-      {mode === "selector" && (
-        <>
-          <select value={value.select} onChange={(e) => set({ ...value, select: e.target.value })}>
-            {c.selectors.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <select value={value.metric ?? ""} onChange={(e) => set({ ...value, metric: e.target.value || undefined })}>
-            <option value="">(hp_percent)</option>
-            {c.selector_metrics.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <select value={value.side ?? ""} onChange={(e) => { const v = { ...value }; if (e.target.value) v.side = e.target.value; else delete v.side; set(v); }}>
-            <option value="">(any side)</option>
-            {c.selector_sides.map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </>
-      )}
-      {mode === "condition" && <ConditionSlot c={c} value={value} path={path} set={set} />}
+      {match && <span className="kind" title={match.tip}>{match.kind}</span>}
+      {isLeaf(value) && <button className="small" aria-label={`Advanced ${label}`} title="Edit the raw condition" onClick={() => setAdv(!adv)}>⚙</button>}
+      {adv && isLeaf(value) && <LeafEditor c={c} leaf={value} path={path} edit={(fn) => { const n = structuredClone(value); fn(n); set(n); }} />}
     </span>
   );
 }
@@ -147,47 +123,39 @@ function SubSlot({ c, value, path, set }: { c: ContentInfo; value: Json; path: s
 export function TacticsBoard({ c, hero, sheet, path, edit }: Props) {
   const skills = hero?.skills ?? [];
   const tips = useTips();
+  const presets = useMemo(() => buildPresets(c.statuses), [c.statuses]);
   const renumber = (s: Json[]) => s.forEach((t, i) => (t.priority = i + 1));
   const move = (i: number, d: number) => edit((s) => { const j = i + d; if (j < 0 || j >= s.length) return; [s[i], s[j]] = [s[j], s[i]]; renumber(s); });
   return (
     <div className="tactics" data-path={path}>
-      <table>
-        <thead><tr><th>#</th><th>on</th><th>skill</th><th>activation</th><th>targeting main</th><th>sub</th><th>fallback</th><th /></tr></thead>
-        <tbody>
-          {sheet.map((t, i) => {
-            const tp = `${path}[${i}]`;
-            const set = (fn: (t: Json) => void) => edit((s) => fn(s[i]));
-            return (
-              <tr key={i} data-path={tp}>
-                <td>{t.priority}</td>
-                <td><input type="checkbox" checked={!!t.enabled} onChange={(e) => set((x) => (x.enabled = e.target.checked))} /></td>
-                <td data-path={`${tp}.skill_id`}>
-                  <select value={t.skill_id} onChange={(e) => set((x) => (x.skill_id = e.target.value))}>
-                    {!skills.some((s) => s.id === t.skill_id) && <option value={t.skill_id}>{t.skill_id} (not this hero's)</option>}
-                    {skills.map((s) => <option key={s.id} value={s.id} title={titleOf(tips.skill(s.id))}>{s.name} [{s.kind}, {s.pp_cost} {s.pp_pool} PP{s.shape ? `, ${s.shape}` : ""}]</option>)}
-                  </select>
-                  <Info tip={tips.skill(t.skill_id)} />
-                </td>
-                <td><ConditionSlot c={c} value={t.activation} path={`${tp}.activation`} set={(v) => set((x) => (x.activation = v))} /></td>
-                <td><ConditionSlot c={c} value={t.targeting?.main} path={`${tp}.targeting.main`} set={(v) => set((x) => ((x.targeting ??= { main: null, sub: null }).main = v))} /></td>
-                <td><SubSlot c={c} value={t.targeting?.sub} path={`${tp}.targeting.sub`} set={(v) => set((x) => ((x.targeting ??= { main: null, sub: null }).sub = v))} /></td>
-                <td data-path={`${tp}.fallback`}>
-                  <select value={t.fallback} onChange={(e) => set((x) => (x.fallback = e.target.value))}>
-                    {c.fallbacks.map((f) => <option key={f}>{f}</option>)}
-                  </select>
-                </td>
-                <td className="nowrap">
-                  <button className="small" disabled={i === 0} onClick={() => move(i, -1)}>up</button>
-                  <button className="small" disabled={i === sheet.length - 1} onClick={() => move(i, 1)}>down</button>
-                  <button className="small" onClick={() => edit((s) => { s.splice(i, 1); renumber(s); })}>remove</button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {sheet.map((t, i) => {
+        const tp = `${path}[${i}]`;
+        const set = (fn: (t: Json) => void) => edit((s) => fn(s[i]));
+        return (
+          <div className="tactic-card" key={i} data-path={tp}>
+            <div className="tc-top">
+              <span className="tc-n" title="Priority">#{t.priority}</span>
+              <label className="tc-on">On <input type="checkbox" checked={!!t.enabled} onChange={(e) => set((x) => (x.enabled = e.target.checked))} /></label>
+              <span className="tc-skill" data-path={`${tp}.skill_id`}>
+                <select aria-label="Skill" value={t.skill_id} onChange={(e) => set((x) => (x.skill_id = e.target.value))}>
+                  {!skills.some((s) => s.id === t.skill_id) && <option value={t.skill_id}>{t.skill_id} (not this hero's)</option>}
+                  {skills.map((s) => <option key={s.id} value={s.id} title={titleOf(tips.skill(s.id))}>{s.name} [{s.kind}, {s.pp_cost} {s.pp_pool} PP{s.shape ? `, ${s.shape}` : ""}]</option>)}
+                </select>
+                <Info tip={tips.skill(t.skill_id)} />
+              </span>
+              <span className="nowrap">
+                <button className="small" disabled={i === 0} aria-label="Move up" onClick={() => move(i, -1)}>▲</button>
+                <button className="small" disabled={i === sheet.length - 1} aria-label="Move down" onClick={() => move(i, 1)}>▼</button>
+                <button className="small" aria-label="Remove tactic" onClick={() => edit((s) => { s.splice(i, 1); renumber(s); })}>✕</button>
+              </span>
+            </div>
+            <div className="tc-row"><span className="tc-label">Main condition</span><CondPicker c={c} presets={presets} label="Main condition" value={t.main} path={`${tp}.main`} set={(v) => set((x) => (x.main = v))} /></div>
+            <div className="tc-row"><span className="tc-label">Sub condition</span><CondPicker c={c} presets={presets} label="Sub condition" value={t.sub} path={`${tp}.sub`} set={(v) => set((x) => (x.sub = v))} /></div>
+          </div>
+        );
+      })}
       <button disabled={sheet.length >= c.rules.max_tactics || skills.length === 0} onClick={() => edit((s) => {
-        s.push({ priority: s.length + 1, skill_id: skills[0]!.id, enabled: true, activation: null, targeting: { main: null, sub: null }, fallback: "skip" });
+        s.push({ priority: s.length + 1, skill_id: skills[0]!.id, enabled: true, main: null, sub: null });
       })}>+ tactic ({sheet.length}/{c.rules.max_tactics})</button>
     </div>
   );

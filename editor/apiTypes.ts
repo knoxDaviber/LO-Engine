@@ -15,19 +15,13 @@ export interface ContentInfo {
   gods: { id: string; name: string; blessing: string }[];
   soldiers: SoldierInfo[];
   terrains: { id: string; name: string }[];
-  statuses: { id: string; name: string }[];
+  statuses: { id: string; name: string; category: string }[];
   factions: { id: string; name: string }[];
   rules: { max_tactics: number; fielded: number; roster_size: number; columns: number };
-  /** Player-sheet slot shape (design 4.1, E_TACTIC_SHAPE): one leaf, or `all` of exactly two leaves. */
-  slot_shape: { max_leaves: number; combinator: "all" };
   /** Condition leaves allowed in the `tactic` context. */
   leaves: LeafInfo[];
   /** Leaf fields that name other content (status / faction / hero ids). */
   leaf_refs: Record<string, { field: string; kind: string }>;
-  selectors: string[];
-  selector_metrics: string[];
-  selector_sides: string[];
-  fallbacks: string[];
   rows: string[];
   files: { battles: string[]; rosters: string[] };
 }

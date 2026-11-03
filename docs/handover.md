@@ -30,6 +30,15 @@ progress in `docs/roadmap.md`.
 
 ## Todo queue (in order)
 
+0. **Done 2026-11-04 (Decision 136):** tactic = skill + `main` + `sub` (leaf filters/checks, selector orders, `prefer`
+   selector; skill defaults always apply; tactic `fallback` removed), `race` on characters (all human, Monster = demon),
+   battle `time: day | night`, 14 new leaves. Editor: party board sticky on every page, click a hero for a drawer (tactics
+   first, then stats/gear/skills), "Advanced" section for dev controls, Main/Sub preset picker (`editor/src/conditionPresets.ts`,
+   ~238 presets in 13 categories), sample battle opens on first load.
+   **Open calls:** day/night race bonuses (which races, stats, amounts); real races for the current heroes; no presets for
+   nearest / farthest / random selectors (not in the designer list). **Known limit:** at 768-1099px the boards stack and the
+   drawer covers the defender board (own side stays visible).
+
 1. **Why defenders win (next).** With `pool` + hero_hits 4 and the retuned gear (Decisions 134-135), the equipped battles
    end in kills (city4v4 timeouts 6-20%, draft_city 0-40%) but the defender wins almost every one (challenger 0-4%; only
    city4v4-edit favours the challenger). The `sample` defender deals almost no damage (14-80 per battle). Suspect tactic

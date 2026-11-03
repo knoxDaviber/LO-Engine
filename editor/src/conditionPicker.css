@@ -1,0 +1,10 @@
+.cond-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.cond-pick select { max-width: 16em; }
+.cond-pick .kind { font-size: var(--fs-xs); padding: 0 5px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); }
+.tactic-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 6px; margin: 4px 0; display: flex; flex-direction: column; gap: 4px; }
+.tc-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tc-skill { flex: 1; min-width: 0; }
+.tc-skill select { max-width: 100%; }
+.tc-row { display: flex; flex-direction: column; gap: 2px; }
+.tc-label { font-size: var(--fs-xs); color: var(--muted); }
+.tactics { overflow-x: visible; }

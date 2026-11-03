@@ -19,10 +19,11 @@ export function UnitPanel({ d, id, edit, close }: { d: UnitData; id: string; edi
   return (
     <aside ref={ref} className="unitpanel" role="dialog" aria-label="Selected hero" tabIndex={-1}>
       <button type="button" className="small right" onClick={close} aria-label="Close hero info">close (Esc)</button>
-      <PinnedUnit d={d} ref_={id} />
-      <h3>Tactics (what this hero does, in priority order)</h3>
-      <TacticsBoard c={d.c} hero={ch} sheet={hero.tactic_sheet ?? []} path={`${heroesPath(d.battle, side)}[${index}].tactic_sheet`}
-        edit={(fn) => edit((b) => { const h = heroesOf(b, side)[index]; if (h) fn((h.tactic_sheet ??= [])); })} />
+      <PinnedUnit d={d} ref_={id}>
+        <h3>Tactics (what this hero does, in priority order)</h3>
+        <TacticsBoard c={d.c} hero={ch} sheet={hero.tactic_sheet ?? []} path={`${heroesPath(d.battle, side)}[${index}].tactic_sheet`}
+          edit={(fn) => edit((b) => { const h = heroesOf(b, side)[index]; if (h) fn((h.tactic_sheet ??= [])); })} />
+      </PinnedUnit>
     </aside>
   );
 }
