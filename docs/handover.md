@@ -39,13 +39,19 @@ progress in `docs/roadmap.md`.
    nearest / farthest / random selectors (not in the designer list). **Known limit:** at 768-1099px the boards stack and the
    drawer covers the defender board (own side stays visible).
 
-1. **Why defenders win (next).** With `pool` + hero_hits 4 and the retuned gear (Decisions 134-135), the equipped battles
-   end in kills (city4v4 timeouts 6-20%, draft_city 0-40%) but the defender wins almost every one (challenger 0-4%; only
-   city4v4-edit favours the challenger). The `sample` defender deals almost no damage (14-80 per battle). Suspect tactic
-   sheets / targeting / leader placement before numbers. `sample` and `full4v4` have no gear at all. Remaining walls: DEF at
-   or above ATK still gives min damage x hero_hits (the core is a subtraction), e.g. a bare hero vs heavy armour, full
-   squads with summed DEF. Rerun: `npm run batch -- content/battles/*.yaml --runs=100 --hero-hits=1,2,4 --pp-active=2,3`.
-   Then the designer plans to raise damage through **skill multipliers**.
+1. **Done 2026-11-04: why defenders win (diagnosis, no code change).** Swap test (challenger/defender blocks exchanged,
+   100 runs): city4v4 flips to 88% for the new challenger, so there is **no engine side bias**; the winner follows the team.
+   - city4v4 / draft_city: the Monster + Lancer + Assassin + Mage team is simply stronger. It acts first (SPD 24-29 vs
+     22-30), all four focus the nearest target (the challenger's front squad is wiped before it acts), then the Assassin
+     one-shots a back-row hero each phase (Archer dies 97%, Holy 91%). The challenger brings a healer and spreads damage
+     (Cleave on Monster + Lancer, Charge on the other squad).
+   - sample / full4v4: 88-100% timeouts, and timeouts go to the defender (Decision 115), so "defender wins" there is the
+     tiebreak, not combat. Cause is the damage wall: summed squad DEF (Decision 130) meets hero ATK, e.g. the Emperor's 180
+     ATK vs the Heavy Infantry squad's 182 DEF = min damage (4 per hit) every action; `nearest, front row first` keeps him
+     on the squad. full4v4 swapped: the Leon team wins 12% by wipe on either side.
+   **Designer calls:** (a) skill multipliers (planned) or cap/scale summed squad DEF against heroes; (b) whether the
+   timeout tiebreak should stay defender-wins (Decision 115) or use HP%; (c) the Monster team's focus fire + back-row
+   assassin may be fine as counterplay, but the generic challenger kit has no answer to it.
 2. **Default PP** (designer: decide after the formula), then sweep PP 2-5 under the chosen formula.
 3. **Two-sided blessings (designer notes, 2026-11-03).** Each god gets a DEF and an ATK enchantment; new 2-pieces:
    Mirror HP+20%, Full Moon DEF/MDEF+10%, Plate GUARD+10, Gift HP+20%, Breeze ATK/INT+10%, Meteor CRIT+10, Rush EVA+10.
@@ -57,9 +63,7 @@ progress in `docs/roadmap.md`.
    kill; Breeze DEF: HP>80% EVA+20%; Meteor DEF: -30% crit damage taken; Rush DEF: counter for 50% ATK after a dodge);
    confirm before building. Soldier effects, AP/PP refunds and extra gods (Clock, Crystal, Ice, Tree of Life) are later.
    The sigil choice must record the side (schema change).
-4. **Housekeeping before committing:** `node_modules` is still tracked by git even though `.gitignore` lists it:
-   `git rm -r --cached node_modules`; fix CLAUDE.md's Environment note. `.claude/launch.json` has local editor entries.
-   Then the user commits (commit only when asked).
+4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), timeout tiebreak (Decision 115). The draft
    is identical every run (picks don't depend on the seed).
