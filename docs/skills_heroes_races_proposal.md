@@ -94,7 +94,7 @@ The schema's 7 races stay; a sub-race is an optional layer under one. The four b
 - **Plain parents stay valid:** an Elf with no sub-race plays as Elf. `race_is` and other race checks match the parent, so "race is Elf" hits High-Elves and Dark-Elves.
 - **New heroes:** Sylwen becomes a Dark-Elf (an archer needs ATK, and High-Elf cuts it). Rikka becomes Rabbit-folk (speed suits an opener). High-Elf and Werebeast have no hero yet.
 
-**Sub-race build:** `sub_race` on characters, a parent check in the validator (an error when it does not belong to the hero's race), and a `sub_races` block next to `races` in `rules.yaml`. Applied in `state.ts` with the race lean.
+**Sub-race build:** `sub_race` on characters, a parent check in the validator (an error when it does not belong to the hero's race), a `sub_races` block next to `races` in `rules.yaml`, and a `sub_race_is` leaf with an editor preset. Applied in `state.ts` with the race lean.
 
 **Build:** a `races` block in `rules.yaml` for stat leans and time effects, applied in `state.ts`. `race` on characters and `time_is` already exist. Racial soldier types and classes (Decision 112) are left out here.
 
@@ -105,7 +105,4 @@ The schema's 7 races stay; a sub-race is an optional layer under one. The four b
 3. **Hero count:** 6 new heroes.
 4. **Names:** Hegemony is based on the reference skill and stays.
 5. **Cover:** accepted, the bodyguard does not evade a covered hit.
-
-## Open question
-
-Should tactics be able to target a sub-race? This draft leaves it out: `race_is` matches only the parent, and a `sub_race_is` leaf can be added later if players want it.
+6. **Sub-race targeting:** yes. Add a `sub_race_is` tactic leaf with a preset; `race_is` keeps matching the parent.
