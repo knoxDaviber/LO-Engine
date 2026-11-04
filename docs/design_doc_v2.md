@@ -676,6 +676,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - **Races** (Decisions 109, 112): final race list and lore; each race's stat lean and racial soldier type or class option; whether to add a racial passive list after the batch sim. Factions (Evil, Light, Forest-folk) may need recasting as political allegiances so they do not overlap races.
 - **Soldier skill points** (Decision 138): how points are earned (or all 20 from the start), the tree layout, prerequisites and per-level values, and the cost weight (Section 2A).
 - **Editor import/export** (Decision 137): which content can move between the editor and the main game (official tier vs community content).
+- **Player-made heroes** (Decision 105): whether and how they sit beside rolled named heroes (Decisions 103-108, 110-111). Direction: built from a generic hero by choosing from tuned lists (name, sprite, class), not by authoring stats, skills or gear. Community-authored skills and gear are not planned for now.
 
 
 ## Implementation note: schema is the source of truth

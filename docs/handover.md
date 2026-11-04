@@ -90,14 +90,16 @@ progress in `docs/roadmap.md`.
    is identical every run (picks don't depend on the seed).
    Gear now dominates hero cost (Decision 135): axe + heavy armor + shield + bracelet prices ~333, about 70-80% of a bare
    hero's ~400-500, because ATK weighs 1.0 per point; recalibrate the cost weights before any cost caps are set.
+   **Cost ignores effects (found 2026-11-04 scoping item 15):** `heroCost` prices an item by its type's base stats only, so item effects are free, and every skill costs the flat
+   `skill_price`, so computed cost can't reflect real power; cost-based balance conclusions inherit this. `effectPrice` (blessings) could be reused. `stat_ceiling` and `rules.cost.caps` are still null.
 6. **Editor follow-ups:** (done 2026-11-04: challenger between-phase `edits` and defender `ban_sheet` are editable,
    `editor/src/BattleExtras.tsx`; compound ban filters stay read-only, a new rule defaults to the first ban-context leaf) roster-form "new battle"
-   template; skill / equipment / character editors (roadmap Step 5 order). Equipment flat stat lines were not rescaled by
+   template; skill / equipment / character editors (shelved with item 15). Equipment flat stat lines were not rescaled by
    the rebalance (they are now relatively small).
 7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a
    stack trace.
 
-**Designer requests 2026-11-04 (in this order).** Next: item 15. Waiting on the designer: items 14 and 18 (proposals), and the meta loop design for item 16. Item 5 balance pass can start now that items 9-12 are in.
+**Designer requests 2026-11-04 (in this order).** Next: item 5 balance pass (can start now that items 9-12 are in). Waiting on the designer: items 14 and 18 (proposals), and the meta loop design for item 16.
 
 8. **Done 2026-11-04:** PP 3/3 recorded as locked for now in Decision 140 and the design doc.
 9. **Done 2026-11-04:** every `draft_city` hero has sigils, 24 a side (4-piece or 2+2, same pattern as `city4v4`). Draft picks unchanged; 100 runs: 64% challenger, 6% timeouts. Picks and `sigil_side` are placeholders.
@@ -107,7 +109,7 @@ progress in `docs/roadmap.md`.
 12. **Done 2026-11-04 (Decision 145, revises 136):** effective Main = `tactic.main ?? skill.targeting.default_main`; a player Main replaces the default, and `main: null` on a sheet means use the default. `default_main` may be a selector. No effective Main: an active tactic is skipped ("no condition", `W_TACTIC_NO_CONDITION`); passives are exempt and keep `default_activation`. New `always` leaf. All 24 active skills have a neutral default (`nearest`, `lowest` hp_percent for single-ally heals, `always` for self / row / all), so sim targets and outcomes did not change. A default selector in Main orders before a player Sub selector. Editor shows it in the Main slot (clicked through); `nearest` now has a preset.
 13. **Done 2026-11-04:** banned heroes show greyed at 50% opacity with a "Banned" label on the formation board (`banned` on the breakdown result from `resolveDraft`, also in the hosted build). Checked in the browser on `draft_city`. Not covered: the Units page still lists them unmarked, and old labels linger for under half a second after a battle switch.
 14. **Drafted 2026-11-04, waiting on designer:** `docs/pp_gear_proposal.md` has 5 items and 3 questions. Nothing is built until it is approved.
-15. **Creation system:** a proper system where users create heroes, skills and gear. Overlaps item 6 (skill / equipment / character editors), so fold those in. **Answered 2026-11-04:** editor first, with community tier rules and computed cost as the limits.
+15. **Shelved 2026-11-04 (designer):** creation system for heroes, skills and gear, nothing built. There is no game or audience yet, cost and caps can't limit created content (item 5), and items 14 and 18 may change the shapes. Community skills and gear aren't wanted for now: players of this genre build from a balanced set, and a shared pool is what makes rosters and bans readable. Player-made heroes stay a game feature for later (Decision 105: generic heroes are their base), Etrian-style choices from tuned lists, with no community tier; open question in design doc Section 18. If community content ever comes back: `pp_modifiers` on gear has no tier check, and the real content fails community tier (11 errors), so created entries would need checking apart from official ones.
 16. **Start the actual game (answered 2026-11-04):** Vite + React for now, to be ported to Godot later, so keep game logic out of React components. First playable slice: a tower run. **Blocked on design:** the tower needs the meta loop (Step 6), so that design comes first. Design doc Section 18 has the open questions.
 17. **Done 2026-11-04 (Decision 146):** leaves `soldiers_alive` and `soldiers_percent` (false on a hero), selector metric `soldiers_alive` (heroes sort after every squad, lowest and highest), a "Soldiers" preset category. `hp_percent`, `class_is` and `unit_kind` already worked on squads. A player slot holds one leaf, so "cavalry squads only" can't be written; class presets match heroes too.
 18. **Hero skills, heroes and races proposal (designer 2026-11-04):** draft in `docs/skills_heroes_races_proposal.md`, using the Langrisser skill list as a reference only. Classes keep generic skills; each hero gets at most 4 unique skills, which heroes can sometimes share. Nothing is built until the designer approves.
