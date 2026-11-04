@@ -31,12 +31,15 @@ function Bar({ hp, max }: { hp: number; max: number }) {
 interface Aim { dx: number; dy: number; reach: number }
 
 function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo; units: UnitInfo[]; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; aim: Aim | null }) {
+  const actorSide = units.find((x) => x.id === beat?.actor)?.side;
   const lane = u.row as Lane;
   const pos = fieldPos(u.side, lane, u.column);
   const mirror = u.side === "defender";
   const acting = beat?.actor === u.id;
   const motion = motionOf(u, beat, units);
   const pops = beat?.pops.filter((p) => p.unit === u.id) ?? [];
+  const marked = !!beat && (pops.length > 0 || beat.targets.includes(u.id));
+  const mark = !marked ? "" : pops.some((p) => p.kind === "damage" || p.kind === "miss") || (!pops.some((p) => p.kind === "heal") && actorSide && actorSide !== u.side) ? "foe" : "good";
   const hit = landed && pops.some((p) => p.kind === "damage");
   const healed = landed && pops.some((p) => p.kind === "heal");
   // The body travels part of the way to the target; a projectile flies all of it.
@@ -52,14 +55,17 @@ function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo;
   const cls = `unit unit-${u.kind} side-${u.side}${snap.alive ? "" : " dead"}${acting ? " acting" : ""}${motion ? ` motion-${motion}` : ""}${hit ? " hit" : ""}${healed ? " healed" : ""}`;
   return (
     <div className={cls} style={style} data-unit={u.id}>
-      {aim && (motion === "shot" || motion === "cast") && <i key={beat!.index} className={`fx fx-${motion}`} aria-hidden />}
-      {acting && beat?.skill && <span key={beat!.index} className="skill-tag">{beat.skill}</span>}
+      {aim && (motion === "shot" || motion === "cast") && <i key={`f${beat!.index}`} className={`fx fx-${motion}`} aria-hidden />}
+      <div className="stand">
+      {mark && <i key={beat!.index} className={`mark mark-${mark}`} aria-hidden />}
       <div className="unit-body" key={acting ? `a${beat!.index}` : "idle"}>
+        {acting && beat?.skill && <span key={beat!.index} className="skill-tag">{beat.skill}</span>}
         {u.kind === "hero" ? (
           <Sprite cls={u.cls} name={u.name} size={size} mirror={mirror} />
         ) : (
           <div className="squad-mob">{Array.from({ length: snap.soldiers }, (_, i) => <Sprite key={i} cls={u.cls} name={u.name} size={Math.round(size * 0.42)} mirror={mirror} />)}</div>
         )}
+      </div>
       </div>
       <div className="hud">
         <div className="hud-name">{snap.leader && <em className="crown" />}{u.kind === "hero" ? <Crest cls={u.cls} size={15} /> : null}<span>{u.kind === "hero" ? u.name : `${u.name.split("'s ").pop()} x${snap.soldiers}`}</span></div>
@@ -67,7 +73,7 @@ function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo;
         {u.kind === "hero" && <div className="hud-pp"><Pips n={snap.ppActive} max={u.ppActive} kind="active" /><Pips n={snap.ppPassive} max={u.ppPassive} kind="passive" /></div>}
         {snap.statuses.length > 0 && <div className="hud-st">{snap.statuses.map((st) => <span key={st.id} className={`st st-${st.category}`} title={st.name}>{st.name}</span>)}</div>}
       </div>
-      {pops.length > 0 && <div className="pops" key={beat!.index}>{pops.map((p, i) => <PopNumber key={i} pop={p} i={i} speed={speed} />)}</div>}
+      {pops.length > 0 && <div className="pops" key={`p${beat!.index}`}>{pops.map((p, i) => <PopNumber key={i} pop={p} i={i} speed={speed} />)}</div>}
     </div>
   );
 }
@@ -153,15 +159,21 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
       </header>
 
       <section className="field battle-field" aria-label="Battle">
+        {(["challenger", "defender"] as const).flatMap((side) => (["back", "front"] as Lane[]).flatMap((r) => [1, 2, 3].map((c) => {
+          const pos = fieldPos(side, r, c);
+          return <span key={`${side}${r}${c}`} className={`tile ground${side === "defender" ? " foe" : ""}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}><span className="tile-floor" /></span>;
+        })))}
         {units.map((u) => <Unit key={u.id} u={u} units={units} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} aim={aimFor(u)} />)}
       </section>
 
       {banner && (
-        <div className={`phase-banner${beat!.kind === "end" ? ` end ${replay.winner === "challenger" ? "won" : "lost"}` : ""}`} key={beat!.index}>
+        <div className={`phase-banner${beat!.kind === "end" ? ` end ${replay.winner === "challenger" ? "won" : "lost"}` : ""}`} key={`b${beat!.index}`}>
           <b>{beat!.kind === "phase" ? `Phase ${beat!.phase}` : beat!.kind === "phase_end" ? `Phase ${beat!.phase} Ends` : replay.winner === "challenger" ? "Victory" : "Defeat"}</b>
           {beat!.kind === "phase_end" && <small>{beat!.reason}</small>}
         </div>
       )}
+
+      {beat?.lines[0] && !caption && <div className="action-caption" key={`c${beat.index}`}>{beat.lines[0]}</div>}
 
       <div className={`log${log ? " open" : ""}`}>
         <button className="btn btn-small" onClick={() => setLog((x) => !x)} aria-expanded={log}>Log</button>
