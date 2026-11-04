@@ -2,7 +2,7 @@
 // register a handler with an owner and an order; the engine emits events from the damage, heal, death and phase paths.
 //
 // Events (the design doc names the system but not the list; this is the roadmap's list, [DEFAULT] payloads):
-//   before_hit    before each hit's rolls            {attacker, defender, skillId, damageType, range, single, by?, soldier?, redirect?}
+//   before_hit    after a hit's hit roll, landed hits only  {attacker, defender, skillId, damageType, range, single, by?, soldier?, redirect?}
 //   after_hit     after each LANDED hit is applied   {...the same, amount, killed, lost}   (a miss emits nothing; amount = raw damage, lost = HP removed)
 //   dodge         a hit's roll missed, recorded in history only (Rush DEF reads it)   {...the before_hit fields}
 //   after_heal    a living unit regained HP (> 0)    {caster, target, skillId, amount}
@@ -223,8 +223,8 @@ export interface EventCtx {
 
 /**
  * Content event names. `bus` "hit" means before_hit or after_hit, chosen by the passive's trigger_timing; the predicate then sees either.
- * [DEFAULT] "ally" excludes the unit itself and includes its own squad; "attacked" counts a hit aimed at the unit, landed or not (before_hit) or a
- * landed hit (after_hit); self_action_completed ignores idle actions (an aura opts in with trigger_includes_idle_action).
+ * [DEFAULT] "ally" excludes the unit itself and includes its own squad; "attacked" counts a hit aimed at the unit, landed or not (a miss is a dodge; a
+ * landed hit is before_hit / after_hit); self_action_completed ignores idle actions (an aura opts in with trigger_includes_idle_action).
  */
 export const EVENT_SPECS: Record<string, { bus: HitEvent | "hit" | "dodge" | "after_heal" | "after_action" | "on_death"; match: (self: Unit, e: EventCtx) => boolean }> = {
   self_targeted_by_physical_attack: { bus: "hit", match: (s, e) => isHit(e) && hit(e).defender === s && hit(e).damageType === "physical" },
@@ -248,7 +248,7 @@ export const EVENT_SPECS: Record<string, { bus: HitEvent | "hit" | "dodge" | "af
   },
 };
 
-const isHit = (e: EventCtx): boolean => e.bus === "before_hit" || e.bus === "after_hit";
+const isHit = (e: EventCtx): boolean => e.bus === "before_hit" || e.bus === "after_hit" || e.bus === "dodge"; // dodge: a miss is still a hit aimed at the unit
 const hit = (e: EventCtx): HitRef => e.payload as HitRef;
 
 /** The bus event a content event fires on. Hit events take the passive's timing; [DEFAULT] none given = before_hit. */
@@ -262,6 +262,7 @@ export function busEventFor(name: string, timing: HitEvent | null): BusEvent | n
 export function eventUnit(e: EventCtx): Unit | null {
   switch (e.bus) {
     case "before_hit":
+    case "dodge":
     case "after_hit": return hit(e).defender;
     case "after_heal": return (e.payload as BusPayloads["after_heal"]).target;
     case "after_action": return (e.payload as BusPayloads["after_action"]).actor;
@@ -274,6 +275,7 @@ export function eventUnit(e: EventCtx): Unit | null {
 export function eventAttacker(e: EventCtx): Unit | null {
   switch (e.bus) {
     case "before_hit":
+    case "dodge":
     case "after_hit": return hit(e).attacker;
     case "after_heal": return (e.payload as BusPayloads["after_heal"]).caster;
     case "on_death": return (e.payload as BusPayloads["on_death"]).killer;

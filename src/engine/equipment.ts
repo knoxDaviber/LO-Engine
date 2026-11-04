@@ -40,7 +40,7 @@
 //                               count only the HP it had), summed over the whole action: a multi-hit action counts every hit) to the actor:
 //                               no rolls, no DEF, not a hit (no events), can kill (Fairy's Grace still intercepts); on a squad it lands on the
 //                               lowest-HP living soldier and overflows to the next ones like a single hit. It still fires when that action killed the wearer (`evenIfOwnerDead`).
-//                               Any other on_event effect (Gift DEF's heal) runs once on the wearer if any such hit event (a before_hit counts:
+//                               Any other on_event effect (Gift DEF's heal) runs once on the wearer if any such hit event (a dodge counts:
 //                               targeted, landed or not) exists. [DEFAULT] A dead wearer heals no more; reflected damage below 1 is dropped.
 //                               on_event damage (Rush DEF): one rolled counter per matching event (self_dodged) at the actor, a single-target
 //                               reaction hit: a dead actor or wearer gets none, and its own events are not dispatched, so counters never chain.

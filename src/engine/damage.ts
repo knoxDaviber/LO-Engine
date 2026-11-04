@@ -27,7 +27,8 @@
 // Hero hits (every formula) [DEFAULT]: when the attacker is a hero (actives, passives, reactions, item effects), amount = max(min_damage,
 //   floor(amount * rules.damage.hero_hits)) as the very last step. Squads are unaffected (their power already sums the soldiers); heals are
 //   unaffected; Mirror's reflect uses the HP lost, so it follows. A BattleOptions.heroHits override replaces it.
-// Roll order (fixed, always from the phase rng): hit, then crit, then guard. A miss stops the sequence (no crit/guard draw).
+// Roll order (fixed, always from the phase rng): hit, then crit, then guard. A miss stops the sequence (no crit/guard draw) and emits only `dodge`:
+// before_hit (and the reactions on it) fires after the hit roll, on landed hits only (Decision 143).
 // prevents_evasion makes the hit land without drawing. `ignores_guard` / interactions.guard "ignores" skips the guard draw;
 // "guaranteed" guards without drawing. A roll succeeds when rng.next() * 100 < chance.
 // Squads (design Sections 2.1 and 8, Decision 130: "soldiers attack as one and defend as one"): a squad is ONE target but each soldier has its
@@ -37,7 +38,7 @@
 // lands on the lowest-HP living soldier (ties lowest index) and the raw leftover overflows to the next lowest-HP soldier, and so on until used
 // up or the squad is wiped, never onto the hero (Decision 128). Heals on a squad are always split evenly over all soldiers, dead ones included.
 // Cover (Decision 116): a before_hit handler may set `redirect` on a single-target hit aimed at a hero; rollOutcome then logs `cover` and
-// resolves the hit against the covering unit (one more before_hit is emitted for it, which cannot redirect again).
+// resolves crit and guard against the covering unit (the landed hit is not re-rolled; one more before_hit is emitted for it, which cannot redirect again).
 // Status flags run here (roadmap 3a; design Section 9):
 //   intercepts_death     a lethal hit leaves the unit at revive_hp_percent of max HP instead (min 1); it stays alive and keeps its pending
 //                        action. A squad's own status saves the last soldier (at that percent of its max HP). Logged `death_intercepted`.
@@ -323,23 +324,13 @@ export function hitCtx(state: BattleState, skill: SkillRef, defender: Unit, effe
 
 const refs = (who: SoldierRef): SoldierRef => ({ ...(who.soldier !== undefined ? { soldier: who.soldier } : {}), ...(who.by !== undefined ? { by: who.by } : {}) });
 
-/** Emits before_hit, follows a cover redirect, then rolls hit, crit, guard in that order and logs each. */
+/** Rolls the hit first. A miss emits dodge and stops (no before_hit, so no reaction spends PP on it). A landed hit emits before_hit,
+ *  follows a cover redirect (the hit stays landed, no re-roll), then rolls crit and guard against the final defender, logging each. */
 export function rollOutcome(x: ExecCtx, attacker: Unit, defender: Unit, skill: SkillRef, effect: DamageEffect, who: SoldierRef = {}): HitOutcome {
   const { state, rng, log } = x;
   const ctx: DamageCtx = { pack: state.pack, guardMode: guardModeOf(state, attacker, skill), battlefield: state.battlefield };
-  const pre: BusPayloads["before_hit"] = { attacker, defender, skillId: skill.id, ...hitMeta(skill, effect), ...refs(who) };
-  state.bus.emit(x, "before_hit", pre);
-  let covered: Unit | null = null;
-  if (pre.redirect && pre.redirect !== defender && pre.redirect.alive) {
-    covered = pre.redirect;
-    log.emit({ type: "cover", ...at(state), unit: covered.id, ally: defender.id, attacker: attacker.id, skill: skill.id });
-    defender = covered;
-    state.bus.emit(x, "before_hit", { attacker, defender, skillId: skill.id, ...hitMeta(skill, effect), ...refs(who), covered: true });
-  }
-  const cov = covered ? { defender: covered } : {};
-  const base = { unit: attacker.id, target: defender.id, skill: skill.id };
   const emit = (kind: "hit" | "crit" | "guard", chance: number, roll: number | null, result: boolean, note?: string) =>
-    log.emit({ type: "roll", ...at(state), ...base, kind, chance: r4(chance), roll: roll === null ? null : r4(roll), result, ...(note ? { note } : {}), ...refs(who) });
+    log.emit({ type: "roll", ...at(state), unit: attacker.id, target: defender.id, skill: skill.id, kind, chance: r4(chance), roll: roll === null ? null : r4(roll), result, ...(note ? { note } : {}), ...refs(who) });
 
   let hit: boolean;
   const pinned = evasionBlocker(defender, state.pack);
@@ -355,7 +346,18 @@ export function rollOutcome(x: ExecCtx, attacker: Unit, defender: Unit, skill: S
   }
   if (!hit) {
     state.bus.emit(x, "dodge", { attacker, defender, skillId: skill.id, ...hitMeta(skill, effect), ...refs(who) });
-    return { hit: false, crit: false, guard: false, ...cov };
+    return { hit: false, crit: false, guard: false };
+  }
+
+  const pre: BusPayloads["before_hit"] = { attacker, defender, skillId: skill.id, ...hitMeta(skill, effect), ...refs(who) };
+  state.bus.emit(x, "before_hit", pre);
+  let cov = {};
+  if (pre.redirect && pre.redirect !== defender && pre.redirect.alive) {
+    const covered = pre.redirect;
+    log.emit({ type: "cover", ...at(state), unit: covered.id, ally: defender.id, attacker: attacker.id, skill: skill.id });
+    defender = covered;
+    cov = { defender: covered };
+    state.bus.emit(x, "before_hit", { attacker, defender, skillId: skill.id, ...hitMeta(skill, effect), ...refs(who), covered: true });
   }
 
   const cc = critChance(attacker, defender, ctx);

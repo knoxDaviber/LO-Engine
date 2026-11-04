@@ -54,7 +54,7 @@ function setup(passives: [string, string][], opts: { squads?: boolean; over?: (p
 
 const amountOf = (n: number): DamageBreakdown => ({ landed: true, scaled: 0, matchup: 1, power: 0, defense: 0, base: n, crit: false, guard: false, guardFactor: 1, amount: n });
 
-test("Quick Guard resolves before the hit: it spends 1 Passive PP and the same hit takes 50% less damage", () => {
+test("Quick Guard resolves after the hit roll, before crit/guard/damage: it spends 1 Passive PP and the same hit takes 50% less damage", () => {
   const plain = setup([]);
   plain.strike(plain.u(EMPEROR), plain.u(LEON));
   const full = plain.ev("damage")[0]!.amount;
@@ -63,12 +63,24 @@ test("Quick Guard resolves before the hit: it spends 1 Passive PP and the same h
   const ppBefore = u(LEON).pp.passive.cur;
   strike(u(EMPEROR), u(LEON));
   const types = log.events.map((e) => e.type);
-  assert.deepEqual(types.slice(0, 4), ["trigger", "pp_spend", "damage_reduction", "roll"]); // before the hit roll
+  assert.deepEqual(types.slice(0, 4), ["roll", "trigger", "pp_spend", "damage_reduction"]); // hit roll first, then the reaction
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.event, t.handler]), [[LEON, "before_hit", "Quick Guard"]]);
   assert.equal(u(LEON).pp.passive.cur, ppBefore - 1);
   const d = ev("damage")[0]!;
   assert.deepEqual(d.reductions, [50]);
   assert.equal(d.amount, Math.max(1, Math.floor(full * 0.5)));
+});
+
+test("a missed attack fires no before_hit reaction: Quick Guard spends no Passive PP", () => {
+  const { u, ev, strike } = setup([[LEON, QUICK_GUARD]], { over: (p) => { p.rules.rolls.hit_min = 0; } });
+  u(LEON).baseStats.EVA = 100000; // the hit chance falls to hit_min
+  u(EMPEROR).baseStats.HIT = 0;
+  const ppBefore = u(LEON).pp.passive.cur;
+  strike(u(EMPEROR), u(LEON));
+  assert.deepEqual(ev("roll").map((e) => [e.kind, e.result]), [["hit", false]]);
+  assert.equal(ev("trigger").length, 0);
+  assert.equal(ev("damage").length, 0);
+  assert.equal(u(LEON).pp.passive.cur, ppBefore);
 });
 
 test("a passive without enough Passive PP does not fire and logs why", () => {
@@ -126,13 +138,13 @@ test("Counter fires once per squad attack (one combined hit) and strikes the att
   assert.equal(u(EMPEROR).pp.passive.cur, ppBefore - 1);
 });
 
-test("Hegemony resolves before the attack: the attacker loses its buffs and gets Defense Down (passive category)", () => {
+test("Hegemony resolves on a landed hit, before its damage: the attacker loses its buffs and gets Defense Down (passive category)", () => {
   const { pack, u, ev, log, strike, state } = setup([[EMPEROR, HEGEMONY]]);
   applyStatus(state, u(LEON), "buff_005", "active", LEON);
   const ppBefore = u(EMPEROR).pp.passive.cur;
   strike(u(LEON), u(EMPEROR));
   const types = log.events.map((e) => e.type);
-  assert.ok(types.indexOf("status_applied") < types.indexOf("roll"));
+  assert.ok(types.indexOf("status_applied") > types.indexOf("roll") && types.indexOf("status_applied") < types.indexOf("damage"));
   assert.deepEqual(ev("status_applied").map((e) => [e.unit, e.status, e.category]), [[LEON, "debuff_001", "passive"]]);
   assert.deepEqual(ev("status_expired").map((e) => [e.unit, e.status, e.reason]), [[LEON, "buff_005", "removed"]]);
   assert.equal(u(EMPEROR).pp.passive.cur, ppBefore - pack.byId.skills.get(HEGEMONY)!.pp_cost);
