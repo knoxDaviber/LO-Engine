@@ -68,6 +68,12 @@ test("pools grow 4, 5, 6 and at most rules.draft.fielded fight, against 2, 3, 4 
   }
 });
 
+test("the player pool rolls only named heroes, enough for the tutorial", () => {
+  const o = rollOrder(pack, 1);
+  assert.ok(o.every((id) => { const c = pack.byId.characters.get(id)!; return c.name.toLowerCase() !== c.class; }));
+  assert.ok(o.length >= START_POOL + 2);
+});
+
 test("a reroll of the starting pool rolls a new, full, valid company", () => {
   const s = startRun(pack, 5, false);
   const r = rerollStart(pack, s, 6);

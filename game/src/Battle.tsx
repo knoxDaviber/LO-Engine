@@ -150,7 +150,7 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
         <ol className="queue" aria-label="Next to act">
           {(beat?.next ?? []).slice(0, 7).map((id, n) => {
             const u = units.find((x) => x.id === id)!;
-            return <li key={`${id}${n}`} className={`q side-${u.side}`}><span><Sprite cls={u.cls} name={u.name} size={Math.round(58 * k)} mirror={u.side === "defender"} /></span></li>;
+            return <li key={`${id}${n}`} className={`q side-${u.side}`}><span><Sprite cls={u.cls} name={u.name} size={Math.round(120 * k)} mirror={u.side === "defender"} /></span></li>;
           })}
         </ol>
         <div className="controls">
