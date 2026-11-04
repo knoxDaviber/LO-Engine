@@ -17,7 +17,10 @@
 // event, event leaves read a unit's window of it (`windowOf`: since its last after_action), roadmap 3a.
 //
 // Rules:
-//  - Order: handlers run by (order ascending, registration sequence), so dispatch is deterministic. Soldier skills use order 100, engine system handlers 0.
+//  - Order (Decision 142): handlers run by (order ascending, attacked side first, registration sequence), so dispatch is deterministic and seat-neutral.
+//    Soldier skills use order 100, engine system handlers 0 (owner null counts as first). The attacked side: the defender's side for before_hit /
+//    after_hit, the dead unit's side for on_death, the target's side for after_heal, the side opposite the actor for after_action; phase_start has
+//    none (order and sequence only). Within a side the sheet priority order stands.
 //  - Per-hit-once (design Section 7): a handler fires AT MOST ONCE per attacking action per affected unit (the defender for hit events, the actor for
 //    after_action, the dead unit for on_death). A multi-hit action (a row skill on several units) therefore triggers an after_hit handler once per defender hit.
 //    The key is (action id, event, handler, affected unit); actions are numbered by `beginAction`.
@@ -92,6 +95,15 @@ function subjectOf<E extends BusEvent>(event: E, p: BusPayloads[E]): Unit | null
     default:
       return null;
   }
+}
+
+/** The side that was attacked by an event (Decision 142), or null when the event has none (phase_start). */
+function attackedSide<E extends BusEvent>(event: E, p: BusPayloads[E]): Unit["side"] | null {
+  if (event === "after_action") {
+    const a = (p as BusPayloads["after_action"]).actor.side;
+    return a === "challenger" ? "defender" : "challenger";
+  }
+  return subjectOf(event, p)?.side ?? null;
 }
 
 /**
@@ -180,8 +192,10 @@ export class EventBus {
       if (!this.hitUnits.includes(d)) this.hitUnits.push(d);
     }
     const subject = subjectOf(event, payload);
-    for (const h of this.handlers) {
-      if (h.event !== event) continue;
+    const attacked = attackedSide(event, payload);
+    const rank = (h: Handler<any>): number => (attacked && h.owner && h.owner.side !== attacked ? 1 : 0);
+    const queue = this.handlers.filter((h) => h.event === event).sort((a, b) => a.order - b.order || rank(a) - rank(b) || a.seq - b.seq);
+    for (const h of queue) {
       if (h.owner && !h.owner.alive && !h.evenIfOwnerDead) continue;
       if (h.match && !h.match(payload)) continue;
       const key = `${this.actionId}|${event}|${h.seq}|${subject?.id ?? ""}`;

@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 389/389 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 390/390 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -81,8 +81,9 @@ progress in `docs/roadmap.md`.
    - Team comp (T4) outweighs side: 3-backline 78% overall, no-healer 57, A 52, B 40, melee 23.
    - Defender advantages (T5, `draft_city`, one scripted draft): as is 54% challenger; terrain (55 without) and challenger edits (53 without) are inside the margin. No draft: 4% challenger, but that also changes the line-ups. Swapped rosters 45. So the draft swings it far more than anything else, and with these picks it favours the challenger. Anchor not isolated.
    T1 and T4 still include the reaction-order bias; rerun after 3c. `sample` / `full4v4` stay lopsided (100 / 99% for the Leon team from both seats).
-3c. **NEXT, needs a designer call: cross-side reaction order** (one hit triggers reactions on both sides). Measured, A = healer team, win % as challenger / B as challenger: now city4v4 73 / 35, city4v4-edit 77 / 44. Attacked side first: 73 / 28, 77 / 23 (side effect 0, favours healers).
-   Attacking side first: 65 / 35, 56 / 44 (side effect 0, favours pursuit). Higher average SKL first (extends Decision 64) matched attacking side first here, only because B has the higher SKL and the one conflict is B attacking. Fix goes in `EventBus.emit` (`src/engine/events.ts`), then a decision row, then rerun the series.
+3c. **Done 2026-11-04 (Decision 142):** when one event triggers reactions on both sides, the attacked side resolves first (`EventBus.emit`, `attackedSide` in `src/engine/events.ts`; phase_start has no attacked side, order unchanged).
+   `test/engine.seats.test.ts`: city4v4 with sides exchanged gives the same log, labels swapped (one battle, 4 seeds; on_death / after_heal order not directly covered). Series rerun: T1 side effect 0.3 / -0.3 (was 10 / 19). The healer team gains: A's win average over both seats city4v4 74 (was 69), city4v4-edit 78.5 (was 69).
+   T4 overall now: 3-backline 74, no-healer 60, A 52, B 39, melee 24. Remaining seat rules are the decided ties only (Decisions 64, 139). The numbers in 3b for T1, T4 predate this.
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft

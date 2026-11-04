@@ -189,7 +189,7 @@ Main/sub semantics [DECIDED, Decision 136]: the candidates are the skill's targe
 Filters to support from day one (they carry the soldier-vs-hero strategy): *heroes only*, *soldiers only*, *front row first / back row first*, *leader*.
 
 ### 4.4 Passives on the sheet
-A passive has a **trigger** (`pre_battle`, `own_turn`, `on_event:<name>`, `while_condition`) that is independent of its **PP pool**. "Reactive", "always-on" and "conditional" are labels derived from the trigger. When one event triggers several reactive passives, they resolve in sheet priority order [DEFAULT]. An `on_event` passive also declares a **timing**: `before_hit` resolves before the triggering attack's combat resolution (Hegemony strips the attacker's buffs first, Quick Guard guards the hit), `after_hit` resolves after it (Quick Heal) [DECIDED].
+A passive has a **trigger** (`pre_battle`, `own_turn`, `on_event:<name>`, `while_condition`) that is independent of its **PP pool**. "Reactive", "always-on" and "conditional" are labels derived from the trigger. When one event triggers several reactive passives, they resolve in sheet priority order [DEFAULT]. When one event triggers reactions on both sides, the attacked side's reactions resolve first (the defender's side for a hit, the dead unit's side for a death, the target's side for a heal, the side opposite the actor for an action), then the other side's, so neither seat gets the first word [DECIDED]. An `on_event` passive also declares a **timing**: `before_hit` resolves before the triggering attack's combat resolution (Hegemony strips the attacker's buffs first, Quick Guard guards the hit), `after_hit` resolves after it (Quick Heal) [DECIDED].
 
 ---
 
@@ -605,6 +605,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 139 | Timeout result | DECIDED (built) | Replaces "survivors after phase 3 = challenger loss" (Decisions 68, 115): a phase-3 timeout goes to the side with the higher remaining HP%, counted over the whole side (heroes and soldiers together); an exact tie goes to the defender [DEFAULT] |
 | 140 | Default PP 3/3 | DEFAULT, not locked | Active 3, Passive 3 for now, max still 4; still being decided after the PP sweep |
 | 141 | Two-sided enchantments | DECIDED for now (built) | Each god has a DEF and an ATK 4-piece (Section 9A, `four_piece_def` / `four_piece_atk`); the hero entry's `sigil_side` records the choice. The 2-pieces changed with them. Values untested until simmed |
+| 142 | Cross-side reaction order | DECIDED (built) | When one event triggers reactions on both sides, the attacked side's reactions resolve first, then the other side's; within a side, sheet priority order. Engine handlers (order 0) and soldier skills (order 100) keep their order tiers. Ends the challenger-seat first-word bias (`EventBus.emit`) |
 
 ---
 
