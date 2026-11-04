@@ -17,8 +17,9 @@ const LAST_PHASE = 3;
  *  - roster: two 6-hero rosters (the roster layer, defender with anchor / ban sheet / battlefield) plus human draft picks; the draft
  *    (src/draft.ts) is run here and its issues reported.
  * Both forms may carry challenger edits between phases, checked against the fielded (drafted) sides.
+ * `opts.defenderMax` lifts the fielded form's defender size cap above `draft.fielded` (the game's enemy side); the challenger stays capped.
  */
-export function validateBattle(raw: unknown, pack: Pack, c: Collector, opts: { file: string; tier: Tier }): void {
+export function validateBattle(raw: unknown, pack: Pack, c: Collector, opts: { file: string; tier: Tier; defenderMax?: number }): void {
   const { file } = opts;
   // A wrong seed count/value is its own stable code; pull it out of the generic schema report.
   const seeds = (raw as { seeds?: unknown } | null)?.seeds;
@@ -31,7 +32,7 @@ export function validateBattle(raw: unknown, pack: Pack, c: Collector, opts: { f
   else validateFieldedBattle(raw, pack, c, opts);
 }
 
-function validateFieldedBattle(raw: unknown, pack: Pack, c: Collector, opts: { file: string; tier: Tier }): void {
+function validateFieldedBattle(raw: unknown, pack: Pack, c: Collector, opts: { file: string; tier: Tier; defenderMax?: number }): void {
   const { file, tier } = opts;
   const parsed = battleSchema.safeParse(raw);
   if (!parsed.success) return void reportZod(c, parsed.error.issues, { file });
@@ -45,8 +46,9 @@ function validateFieldedBattle(raw: unknown, pack: Pack, c: Collector, opts: { f
   const seen = new Map<string, string>(); // char_id -> side it was first seen on
   for (const side of SIDES) {
     const s = b[side];
-    if (s.heroes.length < 1 || s.heroes.length > fielded) {
-      c.error("E_BATTLE_SIZE", `${side} fields ${s.heroes.length} heroes; must be between 1 and ${fielded}`, { file, path: `${side}.heroes` });
+    const max = side === "defender" ? Math.max(fielded, opts.defenderMax ?? 0) : fielded;
+    if (s.heroes.length < 1 || s.heroes.length > max) {
+      c.error("E_BATTLE_SIZE", `${side} fields ${s.heroes.length} heroes; must be between 1 and ${max}`, { file, path: `${side}.heroes` });
     }
     if (!s.heroes.some((h) => h.char_id === s.leader)) {
       c.error("E_BATTLE_LEADER", `${side} leader '${s.leader}' is not one of that side's heroes`, { file, path: `${side}.leader` });

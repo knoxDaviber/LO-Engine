@@ -10,7 +10,7 @@ import { Collector } from "../src/types";
 import { validateBattle } from "../src/validate/battle";
 import { bootPack } from "../game/logic/content";
 import { buildBattle } from "../game/logic/battle";
-import { autoField, kitOf, matchupPct, moveHero, pickLeader, poolHero, isGeneric, rollOrder, type PoolHero } from "../game/logic/party";
+import { autoField, kitOf, matchupPct, moveHero, pickLeader, poolHero, isGeneric, isCopy, rollOrder, type PoolHero } from "../game/logic/party";
 import { beatCues, buildReplay, motionOf, type Beat, type Pop, type UnitInfo } from "../game/logic/replay";
 import { afterResult, companyLeft, fight, pickRecruit, fightBlocker, moveTo, poolIds, rerollStart, ROGUE_START_POOL, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
 import { resolveEnemies, rogueEnemyCount, ROGUE_STAGES, STAGES } from "../game/logic/stages";
@@ -44,7 +44,7 @@ function winAll(seed: number): RunState[] {
 }
 
 test("every hero builds a valid battle with its kit and squad", () => {
-  for (const ch of pack.characters) {
+  for (const ch of pack.characters.filter((c) => !isCopy(c))) {
     const pool = autoField(pack, [poolHero(pack, ch.id)]);
     const enemyPool = [ch.id];
     const battle = buildBattle(pack, { seed: 1, stage: 0, attempt: 0, pool, leader: ch.id, enemy: resolveEnemies(pack, 1, 0, enemyPool) });
@@ -267,8 +267,7 @@ function rogueFought(seed: number, dead: (pool: string[]) => string[], won: bool
 
 test("rogue: 20 stages, enemy counts by wave, generics only, rogue battle id", () => {
   assert.equal(ROGUE_STAGES.length, 20);
-  ROGUE_STAGES.forEach((st, i) => assert.equal(st.enemies.length, rogueEnemyCount(i)));
-  assert.deepEqual([0, 2, 4].map(rogueEnemyCount), [2, 3, 4]);
+  assert.deepEqual([0, 1, 2, 3, 4, 6, 7, 9, 10, 19].map(rogueEnemyCount), [2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
   const s = toPrep(pack, startRun(pack, 3, false, "rogue"));
   for (let i = 0; i < ROGUE_STAGES.length; i++) {
     const e = resolveEnemies(pack, 3, i, poolIds(s), "rogue");
@@ -276,6 +275,20 @@ test("rogue: 20 stages, enemy counts by wave, generics only, rogue battle id", (
     assert.ok(e.heroes.every((h) => isGeneric(pack.byId.characters.get(h.char_id)!)));
   }
   assert.equal(buildBattle(pack, { seed: 3, stage: 4, attempt: 0, pool: s.pool, leader: s.leader!, enemy: s.enemy!, mode: "rogue" }).battle_id, "rogue_5");
+});
+
+test("rogue: enemies can repeat a class, ids stay unique and every wave validates", () => {
+  let repeats = 0;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const s = toPrep(pack, startRun(pack, seed, false, "rogue"));
+    ROGUE_STAGES.forEach((_, i) => {
+      const e = resolveEnemies(pack, seed, i, poolIds(s), "rogue"), ids = e.heroes.map((h) => h.char_id);
+      assert.equal(new Set(ids).size, ids.length);
+      if (new Set(ids.map((id) => pack.byId.characters.get(id)!.class)).size < ids.length) repeats++;
+      assert.equal(buildBattle(pack, { seed, stage: i, attempt: 0, pool: s.pool, leader: s.leader!, enemy: e, mode: "rogue" }).battle_id, `rogue_${i + 1}`);
+    });
+  }
+  assert.ok(repeats > 0);
 });
 
 test("rogue: starts with ROGUE_START_POOL heroes, and a reroll keeps that", () => {

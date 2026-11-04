@@ -8,5 +8,24 @@ export function bootPack(texts: Record<string, string>): Pack {
   const { pack, report } = validateRaw(rawFromTexts(texts));
   const errors = report.issues.filter((i) => i.severity === "error" && !i.file?.startsWith("battles/") && !i.file?.startsWith("rosters/"));
   if (!pack || errors.length > 0) throw new Error(`content has validation errors: ${errors.map((i) => i.code).join(", ")}`);
+  addEnemyCopies(pack);
   return pack;
+}
+
+/** Copies of every character per enemy slot (id `char_0NN_ck`), so one side can field the same hero or class twice (unit ids must be unique). Built from the source at boot, so they never drift. */
+export const ENEMY_COPIES = 5;
+function addEnemyCopies(pack: Pack): void {
+  const repoint = <T>(v: T, from: string, to: string): T => JSON.parse(JSON.stringify(v).split(`"${from}"`).join(`"${to}"`));
+  const extend = (l: string[], from: string, to: string) => (l.includes(from) ? [...l, to] : l);
+  for (const ch of [...pack.characters]) {
+    for (let k = 1; k <= ENEMY_COPIES; k++) {
+      const id = `${ch.id}_c${k}`;
+      const c = { ...structuredClone(ch), id, leader_aura: repoint(ch.leader_aura, ch.id, id) };
+      pack.characters.push(c);
+      pack.byId.characters.set(id, c);
+      for (const s of pack.skills) s.eligible.characters = extend(s.eligible.characters, ch.id, id);
+      for (const e of pack.equipment) e.eligible.characters = extend(e.eligible.characters, ch.id, id);
+      for (const s of pack.soldiers) s.eligible_heroes = extend(s.eligible_heroes, ch.id, id);
+    }
+  }
 }

@@ -1,14 +1,15 @@
 // Rogue balance (game/logic): seeded full runs with the automatic line-up and default tactics, through the real run functions.
 // Per wave: how many runs reached it, win % over its battles (retries included), and average heroes alive when it starts.
 //   npx tsx tools/rogue-balance.ts [--runs=N] [--seed=S]
-import { loadContentPack } from "../src/cliBattle";
+import { readContentTexts } from "../src/load";
+import { bootPack } from "../game/logic/content";
 import { autoField, pickLeader } from "../game/logic/party";
 import { afterResult, companyLeft, fight, pickRecruit, startRun, toPrep, type RunState } from "../game/logic/run";
-import { ROGUE_STAGES } from "../game/logic/stages";
+import { ROGUE_STAGES, rogueEnemyCount } from "../game/logic/stages";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split("=")[1];
 const RUNS = Number(arg("runs") ?? 100), SEED = Number(arg("seed") ?? 1), MAX_ATTEMPTS = 20;
-const pack = loadContentPack();
+const pack = bootPack(readContentTexts("content"));
 
 const n = ROGUE_STAGES.length;
 const reached = Array(n).fill(0), fights = Array(n).fill(0), wins = Array(n).fill(0), alive = Array(n).fill(0);
@@ -34,7 +35,7 @@ for (let i = 0; i < RUNS; i++) {
   }
 }
 console.table(ROGUE_STAGES.map((st, w) => ({
-  wave: w + 1, name: st.name, foes: st.enemies.length, "reached %": ((reached[w] / RUNS) * 100).toFixed(0),
+  wave: w + 1, name: st.name, foes: rogueEnemyCount(w), "reached %": ((reached[w] / RUNS) * 100).toFixed(0),
   "win %": fights[w] ? ((wins[w] / fights[w]) * 100).toFixed(0) : "-", "avg alive": reached[w] ? (alive[w] / reached[w]).toFixed(1) : "-",
 })));
 console.log(`cleared: ${((cleared / RUNS) * 100).toFixed(1)}% of ${RUNS} runs; not implemented: ${[...notes].join("; ") || "-"}`);

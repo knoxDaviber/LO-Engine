@@ -3,7 +3,7 @@
 import type { BattleSide, UnitClass } from "../../src/schema";
 import type { RosterHero } from "../../src/schema/roster";
 import type { Pack } from "../../src/validate/pack";
-import { defaultSheet, isGeneric, kitOf, mix, mulberry, placeTeam, shuffled, type GearTier } from "./party";
+import { defaultSheet, isCopy, isGeneric, kitOf, mix, mulberry, placeTeam, shuffled, type GearTier } from "./party";
 
 export type Mode = "tutorial" | "rogue";
 
@@ -44,8 +44,8 @@ export const STAGES: Stage[] = [
   },
 ];
 
-/** Rogue enemy heroes per wave: two, then three, then four. */
-export const rogueEnemyCount = (stage: number): number => (stage < 2 ? 2 : stage < 4 ? 3 : 4);
+/** Rogue enemy heroes per wave (`stage` is zero-based): waves 1-2 two, 3-4 three, 5-7 four, 8-10 five, 11+ six. */
+export const rogueEnemyCount = (stage: number): number => (stage < 2 ? 2 : stage < 4 ? 3 : stage < 7 ? 4 : stage < 10 ? 5 : 6);
 
 const foes = (gear: GearTier, ...wishes: UnitClass[][]): EnemySlot[] => wishes.map((wish) => ({ wish, gear }));
 
@@ -78,8 +78,11 @@ export const stagesOf = (s: { mode: Mode }): Stage[] => (s.mode === "rogue" ? RO
 /** The stage's enemy side. `pool` is every hero the player holds; same seed, stage and pool give the same enemies. Rogue foes are generics only. */
 export function resolveEnemies(pack: Pack, seed: number, stage: number, pool: readonly string[], mode: Mode = "tutorial"): BattleSide {
   const def = stagesOf({ mode })[stage]!;
-  const free = shuffled(pack.characters.filter((c) => (mode === "rogue" ? isGeneric(c) : !pool.includes(c.id))), mulberry(mix(seed, stage, 0xe)));
-  const heroes: RosterHero[] = def.enemies.map((slot) => {
+  const free = shuffled(pack.characters.filter((c) => (mode === "rogue" ? isGeneric(c) : !isCopy(c) && !pool.includes(c.id))), mulberry(mix(seed, stage, 0xe)));
+  // Rogue: the stage's slots first, then extras of the stage's own classes; a class may repeat (copies of each generic from `bootPack` keep ids unique).
+  const extra = mulberry(mix(seed, stage, 0xf)), theme = def.enemies.flatMap((e) => e.wish);
+  const slots = mode === "rogue" ? Array.from({ length: rogueEnemyCount(stage) }, (_, i): EnemySlot => def.enemies[i] ?? { wish: [theme[Math.floor(extra() * theme.length)]!], gear: def.enemies[0]!.gear }) : def.enemies;
+  const heroes: RosterHero[] = slots.map((slot) => {
     const ch = slot.wish.flatMap((cls) => free.filter((c) => c.class === cls))[0] ?? free[0]!;
     free.splice(free.indexOf(ch), 1);
     return { char_id: ch.id, squad_id: def.squad, equipment: kitOf(ch.class, slot.gear), tactic_sheet: defaultSheet(pack, ch) };

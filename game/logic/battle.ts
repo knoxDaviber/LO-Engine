@@ -18,7 +18,7 @@ export function buildBattle(pack: Pack, o: { seed: number; stage: number; attemp
     challenger: { leader: o.leader, heroes: fieldedEntries(o.pool) }, defender: o.enemy,
   };
   const c = new Collector();
-  validateBattle(battle, pack, c, { file: "game", tier: "official" });
+  validateBattle(battle, pack, c, { file: "game", tier: "official", defenderMax: 6 });
   const errors = c.issues.filter((i) => i.severity === "error");
   if (errors.length > 0) throw new Error(`battle does not validate: ${errors.map((e) => `${e.code} ${e.path ?? ""} ${e.message}`).join("; ")}`);
   return battle;

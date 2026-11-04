@@ -88,11 +88,13 @@ export function poolHero(pack: Pack, id: string): PoolHero {
   return { entry: { char_id: id, squad_id: SQUAD[ch.class], equipment: kitOf(ch.class), tactic_sheet: defaultSheet(pack, ch) }, slot: null };
 }
 
+/** An enemy copy of a character (see `bootPack`); never enters the player's pool. */
+export const isCopy = (c: Character): boolean => /_c\d+$/.test(c.id);
 /** A generic hero is named after its class; generics are enemy-only (rogue mode fields only them). */
 export const isGeneric = (c: Character): boolean => c.name.toLowerCase() === c.class;
 
 /** A random order of every named hero: the first ones are the starting pool, the next ones the recruits. */
-export const rollOrder = (pack: Pack, seed: number): string[] => shuffled(pack.characters.filter((c) => !isGeneric(c)).map((c) => c.id), mulberry(seed));
+export const rollOrder = (pack: Pack, seed: number): string[] => shuffled(pack.characters.filter((c) => !isGeneric(c) && !isCopy(c)).map((c) => c.id), mulberry(seed));
 
 const sideOf = (heroes: RosterHero[], leader: string): BattleSide => ({ leader, heroes });
 
