@@ -16,6 +16,8 @@ interface Props {
   edit: (fn: (b: Json) => void) => void;
   selected: string | null;
   select: (id: string) => void;
+  /** char_ids banned by the draft (roster form); shown faded with a "Banned" label. */
+  banned?: string[];
 }
 
 const same = (a: DragItem | null, cell: Cell) => !!a && !!cell && a.kind === cell.kind && a.index === cell.index;
@@ -26,7 +28,7 @@ const same = (a: DragItem | null, cell: Cell) => !!a && !!cell && a.kind === cel
  * While a card is dragged (or held with Alt for keyboard moves) every valid empty slot shows a slowly fading "+", valid occupied slots a swap
  * highlight, everything else is dimmed. State lives in `battle` only: every move is an `edit` of the battle JSON (preferred_row + column).
  */
-export function FormationBoard({ c, battle, side, edit, selected, select }: Props) {
+export function FormationBoard({ c, battle, side, edit, selected, select, banned = [] }: Props) {
   const layout = layoutSide(c, battle, side);
   const [drag, setDrag] = useState<DragItem | null>(null);
   const [picked, setPicked] = useState<DragItem | null>(null); // keyboard: Alt held on a focused card
@@ -74,7 +76,8 @@ export function FormationBoard({ c, battle, side, edit, selected, select }: Prop
     const item: DragItem = { kind: cell.kind, index: cell.index };
     const isSquad = cell.kind === "squad";
     const id = isSquad ? cell.leaderId : cell.charId;
-    const cls = ["fm-card", isSquad && "squad", !isSquad && cell.isLeader && "leader", !isSquad && cell.overflow && "overflow", selected === id && "selected", same(drag, cell) && "dragging"].filter(Boolean).join(" ");
+    const isBanned = !isSquad && banned.includes(cell.charId);
+    const cls = ["fm-card", isBanned && "banned", isSquad && "squad", !isSquad && cell.isLeader && "leader", !isSquad && cell.overflow && "overflow", selected === id && "selected", same(drag, cell) && "dragging"].filter(Boolean).join(" ");
     const dirs: StepDir[] = isSquad ? ["left", "right"] : ["left", "up", "down", "right"];
     return (
       <div
@@ -82,7 +85,7 @@ export function FormationBoard({ c, battle, side, edit, selected, select }: Prop
         data-card={`${cell.kind}:${id}`}
         draggable
         tabIndex={0}
-        title={`${isSquad ? "squad" : cell.cls}, ${LABEL[row]}${isSquad ? "" : ` column ${cell.column}`}${!isSquad && cell.overflow ? " (beyond the board)" : ""}. Drag to a slot, or Alt+arrows`}
+        title={`${isBanned ? "Banned in the draft. " : ""}${isSquad ? "squad" : cell.cls}, ${LABEL[row]}${isSquad ? "" : ` column ${cell.column}`}${!isSquad && cell.overflow ? " (beyond the board)" : ""}. Drag to a slot, or Alt+arrows`}
         onClick={() => select(id)}
         onKeyDown={(e) => key(e, item, id)}
         onKeyUp={(e) => { if (e.key === "Alt") setPicked(null); }}
@@ -93,6 +96,7 @@ export function FormationBoard({ c, battle, side, edit, selected, select }: Prop
         <Sprite cls={cell.cls} name={cell.name} mirror={mirror} size={56} />
         <span className="fm-name">{cell.name}</span>
         <span className="fm-cls">{isSquad ? `squad, ${cell.cls}` : cell.cls}</span>
+        {isBanned && <span className="fm-banned">Banned</span>}
         {!isSquad && cell.isLeader && <span className="fm-badge">leader</span>}
         {!isSquad && cell.overflow && <span className="fm-warn">overflow</span>}
         <span className="fm-move">

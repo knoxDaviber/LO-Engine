@@ -219,3 +219,10 @@ test("readContentTexts: unreadable battle entries are skipped and reported, not 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("editor api: breakdown lists the heroes the draft banned (draft_city) and none for fielded form", () => {
+  const bd = api.breakdown(battle("draft_city.yaml"));
+  assert.ok(bd.banned.challenger.length > 0 && bd.banned.defender.length > 0);
+  assert.ok(bd.units.every((u) => u.kind === "squad" || ![...bd.banned.challenger, ...bd.banned.defender].includes(u.id)));
+  assert.deepEqual(api.breakdown(battle("sample.yaml")).banned, { challenger: [], defender: [] });
+});

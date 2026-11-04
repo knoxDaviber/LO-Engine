@@ -153,14 +153,17 @@ export function createCore(texts: Record<string, string>, store: ContentStore) {
     const opts = { ...ppOption(pp), ...formulaOption(formula), ...heroHitsOption(heroHits) };
     const input = checked(battle);
     let fielded: Battle;
+    let banned = { challenger: [] as string[], defender: [] as string[] };
     if (isRosterBattle(input)) {
       const d = resolveDraft(p, input);
       if (!d.battle) throw new ApiError(422, "draft failed");
       fielded = d.battle;
+      if (d.sides) banned = { challenger: d.sides.challenger.banned, defender: d.sides.defender.banned };
     } else fielded = input;
     const state = preBattleState(p, fielded, phase, opts);
     return {
       phase,
+      banned,
       units: state.units.map((u) => ({
         id: u.id, name: u.name, side: u.side, kind: u.kind, leader: u.leaderId ?? null, stats: allBreakdowns(u, p),
         pp: u.kind === "hero" ? { active: u.pp.active.max, passive: u.pp.passive.max } : null,

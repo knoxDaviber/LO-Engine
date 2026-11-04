@@ -41,3 +41,5 @@
 .fm-move { display: none; position: absolute; bottom: 2px; left: 0; right: 0; justify-content: center; gap: 2px; }
 .fm-card:focus .fm-move, .fm-card:focus-within .fm-move { display: flex; }
 .fm-move button { font-size: 9px; padding: 0 4px; line-height: 1.3; }
+.fm-card.banned { opacity: 0.5; filter: grayscale(1); }
+.fm-banned { position: absolute; bottom: 2px; left: 2px; font-size: 10px; padding: 0 4px; border-radius: 3px; color: var(--text, #222); background: var(--panel-2, #eee); border: 1px solid var(--muted, #777); }

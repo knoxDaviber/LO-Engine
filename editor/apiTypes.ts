@@ -34,7 +34,8 @@ export interface BreakdownEffect { status: string; category: string; mode: "flat
 export interface BreakdownStat { stat: string; base: number; flat: number; effects: BreakdownEffect[]; multiplier: number; result: number }
 /** `pp`: a hero's PP pools after the what-if override and gear (null for squads). */
 export interface BreakdownUnit { id: string; name: string; side: string; kind: "hero" | "squad"; leader: string | null; stats: Record<string, BreakdownStat>; pp: { active: number; passive: number } | null }
-export interface BreakdownResult { phase: number; units: BreakdownUnit[] }
+/** `banned`: char_ids removed by the draft per side (roster form; empty for fielded-form battles). */
+export interface BreakdownResult { phase: number; units: BreakdownUnit[]; banned: { challenger: string[]; defender: string[] } }
 
 /** What-if PP override sent with sim and breakdown requests (integers 0..10; absent or null = the content values). Never saved. */
 export interface PpOverride { active?: number | null; passive?: number | null }

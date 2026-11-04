@@ -253,7 +253,7 @@ function App() {
       {SIDES.map((s) => (
         <div key={s} className={s}>
           <h2>{s === "challenger" ? "Your side (challenger)" : "Opponent (defender)"}</h2>
-          <FormationBoard c={c} battle={battle} side={s} edit={edit} selected={selected} select={setSelected} />
+          <FormationBoard c={c} battle={battle} side={s} edit={edit} selected={selected} select={setSelected} banned={bd.data?.banned?.[s] ?? []} />
         </div>
       ))}
     </div>
