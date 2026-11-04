@@ -246,7 +246,7 @@ The challenger may adjust between phases. [DEFAULT scope]:
 
 ## 7. PP [DECIDED]
 
-- Active PP base 3, Passive PP base 3 [DEFAULT, not locked, Decision 140]; max 4 with equipment [DECIDED]. Dragon Scale (+1 Active PP) is a valid test.
+- Active PP base 3, Passive PP base 3 [DECIDED for now, Decision 140]; max 4 with equipment [DECIDED]. Dragon Scale (+1 Active PP) is a valid test.
 - Separate pools. Active skills spend Active, passives spend Passive.
 - PP is spent per use (a 1-PP skill can be used twice at 2 PP).
 - **Passives spend PP when their condition triggers them, and the passive then becomes *used*** [DECIDED]. If there is not enough Passive PP when the condition is met, the passive does not fire (logged).
@@ -603,7 +603,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 137 | Editor and main game are separate | DECIDED | The editor is the simulation, testing and character creation tool, with import and export into the main game. The main game is a separate client with all default content built in and a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Same schema and engine; import/export uses the `content/` YAML files, validated on import [DEFAULT] (Section 12) |
 | 138 | Soldier skill points | DECIDED, later | 20 points per soldier type, spent in skill trees with prerequisites, up to 5 levels per category; reallocated at season end; slight cost increase. Differentiates players' soldiers (class triangle damage dealt/taken, vs buffed or debuffed units, back-row damage, damage taken by battlefield). Separate from hero progression (Decision 114). Tree contents open (Section 18) |
 | 139 | Timeout result | DECIDED (built) | Replaces "survivors after phase 3 = challenger loss" (Decisions 68, 115): a phase-3 timeout goes to the side with the higher remaining HP%, counted over the whole side (heroes and soldiers together); an exact tie goes to the defender [DEFAULT] |
-| 140 | Default PP 3/3 | DEFAULT, not locked | Active 3, Passive 3 for now, max still 4; still being decided after the PP sweep |
+| 140 | Default PP 3/3 | DECIDED for now | Active 3, Passive 3, max still 4; locked for now after the PP sweep (active 2 leaves 20-57% timeouts, passive above 3 changes little) |
 | 141 | Two-sided enchantments | DECIDED for now (built) | Each god has a DEF and an ATK 4-piece (Section 9A, `four_piece_def` / `four_piece_atk`); the hero entry's `sigil_side` records the choice. The 2-pieces changed with them. Values untested until simmed |
 | 142 | Cross-side reaction order | DECIDED (built) | When one event triggers reactions on both sides, the attacked side's reactions resolve first, then the other side's; within a side, sheet priority order. Engine handlers (order 0) and soldier skills (order 100) keep their order tiers. Ends the challenger-seat first-word bias (`EventBus.emit`) |
 

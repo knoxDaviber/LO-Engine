@@ -60,7 +60,7 @@ progress in `docs/roadmap.md`.
 2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Tests read PP from content. **Swept 2026-11-04** (active/passive 2-5, 100 runs,
    geared battles): active 2 leaves 20-57% timeouts on the three city battles, active 3+ drops them to 0-8%, so 2 is too low. Passive above 3
    changes nothing much (sample/full4v4 have no passives on sheets, so they are flat by construction). Challenger win is not monotonic in active PP
-   (city4v4-edit 95% at 3, 60% at 4, 85% at 5), so active PP swings matchups. No reason found to move off 3/3. **Locked at 3/3 for now (designer 2026-11-04);** still to do: update Decision 140 and design doc Section 8 wording (item 8).
+   (city4v4-edit 95% at 3, 60% at 4, 85% at 5), so active PP swings matchups. No reason found to move off 3/3. **Locked at 3/3 for now (designer 2026-11-04);** Recorded in Decision 140 and design doc Section 7 (item 8 done).
 3. **Done 2026-11-04 (Decision 141):** two-sided enchantments built per `docs/enchantments_proposal.md`: `sigil_side: def | atk` on the hero entry
    (`E_SIGIL_SIDE_MISSING`, `W_SIGIL_SIDE_UNUSED`), `four_piece_def` / `four_piece_atk` in `gods.yaml`, effects `ignore_defense`, `damage_bonus`, `crit_damage`.
    2-pieces follow the proposal table, not the old `gods.yaml` (Full Moon, Plate, Gift, Breeze changed). Editor side picker clicked through.
@@ -99,7 +99,7 @@ progress in `docs/roadmap.md`.
 
 **Designer requests 2026-11-04 (in this order; none started).** Items 9-11 change combat, so do them before the item 5 balance pass, then rerun `tools/balance-series.ts`.
 
-8. **PP 3/3 locked for now:** record it in Decision 140 and the design doc (docs only).
+8. **Done 2026-11-04:** PP 3/3 recorded as locked for now in Decision 140 and the design doc.
 9. **Sigils in drafts:** everyone in the draft battles should have sigils (`draft_city` rosters: today several heroes have none; both sides, even count).
 10. **Roll evade and hit before skills:** hit / evade is rolled before the skill resolves. If the attack is evaded the skill does not trigger, so it costs nothing (no PP spent). Today the order is `decideTactic` -> spend PP -> resolve effects, with rolls per hit. **Ask first:** multi-target skills (one target evades, others do not) and multi-hit skills, and whether an evaded skill still uses up the unit's action.
 11. **Quick Guard counts as GUARD:** ignoring guard bypasses Quick Guard, even if it shows up (it can still trigger and appear in the log, it just does nothing against `ignore_guard`).
