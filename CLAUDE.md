@@ -23,7 +23,7 @@ npm run sim -- content/battles/sample.yaml [--json] [--pp-active=N] [--pp-passiv
 npm run batch -- content/battles/*.yaml [--runs=100] [--seed=1] [--json] [--pp-active=..] [--pp-passive=..] [--formula=..]   # seeded balance report
 npm run editor                                     # local editor, http://127.0.0.1:5173 (EDITOR_PORT=N for another port)
 npm run editor:build                               # static editor into editor/dist (gitignored), deployed to GitHub Pages
-npm run game                                       # main game client, http://127.0.0.1:5174 (GAME_PORT=N); npm run game:build into game/dist (gitignored); balance: npx tsx tools/tutorial-balance.ts
+npm run game                                       # main game client, http://127.0.0.1:5174 (GAME_PORT=N); npm run game:build into game/dist (gitignored); balance: npx tsx tools/tutorial-balance.ts, tools/rogue-balance.ts
 ```
 
 CLI exit codes: 0 ok, 1 errors (or warnings with `--strict`), 2 load failure. No engine build step (`noEmit`, runs through `tsx`); only the hosted editor is built.

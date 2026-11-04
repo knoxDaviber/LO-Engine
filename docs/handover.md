@@ -1,4 +1,4 @@
-# Session handover (updated 2026-11-04, late; item 23 game deploy done, item 22 awaiting designer review)
+# Session handover (updated 2026-11-04, late; items 23-29 done, rogue mode local only, not pushed)
 
 Read this first, then `CLAUDE.md` (working rules, commands, architecture). Design intent is in `docs/design_doc_v2.md`,
 progress in `docs/roadmap.md`.
@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Claude pushes only when the designer says to.
-- **Checks at handover:** typecheck clean (root and editor), 436/436 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 451/451 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -128,6 +128,13 @@ progress in `docs/roadmap.md`.
 
    **Item 22 result:** all passes committed, final scores 8-9, no 10s; `docs/ui_rating.md` lists what each category still needs. **Not checked:** music by ear (only load and switch), the lake victory and defeat screens, the battle action card with the final tile glow, reduced motion, the narrator height fix on screen. **Open calls:** limit rerolls or allow them on recruits; real stage terrain (changes balance); `city2` or `city` on Ember Gate (`city2` used; `city.ogg` and `forest-calm.ogg` are not in the repo). Dev server: restart `npm run game` if the page goes blank (it can cache the old `music.ts` path).
 23. **Done 2026-11-04:** game deployed at `https://knoxdaviber.github.io/LO-Engine/game/`, editor unchanged at the root, one Pages artifact (`pages.yml`). Mute key is now `lo-muted`. Local build served from a subfolder: full 3-battle run with Skip, all stage art and music requested, no console errors, mute survives a reload. **Not checked:** tutorial path, defeat screen, music by ear. **Open calls:** final URL (`/game/` assumed; swapping game and editor is a designer call), editor link to the game skipped (plan step 4).
+24. **Done 2026-11-04:** named heroes only in the player pool (`rollOrder`), generics are enemy-only. Faces in the turn-order circles. Side effect: tutorial win rates rose to 98-100% on all three stages. **Open call:** retune the tutorial.
+25. **Done 2026-11-04:** Rogue Mode (title button, `mode` on RunState, `ROGUE_STAGES`, `tools/rogue-balance.ts`). 20 waves; enemy heroes 2, then 3 from wave 3, 4 from wave 5, generics only; start with 2; dead heroes leave the run, win or lose; a loss retries the wave with survivors (assumed, not stated by the designer); nobody left ends the run. Balance, auto line-up: about 40% of runs clear, wave 1 win 80%, late waves 87-96%. Gear tops out at wave 5, so difficulty is flat after that. **Open calls:** a real late-game ramp; a loss retrying rather than ending the run.
+26. **Done 2026-11-04:** battle replay: `covers` on a beat (coverer dashes in front of the ally, numbers follow), reactions that deal damage become `followup` beats.
+27. **Done 2026-11-04:** animated backdrops (slow pan, haze, per-scene particles in `.backdrop.scene-*`). Reduced motion not seen.
+28. **Done 2026-11-04:** rogue recruit is a choice of two (`offers`, `pickRecruit`); passed-over heroes can return. Bench-only survivors are auto-fielded.
+29. **Done 2026-11-04:** phase banner moved off the top tile row (it made the 2x3 grid look 2x2). No class duplicates on the player's side, already guaranteed: each named hero has a unique class and owned or fallen heroes are never offered. Enemies are unrestricted (designer). UI pass 6 in `docs/ui_rating.md`.
+   **Sigils:** not in the game client. The engine and `content/gods.yaml` (7 gods) support them, but no hero gets any and no screen shows them. **Open call:** add them, for example as rogue rewards. **Not pushed:** the live site still shows item 23.
 
 **Open from the 2026-11-04 critique (designer to decide):** project CLAUDE.md ("the supervisor never writes code") conflicts with the global "make small changes directly"; should the supervisor edit small code itself? This file is 27KB and loads every session: trim it (the finished editor brief at the end can go)? Suggested: a single playable battle, which needs no meta loop, to test the tactics board before more balance work.
 

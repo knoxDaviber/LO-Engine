@@ -4,15 +4,15 @@ Scored 1-10 from real screenshots at 1280x720, as a strategy RPG player would (F
 
 Screenshot note: the browser pane barely advances CSS animations, so finish them first (`document.getAnimations()`, `finish()` on the finite ones) or the title menu and narrator look missing.
 
-| Category | P1 | P2 | P3 | P4 | P5 |
-|---|---|---|---|---|---|
-| Board readability | 6 | 8 | 8 | 8 | 9 |
-| Tactics setup | 6 | 6 | 8 | 8 | 8 |
-| Battle feedback | 6 | 8 | 8 | 8 | 8 |
-| Information access | 6 | 7 | 8 | 8 | 8 |
-| Menu flow | 7 | 7 | 7 | 8 | 8 |
-| Art direction | 7 | 9 | 9 | 9 | 9 |
-| Onboarding | 7 | 7 | 7 | 7 | 8 |
+| Category | P1 | P2 | P3 | P4 | P5 | P6 |
+|---|---|---|---|---|---|---|
+| Board readability | 6 | 8 | 8 | 8 | 9 | 9 |
+| Tactics setup | 6 | 6 | 8 | 8 | 8 | 8 |
+| Battle feedback | 6 | 8 | 8 | 8 | 8 | 9 |
+| Information access | 6 | 7 | 8 | 8 | 8 | 8 |
+| Menu flow | 7 | 7 | 7 | 8 | 8 | 8 |
+| Art direction | 7 | 9 | 9 | 9 | 9 | 9 |
+| Onboarding | 7 | 7 | 7 | 7 | 8 | 8 |
 
 ## Pass 1 (baseline, commit 236ae06)
 
@@ -48,6 +48,13 @@ Screenshot note: the browser pane barely advances CSS animations, so finish them
 
 - **Board readability (8 to 9):** blue and red glow on every tile shows the two sides at a glance.
 - **Onboarding (7 to 8):** "Step 2 of 15" counter, and the narrator moves clear of the spotlight.
+
+## Pass 6 (rogue mode, designer's feedback)
+
+- **Battle feedback (8 to 9):** Bodyguard dashes in front of the ally, follow-ups and counters get their own beat, and the phase banner no longer hides the top tile row.
+- **Board readability:** stays 9. Turn-order circles now show faces, and empty enemy tiles are easier to see.
+- **Art direction:** stays 9. Backdrops pan slowly with haze and per-scene particles, but panels and icons still need the art pass.
+- **Seen in the browser:** rogue reveal, recruit choice, prep with 7 heroes, retry with survivors, run-over screen, snow and swamp backdrops. **Not seen:** rogue victory, lake backdrop, reduced motion, 10-hero company list.
 
 What would still be needed for 10s, none of it done:
 - **Board readability:** sprites standing on the painted ground instead of tiles (the designer's planned 2D sprites).
