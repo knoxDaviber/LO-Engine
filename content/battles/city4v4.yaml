@@ -1,6 +1,7 @@
 # City 4v4 with the generic kit: one generic hero per class. Battlefield City (terrain_005): cavalry SPD -10%, assassin CRIT +10, infantry GUARD +10.
-# Devotion sigils (Section 9A): the Infantry wears 2 Fukurokuju + 2 Bishamonten (Meteor and Plate 2-piece each), the Monster 4 Benzaiten (Mirror 4-piece), the Assassin
-# 4 Ebisu (Rush ATK 4-piece: its single-target attacks ignore GUARD and deal +15% damage).
+# Gear: one plain-shop kit per class, the same on both sides, no empty slot. Sigils: 16 per side, every hero a full 4-piece (sigil_side) or 2+2:
+# Challenger Infantry 2 Fukurokuju + 2 Bishamonten, Cavalry and Archer 4 Jurojin (atk), Holy 4 Hotei (atk); Defender Monster 4 Benzaiten (def), Assassin 4 Ebisu (atk),
+# Mage 4 Jurojin (atk), Lancer 2 Bishamonten + 2 Hotei.
 # Every hero brings its class's natural soldier type; only each leader's squad is deployed. Tactic sheets: big skill first, basic attack second, then the hero's passives (a passive runs only from the sheet, design Section 4).
 battle_id: city_4v4
 version: "1"
@@ -20,14 +21,18 @@ challenger:
         - { priority: 3, skill_id: skl_020, enabled: true, main: null, sub: null }   # Counter (passive)
     - char_id: char_007   # Cavalry
       squad_id: soldier_005
-      equipment: { weapon: equip_010, armor: equip_018, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_010, armor: equip_018, accessory_1: equip_024, accessory_2: equip_027 }
+      sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }
+      sigil_side: atk
       tactic_sheet:
         - { priority: 1, skill_id: skl_006, enabled: true, main: null, sub: null }   # Charge
         - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
         - { priority: 3, skill_id: skl_018, enabled: true, main: null, sub: null }   # Follow-Up (passive)
     - char_id: char_008   # Archer
       squad_id: soldier_006
-      equipment: { weapon: equip_012, armor: equip_017, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_012, armor: equip_017, accessory_1: equip_025, accessory_2: equip_022 }
+      sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }
+      sigil_side: atk
       tactic_sheet:
         - { priority: 1, skill_id: skl_007, enabled: true, main: null, sub: null }   # Volley
         - { priority: 2, skill_id: skl_002, enabled: true, main: null, sub: null }   # Shot
@@ -35,7 +40,9 @@ challenger:
         - { priority: 4, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
     - char_id: char_012   # Holy
       squad_id: soldier_009
-      equipment: { weapon: equip_011, armor: equip_019, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_011, armor: equip_019, accessory_1: equip_025, accessory_2: equip_021 }
+      sigils: { weapon: god_005, armor: god_005, accessory_1: god_005, accessory_2: god_005 }
+      sigil_side: atk
       tactic_sheet:
         - { priority: 1, skill_id: skl_013, enabled: true, main: null, sub: null }   # Blessing
         - { priority: 2, skill_id: skl_012, enabled: true, main: null, sub: { select: lowest, metric: hp_percent } }   # Mend
@@ -66,14 +73,17 @@ defender:
         - { priority: 4, skill_id: skl_018, enabled: true, main: null, sub: null }   # Follow-Up (passive)
     - char_id: char_010   # Mage
       squad_id: soldier_008
-      equipment: { weapon: equip_014, armor: equip_019, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_014, armor: equip_019, accessory_1: equip_025, accessory_2: equip_026 }
+      sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }
+      sigil_side: atk
       tactic_sheet:
         - { priority: 1, skill_id: skl_010, enabled: true, main: null, sub: null }   # Fireball
         - { priority: 2, skill_id: skl_003, enabled: true, main: null, sub: null }   # Bolt
         - { priority: 3, skill_id: skl_passive_001, enabled: true, main: null, sub: null }   # Quick Guard (passive)
     - char_id: char_006   # Lancer
       squad_id: soldier_004
-      equipment: { weapon: equip_016, armor: equip_018, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_016, armor: equip_018, accessory_1: equip_021, accessory_2: equip_021 }
+      sigils: { weapon: god_003, armor: god_003, accessory_1: god_005, accessory_2: god_005 }
       tactic_sheet:
         - { priority: 1, skill_id: skl_005, enabled: true, main: null, sub: null }   # Pierce
         - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike

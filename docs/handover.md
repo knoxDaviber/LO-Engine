@@ -71,11 +71,18 @@ progress in `docs/roadmap.md`.
    `self_killed_enemy` works only as a top-level condition.
 3a. **Side check 2026-11-04 (300 runs, swap test, after gear, HP% timeout and blessings):** challenger win / same battle with sides swapped: sample 100 / 0,
    full4v4 93 / 7, city4v4 35 / 69, city4v4-edit 98 / 8; draft_city 0 (not swapped). The winner follows the team, not the side: no defender penalty in the engine.
-3b. **NEXT TASK (designer 2026-11-04): a series of balance tests.** Start by gearing the defenders in the test battles to match the challengers (equal gear and
-   sigils on both sides; today `city4v4-edit` has the challenger fully kitted, defender not, and `sample` / `full4v4` field a damage-less healer on the defending side).
-   Then rerun with sides swapped: if defenders still lose from an even start, that is a real problem. Design the series so each test isolates one thing (side,
-   gear, sigils, team comp); include `draft_city` and the real defender advantages (ban sheet, draft order), which fielded battles skip. Check why filled accessories moved
-   `city4v4` from 35% to 75% challenger. Scratch sims used `runMatchup` from `src/batchReport.ts`. All conclusions with gear on (see CLAUDE.md).
+3b. **Done 2026-11-04: balance series.** `npx tsx tools/balance-series.ts [--runs=N] [--seed=S] [--only=T0,T3]` (about 3 minutes; T0-T5, each changes one thing). `city4v4`, `city4v4-edit`
+   and `draft_city` now use one kit per class on both sides (table `KIT` in the script), 16 sigils a side in the two city files. The gear changed the `draft_city` fallback ban (Aquatic, was Cavalry). Results, gear on:
+   - **Real seat bias found: reaction order.** Bus handlers run in registration order, challenger units first, and the design doc sets no cross-side order. T1 side effect (1000 runs, stable over seeds): city4v4 +7, city4v4-edit +20 for the
+     challenger. Log diff of both seats on the same seeds: the first divergence is always Holy's Quick Heal against an enemy Pursuit / Follow-Up on the same hit. Flipping the order gives -7 / -20; any seat-neutral rule gives 0. This corrects 3a ("no side bias").
+   - Mirrors (T0) sit off 50% for two decided reasons, not bugs: first move on every tie (Decision 64: 59-63% challenger; +1 SKL on the defender flips it to 35-40%), and exact HP ties at timeout go to the defender (29-34% of runs for healer teams; without them the split is even). Real matchups rarely tie.
+   - Accessories (T2): the old `city4v4` had accessories on 2 defender heroes and 1 challenger hero, so filling closed a gear gap: challenger only +28, defender only -10, both +14. Archer alone +19 (death 79% to 57%). Old 35% vs 75% used a different fill, not reproduced exactly.
+   - Sigils (T3, 4-piece on all 4 heroes vs none, seats averaged): every set wins, Meteor barely (56-58), the rest 78-95. Gift DEF top (95). Team A's mirror column saturates (it times out, so any edge wins); Team B's column is the better read: Gift DEF 90, Breeze DEF 86, Breeze ATK and Mirror ATK 84, Full Moon 73-77. Full Moon is not the strongest as the item 3 hint said.
+   - Team comp (T4) outweighs side: 3-backline 78% overall, no-healer 57, A 52, B 40, melee 23.
+   - Defender advantages (T5, `draft_city`, one scripted draft): as is 54% challenger; terrain (55 without) and challenger edits (53 without) are inside the margin. No draft: 4% challenger, but that also changes the line-ups. Swapped rosters 45. So the draft swings it far more than anything else, and with these picks it favours the challenger. Anchor not isolated.
+   T1 and T4 still include the reaction-order bias; rerun after 3c. `sample` / `full4v4` stay lopsided (100 / 99% for the Leon team from both seats).
+3c. **NEXT, needs a designer call: cross-side reaction order** (one hit triggers reactions on both sides). Measured, A = healer team, win % as challenger / B as challenger: now city4v4 73 / 35, city4v4-edit 77 / 44. Attacked side first: 73 / 28, 77 / 23 (side effect 0, favours healers).
+   Attacking side first: 65 / 35, 56 / 44 (side effect 0, favours pursuit). Higher average SKL first (extends Decision 64) matched attacking side first here, only because B has the higher SKL and the one conflict is B attacking. Fix goes in `EventBus.emit` (`src/engine/events.ts`), then a decision row, then rerun the series.
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft

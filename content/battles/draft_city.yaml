@@ -2,11 +2,12 @@
 # City (terrain_005). Generic heroes char_005..char_014 plus Lief and The Emperor on the defender side.
 # Expected draft: 1. challenger bans Lief (the defender's top leader-line hero, so the Monster, next in line and the anchor, leads with its own
 # squad and aura); 2. the defender's rule 1 bans the challenger's Holy; 3. challenger protects its Infantry; 4. challenger bans the Mage;
-# 5. rule 1 already fired and rule 2 (mage) matches nobody, so the fallback bans the challenger's highest-cost eligible hero.
+# 5. rule 1 already fired and rule 2 (mage) matches nobody, so the fallback bans the challenger's highest-cost eligible hero (Aquatic, with the even kit).
 # The challenger edits between phases (design 5.5): phase 2 reorders the Infantry's sheet and moves its squad back; phase 3 names the
 # Flyer as leader instead of the Archer (next in the leader line), which only applies if the Infantry died.
 # Devotion sigils (Section 9A): challenger Infantry 4 Jurojin (Full Moon 4-piece), Cavalry 2 Hotei (Breeze 2-piece); defender Monster 4 Daikokuten
 # (Gift 4-piece), Lancer 2 Bishamonten + 2 Hotei (Plate and Breeze 2-piece).
+# Gear: every hero has weapon, armor and two plain-shop accessories (one kit per class); only the sigils differ.
 battle_id: draft_city
 version: "1"
 seeds: [5, 55, 555]
@@ -44,7 +45,7 @@ challenger:
           - { priority: 3, skill_id: skl_020, enabled: true, main: null, sub: null }   # Counter (passive)
       - char_id: char_012   # Holy
         squad_id: soldier_009
-        equipment: { weapon: equip_011, armor: equip_019, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_011, armor: equip_019, accessory_1: equip_025, accessory_2: equip_021 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_013, enabled: true, main: null, sub: null }   # Blessing
           - { priority: 2, skill_id: skl_012, enabled: true, main: null, sub: { select: lowest, metric: hp_percent } }   # Mend
@@ -52,7 +53,7 @@ challenger:
           - { priority: 4, skill_id: skl_passive_003, enabled: true, main: null, sub: null }   # Quick Heal (passive)
       - char_id: char_007   # Cavalry
         squad_id: soldier_005
-        equipment: { weapon: equip_010, armor: equip_018, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_010, armor: equip_018, accessory_1: equip_024, accessory_2: equip_027 }
         sigils: { weapon: god_005, armor: god_005 }   # Breeze 2-piece
         tactic_sheet:
           - { priority: 1, skill_id: skl_006, enabled: true, main: null, sub: null }   # Charge
@@ -60,7 +61,7 @@ challenger:
           - { priority: 3, skill_id: skl_018, enabled: true, main: null, sub: null }   # Follow-Up (passive)
       - char_id: char_008   # Archer
         squad_id: soldier_006
-        equipment: { weapon: equip_012, armor: equip_017, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_012, armor: equip_017, accessory_1: equip_025, accessory_2: equip_022 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_007, enabled: true, main: null, sub: null }   # Volley
           - { priority: 2, skill_id: skl_002, enabled: true, main: null, sub: null }   # Shot
@@ -68,7 +69,7 @@ challenger:
           - { priority: 4, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
       - char_id: char_009   # Flyer
         squad_id: soldier_007
-        equipment: { weapon: null, armor: equip_017, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_010, armor: equip_017, accessory_1: equip_025, accessory_2: equip_022 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_008, enabled: true, main: null, sub: null }   # Dive
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -76,7 +77,7 @@ challenger:
           - { priority: 4, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
       - char_id: char_013   # Aquatic
         squad_id: soldier_011
-        equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_016, armor: equip_017, accessory_1: equip_024, accessory_2: equip_027 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_015, enabled: true, main: null, sub: null }   # Tidal Crash
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -96,7 +97,7 @@ defender:
     heroes:
       - char_id: char_004   # Lief
         squad_id: soldier_004
-        equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_010, armor: equip_017, accessory_1: equip_021, accessory_2: equip_021 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, main: null, sub: null }
           - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, main: null, sub: null }
@@ -120,14 +121,14 @@ defender:
           - { priority: 3, skill_id: skl_019, enabled: true, main: null, sub: null }   # Pursuit (passive)
       - char_id: char_002   # The Emperor
         squad_id: soldier_001
-        equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_024, accessory_2: equip_021 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_inf_active_002, enabled: true, main: null, sub: null }
           - { priority: 2, skill_id: skl_inf_active_001, enabled: true, main: null, sub: null }
           - { priority: 3, skill_id: skl_passive_002, enabled: true, main: null, sub: null }
       - char_id: char_011   # Assassin
         squad_id: soldier_010
-        equipment: { weapon: equip_013, armor: equip_017, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_013, armor: equip_017, accessory_1: equip_022, accessory_2: equip_022 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_009, enabled: true, main: null, sub: null }   # Backstab
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -135,7 +136,7 @@ defender:
           - { priority: 4, skill_id: skl_018, enabled: true, main: null, sub: null }   # Follow-Up (passive)
       - char_id: char_010   # Mage
         squad_id: soldier_008
-        equipment: { weapon: equip_014, armor: equip_019, accessory_1: null, accessory_2: null }
+        equipment: { weapon: equip_014, armor: equip_019, accessory_1: equip_025, accessory_2: equip_026 }
         tactic_sheet:
           - { priority: 1, skill_id: skl_010, enabled: true, main: null, sub: null }   # Fireball
           - { priority: 2, skill_id: skl_003, enabled: true, main: null, sub: null }   # Bolt

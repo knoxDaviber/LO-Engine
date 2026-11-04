@@ -40,7 +40,7 @@ test("draft_city validates and drafts each side to exactly 4 heroes (rules.draft
     ["defender", "ban", "char_012", "rule 1"],
     ["challenger", "protect", "char_005", "human"],
     ["challenger", "ban", "char_010", "human"],
-    ["defender", "ban", "char_007", "fallback"],
+    ["defender", "ban", "char_013", "fallback"],
   ]);
   assert.equal(d.battle!.battlefield, "terrain_005");
 });
@@ -123,23 +123,23 @@ test("formation overflow is resolved by leader-line rank (lowest-ranked non-lead
   const raw = draftRaw();
   for (const h of raw.challenger.roster.heroes) h.preferred_row = "front";
   const d = resolveDraft(realPack(), parse(raw));
-  assert.deepEqual(d.sides!.challenger.moved, ["char_013"]); // fielded in line order: 005, 008, 009, 013
-  assert.deepEqual(d.battle!.challenger.heroes.map((h) => h.char_id), ["char_005", "char_008", "char_009", "char_013"]);
+  assert.deepEqual(d.sides!.challenger.moved, ["char_009"]); // fielded in line order: 005, 007, 008, 009
+  assert.deepEqual(d.battle!.challenger.heroes.map((h) => h.char_id), ["char_005", "char_007", "char_008", "char_009"]);
   assert.deepEqual(codes((b) => { for (const h of b.challenger.roster.heroes) h.preferred_row = "front"; }), []);
   const r = runBattle(realPack(), parse(raw));
   const setup = r.events.find((e) => e.type === "battle_setup")!;
   assert.ok(setup.type === "battle_setup");
-  assert.equal(setup.units.find((u) => u.id === "char_013")!.row, "back");
+  assert.equal(setup.units.find((u) => u.id === "char_009")!.row, "back");
 });
 
 test("overflow move drops the moved hero's explicit column; edits can set columns", () => {
   const raw = draftRaw();
   for (const h of raw.challenger.roster.heroes) h.preferred_row = "front";
-  raw.challenger.roster.heroes.find((h: any) => h.char_id === "char_013").column = 3;
+  raw.challenger.roster.heroes.find((h: any) => h.char_id === "char_009").column = 3;
   const d = resolveDraft(realPack(), parse(raw));
-  assert.deepEqual(d.sides!.challenger.moved, ["char_013"]);
-  assert.equal("column" in d.battle!.challenger.heroes.find((h) => h.char_id === "char_013")!, false);
-  assert.deepEqual(codes((b) => { for (const h of b.challenger.roster.heroes) h.preferred_row = "front"; b.challenger.roster.heroes.find((h: any) => h.char_id === "char_013").column = 3; }), []);
+  assert.deepEqual(d.sides!.challenger.moved, ["char_009"]);
+  assert.equal("column" in d.battle!.challenger.heroes.find((h) => h.char_id === "char_009")!, false);
+  assert.deepEqual(codes((b) => { for (const h of b.challenger.roster.heroes) h.preferred_row = "front"; b.challenger.roster.heroes.find((h: any) => h.char_id === "char_009").column = 3; }), []);
   const edit = (e: unknown) => (b: any) => { b.challenger.edits = [e]; };
   assert.deepEqual(codes(edit({ phase: 2, heroes: [{ char_id: "char_005", column: 3 }] })), []);
   assert.deepEqual(codes(edit({ phase: 2, heroes: [{ char_id: "char_005", column: 9 }] })), ["E_BATTLE_SLOT"]);
@@ -171,7 +171,7 @@ test("challenger edits: locked fields rejected with E_EDIT_LOCKED; bad phase / h
   assert.ok(codes(edit({ phase: 1, heroes: [] })).includes("E_EDIT_PHASE"));
   assert.ok(codes((b) => { b.challenger.edits.push({ phase: 2 }); }).includes("E_EDIT_PHASE"));
   assert.ok(codes(edit({ phase: 2, heroes: [{ char_id: "char_012", preferred_row: "back" }] })).includes("E_EDIT_HERO")); // banned
-  assert.ok(codes(edit({ phase: 3, leader: "char_007" })).includes("E_EDIT_HERO"));
+  assert.ok(codes(edit({ phase: 3, leader: "char_013" })).includes("E_EDIT_HERO"));
   assert.ok(codes(edit({ phase: 2, heroes: [{ char_id: "char_005", squad_row: "middle" }] })).includes("E_SCHEMA"));
   assert.ok(codes(edit({ phase: 2, heroes: [{ char_id: "char_008", preferred_row: "front" }, { char_id: "char_009", preferred_row: "front" }] })).includes("E_BATTLE_ROW_FULL"));
   assert.deepEqual(codes(edit({ phase: 3, heroes: [{ char_id: "char_008", preferred_row: "front", tactic_sheet: [] }] })), []);

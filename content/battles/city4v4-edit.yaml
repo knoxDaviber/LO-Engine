@@ -1,3 +1,4 @@
+# Editor export of city4v4: same gear and sigils per hero as content/battles/city4v4.yaml (one kit per class, 16 sigils per side).
 battle_id: city_4v4
 version: "1"
 battlefield: terrain_005
@@ -14,7 +15,7 @@ challenger:
         weapon: equip_009
         armor: equip_018
         accessory_1: equip_020
-        accessory_2: equip_006
+        accessory_2: equip_021
       sigils:
         weapon: god_006
         armor: god_006
@@ -41,8 +42,8 @@ challenger:
       equipment:
         weapon: equip_010
         armor: equip_018
-        accessory_1: equip_006
-        accessory_2: equip_021
+        accessory_1: equip_024
+        accessory_2: equip_027
       tactic_sheet:
         - priority: 1
           skill_id: skl_006
@@ -70,8 +71,8 @@ challenger:
       equipment:
         weapon: equip_012
         armor: equip_017
-        accessory_1: equip_008
-        accessory_2: equip_008
+        accessory_1: equip_025
+        accessory_2: equip_022
       tactic_sheet:
         - priority: 1
           skill_id: skl_007
@@ -104,8 +105,8 @@ challenger:
       equipment:
         weapon: equip_011
         armor: equip_019
-        accessory_1: equip_006
-        accessory_2: equip_006
+        accessory_1: equip_025
+        accessory_2: equip_021
       tactic_sheet:
         - priority: 1
           skill_id: skl_003
@@ -216,8 +217,14 @@ defender:
       equipment:
         weapon: equip_014
         armor: equip_019
-        accessory_1: null
-        accessory_2: null
+        accessory_1: equip_025
+        accessory_2: equip_026
+      sigils:
+        weapon: god_002
+        armor: god_002
+        accessory_1: god_002
+        accessory_2: god_002
+      sigil_side: atk
       tactic_sheet:
         - priority: 1
           skill_id: skl_010
@@ -239,8 +246,13 @@ defender:
       equipment:
         weapon: equip_016
         armor: equip_018
-        accessory_1: null
-        accessory_2: null
+        accessory_1: equip_021
+        accessory_2: equip_021
+      sigils:
+        weapon: god_003
+        armor: god_003
+        accessory_1: god_005
+        accessory_2: god_005
       tactic_sheet:
         - priority: 1
           skill_id: skl_005
