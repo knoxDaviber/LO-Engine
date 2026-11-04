@@ -6,7 +6,7 @@ import { GAME_TITLE, pack } from "./pack";
 import { MuteButton } from "./music";
 import { Backdrop, cap, Screen, useScale } from "./ui";
 
-export function Result({ s, onNext }: { s: RunState; onNext: () => void }) {
+export function Result({ s, onNext, onTitle }: { s: RunState; onNext: () => void; onTitle: () => void }) {
   const k = useScale();
   const sum = s.fought!.summary;
   const stage = STAGES[s.stage]!;
@@ -39,6 +39,7 @@ export function Result({ s, onNext }: { s: RunState; onNext: () => void }) {
         {note && <p className="result-note">{note}</p>}
         {!sum.won && <p className="result-note">Your company regroups. Change your line-up or orders and try again.</p>}
         <button className="btn btn-primary btn-xl" onClick={onNext} autoFocus>{sum.won ? (s.stage + 1 >= STAGES.length ? "Claim Victory" : "Onward") : "Retry Battle"}</button>
+        {!sum.won && <button className="btn" onClick={onTitle}>Back to Title</button>}
       </div>
     </Screen>
   );

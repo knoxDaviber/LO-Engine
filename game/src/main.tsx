@@ -22,9 +22,9 @@ function App() {
   switch (s.screen) {
     case "title": return <Title onStart={begin} />;
     case "reveal": return <Reveal s={s} onNext={() => set(toPrep(pack, s))} onReroll={s.stage === 0 ? reroll : undefined} />;
-    case "prep": return <Prep s={s} set={set} onFight={(next) => set(fight(pack, next))} />;
+    case "prep": return <Prep s={s} set={set} onFight={(next) => set(fight(pack, next))} onTitle={() => set(titleState())} />;
     case "fight": return <Battle s={s} set={set} onDone={() => set((x) => toResult(x))} />;
-    case "result": return <Result s={s} onNext={() => set(afterResult(pack, s))} />;
+    case "result": return <Result s={s} onNext={() => set(afterResult(pack, s))} onTitle={() => set(titleState())} />;
     case "victory": return <Victory s={s} onTitle={() => set(titleState())} />;
   }
 }

@@ -63,7 +63,7 @@ function SquadBlock({ side, s, size }: { side: "challenger" | "defender"; s: Bat
   );
 }
 
-export function Prep({ s, set, onFight }: { s: RunState; set: Dispatch<SetStateAction<RunState>>; onFight: (s: RunState) => void }) {
+export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<SetStateAction<RunState>>; onFight: (s: RunState) => void; onTitle: () => void }) {
   const k = useScale();
   const stage = STAGES[s.stage]!;
   const enemy = s.enemy!;
@@ -73,6 +73,8 @@ export function Prep({ s, set, onFight }: { s: RunState; set: Dispatch<SetStateA
   const [charts, setCharts] = useState(false);
   const [drop, setDrop] = useState<string | null>(null);
   const chart = useExit(charts ? true : null);
+  const [menu, setMenu] = useState(false);
+  useEsc(menu, () => setMenu(false));
 
   const step = currentStep(s.tutorial);
   // Updater form: a popup can set the run and fire in one go, and this must build on that newer state.
@@ -171,6 +173,7 @@ export function Prep({ s, set, onFight }: { s: RunState; set: Dispatch<SetStateA
         <div className="topbar-mid" />
         <MuteButton />
         <button className="btn btn-small" data-tut="matchups" onClick={() => { setCharts(true); fire("matchups_opened"); }}>Matchups</button>
+        {!s.tutorial && <button className="btn btn-small" onClick={() => { close(); setMenu(true); }}>Menu</button>}
       </header>
 
       <div className="prep-body">
@@ -224,6 +227,16 @@ export function Prep({ s, set, onFight }: { s: RunState; set: Dispatch<SetStateA
       <HeroPanel s={s} set={set} sel={sel} tab={tab} setTab={setTab} onClose={close} picker={picker} setPicker={setPicker} fire={fire} />
 
       {chart.shown && <Matchups leaving={chart.leaving} onClose={() => { setCharts(false); fire("matchups_closed"); }} />}
+
+      {menu && (
+        <div className="scrim" onClick={() => setMenu(false)}>
+          <section className="modal modal-chart" role="dialog" aria-label="Menu" onClick={(e) => e.stopPropagation()}>
+            <header><h2>Abandon this run?</h2></header>
+            <p className="chart-note">Your company and progress are lost.</p>
+            <div className="menu-btns"><button className="btn" onClick={onTitle}>Abandon</button><button className="btn btn-primary" onClick={() => setMenu(false)} autoFocus>Keep playing</button></div>
+          </section>
+        </div>
+      )}
 
       {drag.ghost && <div className="ghost" style={{ left: drag.ghost.x, top: drag.ghost.y }}><Sprite cls={classOf(drag.ghost.id)} name={heroName(drag.ghost.id)} size={spriteSize} /></div>}
 

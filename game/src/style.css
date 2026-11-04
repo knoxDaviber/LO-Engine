@@ -407,3 +407,4 @@ button.unit:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px;
 .unit-card h3 { font: 700 16px/1.2 var(--display); color: var(--gold-hi); padding-right: 28px; }
 .unit-card p { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; color: var(--ink-soft); }
 .unit-card .hud-st { justify-content: flex-start; margin-top: 6px; gap: 3px; }
+.menu-btns { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }

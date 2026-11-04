@@ -129,6 +129,7 @@ function TacticsTab({ s, set, h, fire, picking, setPicking }: { s: RunState; set
   );
   return (
     <div className="panel-scroll">
+      <h4>Facing</h4>
       <ul className="facing" aria-label="Facing">
         {s.enemy!.heroes.map((e) => {
           const ec = pack.byId.characters.get(e.char_id)!;
