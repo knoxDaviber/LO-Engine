@@ -4,15 +4,15 @@ Scored 1-10 from real screenshots at 1280x720, as a strategy RPG player would (F
 
 Screenshot note: the browser pane barely advances CSS animations, so finish them first (`document.getAnimations()`, `finish()` on the finite ones) or the title menu and narrator look missing.
 
-| Category | P1 |
-|---|---|
-| Board readability | 6 |
-| Tactics setup | 6 |
-| Battle feedback | 6 |
-| Information access | 6 |
-| Menu flow | 7 |
-| Art direction | 7 |
-| Onboarding | 7 |
+| Category | P1 | P2 |
+|---|---|---|
+| Board readability | 6 | 8 |
+| Tactics setup | 6 | 6 |
+| Battle feedback | 6 | 8 |
+| Information access | 6 | 7 |
+| Menu flow | 7 | 7 |
+| Art direction | 7 | 9 |
+| Onboarding | 7 | 7 |
 
 ## Pass 1 (baseline, commit 236ae06)
 
@@ -23,3 +23,11 @@ Screenshot note: the browser pane barely advances CSS animations, so finish them
 - **Menu flow:** short and clear: title, reveal, prep, fight, result.
 - **Art direction:** strong title and reveal cards; the battle screen is the plainest of them, with an empty band at the bottom.
 - **Onboarding:** the narrator explains the goal well, not re-scored in depth this pass.
+
+## Pass 2 (battle screen pass plus the designer's painted art, tiles and music)
+
+- **Board readability (6 to 8):** units stand on terrain tiles and rows are clear. The top row still sits above the painted ground line, and the tiles are a stand-in until sprites can stand on the art.
+- **Battle feedback (6 to 8):** target rings, action caption and a skill tag that follows the unit.
+- **Information access (6 to 7):** the log no longer covers heroes. Still no unit inspection during battle.
+- **Art direction (7 to 9):** painted scenes per stage, matching tiles, music. Bright scenes need the dim overlay to keep text readable.
+- **Tactics setup, Menu flow, Onboarding:** no visible change, so no score change. The hero panel still hides the enemy side.

@@ -1,5 +1,6 @@
 import { Sprite } from "../../editor/src/Sprite";
 import { GAME_TITLE } from "./pack";
+import { MuteButton } from "./music";
 import { Backdrop, Screen, useScale } from "./ui";
 
 const MARCH = ["infantry", "lancer", "cavalry", "archer", "mage", "holy", "flyer", "assassin", "aquatic", "monster"];
@@ -9,8 +10,9 @@ export function Title({ onStart }: { onStart: (guided: boolean) => void }) {
   const [first, ...rest] = GAME_TITLE.split(" ");
   return (
     <Screen name="title">
-      <Backdrop scene="dusk" castle embers={34} />
+      <Backdrop scene="title" embers={34} />
       <div className="title-vignette" />
+      <MuteButton fixed />
       <div className="march" aria-hidden>
         <div className="march-line">
           {[...MARCH, ...MARCH].map((c, i) => <span className="marcher" key={i} style={{ animationDelay: `${-(i % 5) * 0.13}s` }}><Sprite cls={c} name={c} size={Math.round(112 * k)} /></span>)}

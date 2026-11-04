@@ -12,6 +12,8 @@ import { currentStep, tutorialEvent, tutorialHero, type TutEvent } from "../logi
 import { HeroPanel, type PanelTab } from "./HeroPanel";
 import { pack } from "./pack";
 import { Tutorial } from "./Tutorial";
+import { MuteButton } from "./music";
+import { tileStyle } from "./scenes";
 import { Backdrop, cap, Crest, fieldPos, Screen, useEsc, useExit, useScale, type Lane } from "./ui";
 
 interface Selected { id: string; enemy: boolean }
@@ -163,10 +165,11 @@ export function Prep({ s, set, onFight }: { s: RunState; set: Dispatch<SetStateA
 
   return (
     <Screen name="prep">
-      <Backdrop scene={stage.scene} embers={14} />
+      <Backdrop scene={stage.scene} embers={14} dim />
       <header className="topbar">
         <div className="stage-chip"><b>Battle {s.stage + 1}<small> of {STAGES.length}</small></b><span>{stage.name}</span></div>
         <div className="topbar-mid" />
+        <MuteButton />
         <button className="btn btn-small" data-tut="matchups" onClick={() => { setCharts(true); fire("matchups_opened"); }}>Matchups</button>
       </header>
 
@@ -193,7 +196,7 @@ export function Prep({ s, set, onFight }: { s: RunState; set: Dispatch<SetStateA
           <p className="bench-hint">{drop === "full" ? `Only ${pack.rules.draft.fielded} can fight. Swap someone out.` : s.pool.some((h) => !h.slot) ? "Drag a benched hero onto a fielded one to swap them." : "Drag heroes onto the field, or back here to bench them."}</p>
         </aside>
 
-        <section className="field" aria-label="Battlefield">
+        <section className="field" aria-label="Battlefield" style={tileStyle(stage.scene)}>
           <div className="field-ground" />
           <div className="side-tag mine">Your line</div>
           <div className="side-tag theirs">{stage.party}</div>

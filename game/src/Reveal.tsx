@@ -2,6 +2,7 @@ import { Sprite } from "../../editor/src/Sprite";
 import type { RunState } from "../logic/run";
 import { STAGES } from "../logic/stages";
 import { pack } from "./pack";
+import { MuteButton } from "./music";
 import { Backdrop, cap, Crest, Screen, useScale } from "./ui";
 
 export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => void; onReroll?: () => void }) {
@@ -12,6 +13,7 @@ export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => voi
   return (
     <Screen name="reveal">
       <Backdrop scene={stage.scene} />
+      <MuteButton fixed />
       <div className="reveal-col">
         <header className="reveal-head">
           <p className="kicker">{recruit ? "A hero joins your company" : "Fate deals your company"}</p>

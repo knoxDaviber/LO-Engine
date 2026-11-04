@@ -18,7 +18,7 @@ export interface Stage {
   flavour: string;
   time: "day" | "night";
   /** Backdrop key, read by the renderer. */
-  scene: "dawn" | "dusk" | "night";
+  scene: "plains" | "swamp" | "city" | "forest" | "mountains" | "lake" | "title";
   /** The first enemy leads; its squad is this soldier type. */
   squad: string;
   enemies: EnemySlot[];
@@ -27,17 +27,17 @@ export interface Stage {
 export const STAGES: Stage[] = [
   {
     name: "The Toll Road", party: "Hollow Crown Toll-men", flavour: "Two bored deserters and a handful of hired spears, charging coin for passage on a road they do not own.",
-    time: "day", scene: "dawn", squad: "soldier_003",
+    time: "day", scene: "plains", squad: "soldier_003",
     enemies: [{ wish: ["infantry", "lancer"], gear: "armed" }, { wish: ["archer", "assassin"], gear: "armed" }],
   },
   {
     name: "Saltmarsh Crossing", party: "The Reedwater Band", flavour: "They know every ford in the marsh, and they have seen you coming since noon.",
-    time: "day", scene: "dusk", squad: "soldier_011",
+    time: "day", scene: "swamp", squad: "soldier_011",
     enemies: [{ wish: ["aquatic", "lancer"], gear: "full" }, { wish: ["mage", "archer"], gear: "full" }, { wish: ["cavalry", "flyer"], gear: "armed" }],
   },
   {
     name: "The Ember Gate", party: "Wardens of the Ember Gate", flavour: "Old soldiers and their temple acolytes have held this pass through three wars. They will not move for you.",
-    time: "night", scene: "night", squad: "soldier_009",
+    time: "night", scene: "city", squad: "soldier_009",
     enemies: [{ wish: ["monster", "infantry"], gear: "armed" }, { wish: ["lancer", "cavalry"], gear: "armed" }, { wish: ["mage", "archer"], gear: "armed" }, { wish: ["assassin", "archer"], gear: "armed" }],
   },
 ];

@@ -7,6 +7,8 @@ import { STAGES } from "../logic/stages";
 import { captionsFor, CAPTIONS, fillText, tutorialContext } from "../logic/tutorial";
 import { pack } from "./pack";
 import { Narrator } from "./Tutorial";
+import { MuteButton } from "./music";
+import { tileStyle } from "./scenes";
 import { Backdrop, Crest, fieldPos, Pips, Screen, useScale, type Lane } from "./ui";
 
 const SPEEDS = [1, 2, 4];
@@ -139,7 +141,7 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
 
   return (
     <Screen name="battle">
-      <Backdrop scene={stage.scene} embers={10} />
+      <Backdrop scene={stage.scene} embers={10} dim />
       <div className="field-ground battle-ground" />
       <header className="battle-top">
         <div className="stage-chip"><b>Phase {beat?.phase ?? 1}</b><span>{stage.name}</span></div>
@@ -150,6 +152,7 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
           })}
         </ol>
         <div className="controls">
+          <MuteButton />
           <button className="btn btn-small" onClick={() => setPaused((p) => !p)} aria-pressed={paused}>{paused ? "Resume" : "Pause"}</button>
           <div className="seg" role="group" aria-label="Speed">
             {SPEEDS.map((v) => <button key={v} className={speed === v ? "on" : ""} aria-pressed={speed === v} onClick={() => setSpeed(v)}>{v}x</button>)}
@@ -158,7 +161,7 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
         </div>
       </header>
 
-      <section className="field battle-field" aria-label="Battle">
+      <section className="field battle-field" aria-label="Battle" style={tileStyle(stage.scene)}>
         {(["challenger", "defender"] as const).flatMap((side) => (["back", "front"] as Lane[]).flatMap((r) => [1, 2, 3].map((c) => {
           const pos = fieldPos(side, r, c);
           return <span key={`${side}${r}${c}`} className={`tile ground${side === "defender" ? " foe" : ""}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}><span className="tile-floor" /></span>;

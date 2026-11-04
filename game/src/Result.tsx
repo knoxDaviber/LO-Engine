@@ -3,6 +3,7 @@ import type { RunState } from "../logic/run";
 import { STAGES } from "../logic/stages";
 import { AFTER_WIN, fillText, tutorialContext } from "../logic/tutorial";
 import { GAME_TITLE, pack } from "./pack";
+import { MuteButton } from "./music";
 import { Backdrop, cap, Screen, useScale } from "./ui";
 
 export function Result({ s, onNext }: { s: RunState; onNext: () => void }) {
@@ -15,6 +16,7 @@ export function Result({ s, onNext }: { s: RunState; onNext: () => void }) {
   return (
     <Screen name="result">
       <Backdrop scene={stage.scene} embers={sum.won ? 30 : 10} />
+      <MuteButton fixed />
       <div className={`result-card ${sum.won ? "won" : "lost"}`}>
         <p className="kicker">{stage.name}</p>
         <h2 className="result-title">{sum.won ? "Victory" : "Defeat"}</h2>
@@ -46,7 +48,8 @@ export function Victory({ s, onTitle }: { s: RunState; onTitle: () => void }) {
   const k = useScale();
   return (
     <Screen name="victory">
-      <Backdrop scene="dawn" castle embers={40} />
+      <Backdrop scene="lake" embers={40} />
+      <MuteButton fixed />
       <div className="victory-col">
         <p className="kicker">{GAME_TITLE}</p>
         <h2 className="result-title">The Road Is Open</h2>
