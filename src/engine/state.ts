@@ -263,7 +263,7 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     const unit: Unit = {
       id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, race: ch.race, ...(ch.sub_race ? { subRace: ch.sub_race } : {}), ...(healPercent ? { healPercent } : {}), factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
-      baseStats, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
+      baseStats, equipFlat, equipment: worn, blessings, hp: h.start_hp_percent ? Math.max(1, Math.floor(maxHp * h.start_hp_percent / 100)) : maxHp, maxHp,
       pp: {
         active: { cur: ppActive, max: ppActive },
         passive: { cur: ppPassive, max: ppPassive },

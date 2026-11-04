@@ -438,3 +438,5 @@ button.unit:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px;
 .panel-factions > span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .emblem-faction_001 { --cc: #d9a441; } .emblem-faction_002 { --cc: #b8404a; } .emblem-faction_003 { --cc: #f3e08a; } .emblem-faction_004 { --cc: #6fbf6a; }
 .emblem-faction_005 { --cc: #8fa4d8; } .emblem-faction_006 { --cc: #f08a3c; } .emblem-faction_007 { --cc: #4fb8c4; }
+.wound { width: 100%; margin-top: 2px; }
+.nameplate .wound { position: absolute; left: 6px; right: 6px; bottom: -5px; margin: 0; height: 5px; }

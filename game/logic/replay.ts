@@ -106,9 +106,10 @@ export function buildReplay(events: BattleEvent[]): Replay {
   const skillName = new Map(setup.skills.map((s) => [s.id, s.name]));
   skillName.set("soldier_basic_attack", "Squad attack");
   const statusName = new Map(setup.statuses.map((s) => [s.id, s.name]));
+  const setupHp = new Map(setup.units.map((u) => [u.id, u.hp]));
   const leaders = new Set(setup.units.filter((u) => u.leader).map((u) => u.id));
   const snaps = new Map<string, UnitSnap>(units.map((u) => [u.id, {
-    id: u.id, hp: u.maxHp, maxHp: u.maxHp, alive: true, ppActive: u.ppActive, ppPassive: u.ppPassive, soldiers: u.soldiers, leader: leaders.has(u.id), statuses: [],
+    id: u.id, hp: setupHp.get(u.id) ?? u.maxHp, maxHp: u.maxHp, alive: true, ppActive: u.ppActive, ppPassive: u.ppPassive, soldiers: u.soldiers, leader: leaders.has(u.id), statuses: [],
   }]));
   const due = new Map<string, number>();
   const totals: Replay["totals"] = Object.fromEntries(units.map((u) => [u.id, { damage: 0, healing: 0 }]));

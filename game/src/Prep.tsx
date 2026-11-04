@@ -63,6 +63,9 @@ function SquadBlock({ side, s, size }: { side: "challenger" | "defender"; s: Bat
   );
 }
 
+/** Rogue: a hero's HP left going into the fight. */
+const Wound = ({ pct }: { pct: number }) => <div className={`hp wound${pct < 30 ? " low" : ""}`} role="img" aria-label={`${pct}% HP`}><i className="hp-fill" style={{ width: `${pct}%` }} /></div>;
+
 export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<SetStateAction<RunState>>; onFight: (s: RunState) => void; onTitle: () => void }) {
   const k = useScale();
   const stage = stagesOf(s)[s.stage]!;
@@ -125,7 +128,7 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
   };
 
   const blocker = fightBlocker(pack, s);
-  const mine: BattleSide = { heroes: fieldedEntries(s.pool), leader: s.leader ?? "" };
+  const mine: BattleSide = { heroes: fieldedEntries(s.pool, s.wounds), leader: s.leader ?? "" };
   const spriteSize = Math.round(112 * k);
 
   const tile = (row: Row, column: number) => {
@@ -144,7 +147,7 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
         {id && (
           <span className={`tile-hero${drag.ghost?.id === id ? " lifted" : ""}`}>
             <Sprite cls={classOf(id)} name={heroName(id)} size={spriteSize} />
-            <span className="nameplate">{id === s.leader && <em className="crown" data-tut="leader" title="Party leader" />}<Crest cls={classOf(id)} />{heroName(id)}</span>
+            <span className="nameplate">{id === s.leader && <em className="crown" data-tut="leader" title="Party leader" />}<Crest cls={classOf(id)} />{heroName(id)}{s.wounds[id] && <Wound pct={s.wounds[id]!} />}</span>
           </span>
         )}
       </button>
@@ -187,7 +190,7 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
                 <li key={id} className={`bench-card${out ? " benched" : ""}${sel?.id === id ? " picked" : ""}`}>
                   <button className="bench-main" onPointerDown={(e) => drag.start(e, id)} onClick={() => { if (!drag.wasDrag()) open({ id, enemy: false }); }} data-tut={out && id === firstHero ? "hero-first" : undefined} aria-label={`${heroName(id)} sheet`}>
                     <span className="bench-face"><Sprite cls={classOf(id)} name={heroName(id)} size={Math.round(68 * k)} /></span>
-                    <span className="bench-text"><b>{heroName(id)}</b><small><Crest cls={classOf(id)} size={15} />{cap(classOf(id))}{lead ? " · Leader" : ""}</small></span>
+                    <span className="bench-text"><b>{heroName(id)}</b>{s.wounds[id] && <Wound pct={s.wounds[id]!} />}<small><Crest cls={classOf(id)} size={15} />{cap(classOf(id))}{lead ? " · Leader" : ""}</small></span>
                   </button>
                   <button className={`bench-toggle${out ? "" : " on"}`} aria-pressed={!out} disabled={(out && fieldedN >= pack.rules.draft.fielded) || lastGuard(id)}
                     title={out ? "Field this hero" : "Send to the bench"} aria-label={out ? `Field ${heroName(id)}` : `Bench ${heroName(id)}`}

@@ -424,3 +424,30 @@ test("content: every character belongs to at least 2 known factions", () => {
     assert.ok(new Set(c.factions).size >= 2 && c.factions.every((f) => pack.byId.factions.has(f)), c.name);
   }
 });
+
+/** A rogue fight whose last beat leaves each given hero at that HP percent (rounded down from max). */
+function woundedFight(seed: number, hurt: Record<string, number>, setup = (r: RunState) => r): RunState {
+  const s = rogueFought(seed, () => [], true, 0, setup);
+  const beats = s.fought!.replay.beats.map((b, i, all) => (i < all.length - 1 ? b : { ...b, units: b.units.map((u) => (hurt[u.id] ? { ...u, hp: Math.floor((u.maxHp * hurt[u.id]!) / 100) } : u)) }));
+  return { ...s, fought: { ...s.fought!, replay: { ...s.fought!.replay, beats } } };
+}
+
+test("rogue wounds: a hurt survivor starts the next battle hurt, a benched one keeps its wound, a recruit and a tutorial run have none", () => {
+  const base = startRun(pack, 8, false, "rogue");
+  const [a, b] = poolIds(base) as [string, string];
+  const benched = moveTo(pack, base, b, null);
+  const s = woundedFight(8, { [a]: 50 }, () => benched);
+  const next = afterResult(pack, s);
+  assert.ok(next.wounds[a]! >= 50 && next.wounds[a]! < 100);
+  assert.equal(next.wounds[b], undefined);
+  assert.equal(afterResult(pack, { ...s, wounds: { [b]: 30 } }).wounds[b], 30);
+  const joined = pickRecruit(pack, next, next.offers[0]!);
+  assert.equal(joined.wounds[next.offers[0]!], undefined);
+  const hurt = fight(pack, joined);
+  const first = hurt.fought!.result.events.find((e) => e.type === "battle_setup")!;
+  const u = first.type === "battle_setup" ? first.units.find((x) => x.id === a)! : null;
+  assert.equal(u!.hp, Math.max(1, Math.floor((u!.max_hp * next.wounds[a]!) / 100)));
+  assert.equal(hurt.fought!.replay.beats[0]!.units.find((x) => x.id === a)!.hp <= u!.hp, true);
+  const t = afterResult(pack, fight(pack, toPrep(pack, startRun(pack, 8, false))));
+  assert.deepEqual(t.wounds, {});
+});

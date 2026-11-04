@@ -68,6 +68,8 @@ export const rosterHeroSchema = z.strictObject({
   // Slot inside the hero row, 1..rules.board.columns (range checked by the validator, E_BATTLE_SLOT). Omitted = auto: fills the lowest free
   // column of its row in roster order. Two heroes on the same (row, column) are E_BATTLE_SLOT. Decision 129.
   column: z.number().int().min(1).optional(),
+  // Battle start only: share of max HP the hero begins with (Rogue Mode wounds). Later phases carry real HP. Omitted = full.
+  start_hp_percent: z.number().int().min(1).max(100).optional(),
 });
 export type RosterHero = z.infer<typeof rosterHeroSchema>;
 

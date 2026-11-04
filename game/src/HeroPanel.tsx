@@ -52,14 +52,14 @@ function SkillRow({ sk }: { sk: Skill }) {
   );
 }
 
-function Overview({ h, leaderView }: { h: RosterHero; leaderView: boolean }) {
+function Overview({ h, leaderView, wound }: { h: RosterHero; leaderView: boolean; wound?: number }) {
   const ch = pack.byId.characters.get(h.char_id)!;
   const st = heroStats(h);
   const skills = ch.skills.map((id) => pack.byId.skills.get(id)!);
   return (
     <div className="panel-scroll">
       <dl className="stats">
-        {STATS.map((k) => <div key={k} className="tip" data-tip={STAT_TIPS[k]}><dt>{k}</dt><dd>{st[k]}</dd></div>)}
+        {STATS.map((k) => <div key={k} className="tip" data-tip={STAT_TIPS[k]}><dt>{k}</dt><dd>{k === "HP" && wound ? `${st.HP} (${wound}%)` : st[k]}</dd></div>)}
       </dl>
       <h4>Gear</h4>
       <ul className="gear">
@@ -227,7 +227,7 @@ export function HeroPanel({ s, set, sel, tab, setTab, onClose, setPicker, fire }
             <button role="tab" aria-selected={activeTab === "tactics"} className={activeTab === "tactics" ? "on" : ""} data-tut="tab-tactics" onClick={() => { setTab("tactics"); fire("tactics_opened"); }}>Tactics</button>
           </div>
         )}
-        {activeTab === "overview" ? <Overview h={entry} leaderView={isLeader || own} /> : <TacticsTab s={s} set={set} h={entry} fire={fire} picking={picking} setPicking={setPicking} />}
+        {activeTab === "overview" ? <Overview h={entry} leaderView={isLeader || own} wound={own ? s.wounds[entry.char_id] : undefined} /> : <TacticsTab s={s} set={set} h={entry} fire={fire} picking={picking} setPicking={setPicking} />}
       </aside>
       {pickerExit.shown && t && skillOf && (
         <Picker

@@ -165,8 +165,8 @@ export function freeSlot(pack: Pack, pool: PoolHero[], id: string): Slot | null 
 }
 
 /** The fielded heroes as battle entries, pinned to their slots. */
-export const fieldedEntries = (pool: PoolHero[]): RosterHero[] =>
-  pool.filter((h) => h.slot).map((h) => ({ ...h.entry, preferred_row: h.slot!.row, column: h.slot!.column }));
+export const fieldedEntries = (pool: PoolHero[], wounds: Record<string, number> = {}): RosterHero[] =>
+  pool.filter((h) => h.slot).map((h) => ({ ...h.entry, preferred_row: h.slot!.row, column: h.slot!.column, ...(wounds[h.entry.char_id] ? { start_hp_percent: wounds[h.entry.char_id] } : {}) }));
 
 // ------------------------------------------------------------------ tactic sheet edits
 const renumber = (sheet: Tactic[]): Tactic[] => sheet.map((t, i) => ({ ...t, priority: i + 1 }));

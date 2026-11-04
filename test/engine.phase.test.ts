@@ -212,3 +212,14 @@ test("same seed reproduces the same battle", () => {
   const a = setup(false), b = setup(false);
   assert.equal(JSON.stringify(runBattle(a.pack, a.battle)), JSON.stringify(runBattle(b.pack, b.battle)));
 });
+
+test("start_hp_percent sets the opening HP only: phase 2 carries the real HP", () => {
+  const { pack, battle } = setup(false);
+  sheetOf(battle, LEON).start_hp_percent = 40;
+  const { state } = beginPhase(pack, battle, 1, null, new EventLog());
+  const leon = state.units.find((u) => u.id === LEON)!;
+  assert.equal(leon.hp, Math.max(1, Math.floor((leon.maxHp * 40) / 100)));
+  assert.ok(state.units.filter((u) => u.id !== LEON && u.kind === "hero").every((u) => u.hp === u.maxHp));
+  leon.hp = 1;
+  assert.equal(beginPhase(pack, battle, 2, state, new EventLog()).state.units.find((u) => u.id === LEON)!.hp, 1);
+});

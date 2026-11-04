@@ -26,6 +26,8 @@ export interface RunState {
   leader: string | null;
   /** Rogue mode: heroes lost for good, in order of death. */
   fallen: string[];
+  /** Rogue mode: hero id to HP percent left going into the next battle; absent means full. Squads refill, only hero HP carries. */
+  wounds: Record<string, number>;
   /** Rogue: the two heroes the player picks one recruit from, after a win. */
   offers: string[];
   stage: number;
@@ -38,7 +40,7 @@ export interface RunState {
 }
 
 export const titleState = (): RunState => ({
-  screen: "title", mode: "tutorial", fallen: [], offers: [], seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
+  screen: "title", mode: "tutorial", fallen: [], wounds: {}, offers: [], seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
 });
 
 export function startRun(pack: Pack, seed: number, guided: boolean, mode: Mode = "tutorial"): RunState {
@@ -90,7 +92,7 @@ export function fightBlocker(pack: Pack, s: RunState): string | null {
 
 export function fight(pack: Pack, s: RunState): RunState {
   if (fightBlocker(pack, s)) return s;
-  const battle = buildBattle(pack, { seed: s.seed, stage: s.stage, attempt: s.attempt, pool: s.pool, leader: s.leader!, enemy: s.enemy!, mode: s.mode });
+  const battle = buildBattle(pack, { seed: s.seed, stage: s.stage, attempt: s.attempt, pool: s.pool, leader: s.leader!, enemy: s.enemy!, mode: s.mode, wounds: s.wounds });
   const result = runBattle(pack, battle);
   const replay = buildReplay(result.events);
   return { ...s, screen: "fight", fought: { result, replay, summary: summarize(replay) } };
@@ -112,7 +114,15 @@ function afterRogue(pack: Pack, s: RunState): RunState {
   const dead = fellInBattle(s);
   const pool = s.pool.filter((h) => !dead.includes(h.entry.char_id));
   const lined = pool.some((h) => h.slot) ? pool : autoField(pack, pool); // only the bench survived: field them
-  const base = withLeader({ ...s, pool: lined, fallen: [...s.fallen, ...dead], fought: null }, lined);
+  const last = s.fought!.replay.beats.at(-1)?.units ?? [];
+  const wounds = { ...s.wounds }; // fielded survivors take their last HP (rounded up, so never 0); the bench and the recruits keep theirs
+  for (const id of dead) delete wounds[id];
+  for (const u of last) {
+    if (!u.alive || !pool.some((h) => h.entry.char_id === u.id)) continue;
+    const pct = Math.ceil((u.hp * 100) / u.maxHp);
+    if (pct >= 100) delete wounds[u.id]; else wounds[u.id] = pct;
+  }
+  const base = withLeader({ ...s, pool: lined, fallen: [...s.fallen, ...dead], wounds, fought: null }, lined);
   if (pool.length === 0) return titleState();
   if (!s.fought!.summary.won) return toPrep(pack, { ...base, attempt: s.attempt + 1 });
   if (s.stage + 1 >= stagesOf(s).length) return { ...base, screen: "victory" };
