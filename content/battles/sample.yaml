@@ -1,4 +1,4 @@
-# Sample battle: 2v2 heroes, no equipment. Only each leader's squad (soldier_001, Heavy Infantry, default front soldier row) is deployed.
+# Sample battle: 2v2 heroes in plain shop gear (no signature items, so balance reads stay clean). Only each leader's squad (soldier_001, Heavy Infantry, default front soldier row) is deployed.
 battle_id: sample_2v2
 version: "1"
 seeds: [101, 202, 303]   # one per phase
@@ -8,7 +8,7 @@ challenger:
   heroes:
     - char_id: char_001   # Leon
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_010, armor: equip_018, accessory_1: equip_008, accessory_2: equip_023 }   # spear, plate, gloves, boots
       tactic_sheet:
         - priority: 1
           skill_id: skl_cav_active_002   # Thousand Azure Hooves
@@ -22,7 +22,7 @@ challenger:
           sub: null
     - char_id: char_004   # Lief
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_010, armor: equip_017, accessory_1: equip_008, accessory_2: equip_027 }   # spear, leather, gloves, belt
       tactic_sheet:
         - priority: 1
           skill_id: skl_lancer_active_002   # Defensive Strike
@@ -40,7 +40,7 @@ defender:
   heroes:
     - char_id: char_002   # The Emperor
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_024, accessory_2: equip_027 }   # sword, plate, bracelet, belt
       tactic_sheet:
         - priority: 1
           skill_id: skl_inf_active_002   # Dark Dragon's Dirge
@@ -54,7 +54,7 @@ defender:
           sub: null
     - char_id: char_003   # Jasmine
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_011, armor: equip_019, accessory_1: equip_021, accessory_2: equip_022 }   # staff, robe, amulet, charm
       tactic_sheet:
         - priority: 1
           skill_id: skl_heal_active_001   # Last Chance

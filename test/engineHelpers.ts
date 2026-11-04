@@ -21,7 +21,13 @@ export function loadReal(opts: { squads?: boolean; auras?: boolean; damage?: boo
   if (!opts.squads) for (const st of pack.byId.soldiers.values()) { st.count = 0; st.mounted = true; }
   if (!opts.damage) Object.assign(pack.rules.damage, { formula: "subtract", hero_hits: 1 });
   const raw = (loadPack("content").battles ?? []).find((b) => b.name === "sample.yaml")!.data;
-  return { pack, battle: battleSchema.parse(raw) };
+  return { pack, battle: stripGear(battleSchema.parse(raw)) };
+}
+
+/** Engine tests pin exact numbers on bare heroes; the content battles are geared for balance runs. */
+export function stripGear(battle: Battle): Battle {
+  for (const side of [battle.challenger, battle.defender]) for (const h of side.heroes ?? []) h.equipment = { weapon: null, armor: null, accessory_1: null, accessory_2: null };
+  return battle;
 }
 
 /** Fresh sample 2v2 state (full HP/PP, phase 1). */

@@ -51,7 +51,10 @@ progress in `docs/roadmap.md`.
      on the squad. full4v4 swapped: the Leon team wins 12% by wipe on either side.
    **Correction (designer 2026-11-04):** always assume heroes have weapons and gear. The sample / full4v4 wall above comes
    from their bare heroes, so it is not a finding yet.
-1a. **Next: gear up `sample` and `full4v4`,** rerun the batch, and only then judge squad DEF and skill multipliers.
+1a. **Done 2026-11-04: `sample` and `full4v4` geared** (plain shop gear, no signature items; `stripGear` in `test/engineHelpers.ts`
+   keeps engine tests on bare heroes). 100 runs: the wall is gone. sample 100% challenger by wipe, full4v4 94%, 0% timeouts
+   (bare: sample 98% timeouts). No squad DEF change needed at `hero_hits` 4; at `hero_hits` 1 timeouts return (80-89%).
+   Both matchups are lopsided (the defender side's Jasmine only heals), so they say nothing about skill multipliers yet.
 1b. **Timeout tiebreak (Decision 139, not built):** a phase-3 timeout goes to the higher remaining HP% over the whole side
    (heroes and soldiers together), exact tie to the defender. Replaces the rule in `runBattle` (`src/engine/phase.ts`); update the batch
    report, which assumes timeout = defender.

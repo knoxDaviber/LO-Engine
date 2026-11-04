@@ -9,7 +9,7 @@ import {
 import { battleSchema, type Battle } from "../src/schema";
 import { loadPack } from "../src/load";
 import type { Pack } from "../src/validate/pack";
-import { EMPEROR, JASMINE, LEON, LIEF, loadReal } from "./engineHelpers";
+import { EMPEROR, JASMINE, LEON, LIEF, loadReal, stripGear } from "./engineHelpers";
 
 const KILL: DamageBreakdown = { landed: true, scaled: 0, matchup: 1, power: 0, defense: 0, base: 1e9, crit: false, guard: false, guardFactor: 1, amount: 1e9 };
 const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
@@ -18,7 +18,7 @@ const chr = (p: Pack, id: string) => p.byId.characters.get(id) as any;
 /** The real sample (Leon+Lief vs Emperor+Jasmine, leaders Leon and Emperor) or full4v4.yaml (Leon+Emperor vs Jasmine+Lief, leaders Leon and Jasmine), auras on. */
 function setup(opts: { file?: string; over?: (pack: Pack, battle: Battle) => void } = {}) {
   const { pack, battle: sample } = loadReal({ squads: true, auras: true });
-  const battle = opts.file ? battleSchema.parse((loadPack("content").battles ?? []).find((b) => b.name === opts.file)!.data) : structuredClone(sample);
+  const battle = opts.file ? stripGear(battleSchema.parse((loadPack("content").battles ?? []).find((b) => b.name === opts.file)!.data)) : structuredClone(sample);
   opts.over?.(pack, battle);
   const log = new EventLog();
   const p = beginPhase(pack, battle, 1, null, log);

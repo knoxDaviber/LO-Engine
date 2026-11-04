@@ -11,13 +11,13 @@ challenger:
   heroes:
     - char_id: char_001   # Leon, leader
       squad_id: soldier_002
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_010, armor: equip_018, accessory_1: equip_008, accessory_2: equip_023 }   # spear, plate, gloves, boots
       tactic_sheet:
         - { priority: 1, skill_id: skl_cav_active_002, enabled: true, main: null, sub: null }
         - { priority: 2, skill_id: skl_cav_active_001, enabled: true, main: null, sub: null }
     - char_id: char_002   # The Emperor
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_024, accessory_2: equip_027 }   # sword, plate, bracelet, belt
       tactic_sheet:
         - { priority: 1, skill_id: skl_inf_active_002, enabled: true, main: null, sub: null }
         - { priority: 2, skill_id: skl_inf_active_001, enabled: true, main: null, sub: null }
@@ -27,7 +27,7 @@ defender:
   heroes:
     - char_id: char_003   # Jasmine, leader
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_011, armor: equip_019, accessory_1: equip_021, accessory_2: equip_022 }   # staff, robe, amulet, charm
       tactic_sheet:
         - priority: 1
           skill_id: skl_heal_active_001
@@ -36,7 +36,7 @@ defender:
           sub: { select: lowest, metric: hp_percent }
     - char_id: char_004   # Lief
       squad_id: soldier_001
-      equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
+      equipment: { weapon: equip_010, armor: equip_017, accessory_1: equip_008, accessory_2: equip_027 }   # spear, leather, gloves, belt
       tactic_sheet:
         - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, main: null, sub: null }
         - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, main: null, sub: null }
