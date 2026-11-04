@@ -34,14 +34,11 @@ Passive stays at 3 because a tank needs its reactions; it pays in speed instead.
 ## Stacking
 
 - PP adds up, then caps at `rules.pp.max`. Two Reckless Gauntlets give Active 4 (not 5) and Passive 1.
-- Type base stats add. Percent lines do not: Section 9.1 keeps only the strongest equipment line per stat, so two Gauntlets give ATK +15% and DEF -20%, once.
+- Type base stats add. Percent lines on PP gear add too (designer 2026-11-04), as an exception to Section 9.1's strongest-wins: two Gauntlets give ATK +30% and DEF / MDEF -40%, and Dragon Scale plus Leaden Boots give SPD -70%. Other gear keeps 9.1.
 
 ## Build
 
 - `pp_modifiers` and `modify_stat` percent lines cover everything except Bloodpact Ring.
 - **Bloodpact Ring needs one engine change:** `state.ts` counts only blessing HP percent lines towards Max HP, so a gear line must be added there. Without it the item has no HP penalty.
+- **Stacked percent lines need one engine change:** `stats.ts` keeps only the strongest equipment line per stat, so PP gear lines must be marked to add.
 - PP pricing lands in item 5: `heroCost` ignores `pp_modifiers` today. Add `rules.cost.pp_weights` (Active above Passive), each point above any stat line.
-
-## Open question
-
-Should percent lines from stacked PP gear add up, as an exception to Section 9.1? This draft keeps 9.1, so stacking two items adds PP changes but not the percent stats.
