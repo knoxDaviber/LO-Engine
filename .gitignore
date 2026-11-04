@@ -2,4 +2,3 @@ node_modules
 art/raw/
 editor/dist/
 game/dist/
-game/music/*.wav

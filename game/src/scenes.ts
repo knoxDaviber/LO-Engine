@@ -21,7 +21,7 @@ export const trackUrl = (name: string): string | undefined => Object.entries(fil
 export const SCENES: Record<Scene, { bg: string; tile: string; music: string }> = {
   plains: { bg: plains, tile: grass, music: "plains" },
   swamp: { bg: swamp, tile: wood, music: "swamp" },
-  city: { bg: city, tile: stone, music: "city" },
+  city: { bg: city, tile: stone, music: "city2" },
   forest: { bg: forest, tile: grass, music: "forest" },
   mountains: { bg: mountains, tile: snow, music: "mountain" },
   lake: { bg: lake, tile: wood, music: "plains" },
