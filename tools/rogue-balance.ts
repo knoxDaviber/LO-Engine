@@ -1,15 +1,38 @@
 // Rogue balance (game/logic): seeded full runs with the automatic line-up and default tactics, through the real run functions.
 // Per wave: how many runs reached it, win % over its battles (retries included), and average heroes alive when it starts.
 //   npx tsx tools/rogue-balance.ts [--runs=N] [--seed=S]
+// --late skips the runs and fights each designed team directly, as the auto line-up rarely gets there: the 4 best of 6 rolled heroes, fully geared, full HP, default tactics.
 import { readContentTexts } from "../src/load";
 import { bootPack } from "../game/logic/content";
-import { autoField, pickLeader } from "../game/logic/party";
+import { runBattle } from "../src/engine";
+import { buildBattle } from "../game/logic/battle";
+import { autoField, mix, pickLeader, poolHero, rollOrder } from "../game/logic/party";
 import { afterResult, companyLeft, fight, pickRecruit, startRun, toPrep, type RunState } from "../game/logic/run";
-import { ROGUE_STAGES, rogueEnemyCount } from "../game/logic/stages";
+import { resolveEnemies, ROGUE_STAGES, rogueEnemyCount } from "../game/logic/stages";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split("=")[1];
 const RUNS = Number(arg("runs") ?? 100), SEED = Number(arg("seed") ?? 1), MAX_ATTEMPTS = 20;
 const pack = bootPack(readContentTexts("content"));
+
+if (process.argv.includes("--late")) {
+  // Heroes by measured worth, from a one-off trial of every 4-hero line-up against an early draft of these teams. The top 4 of the 6 rolled are fielded, whatever their rows.
+  // Leon leads when he is fielded with his Emperor; otherwise the first fielded front-liner.
+  const BEST = ["char_002", "char_001", "char_003", "char_004", "char_017", "char_020", "char_018", "char_016", "char_015", "char_019"];
+  console.table(ROGUE_STAGES.flatMap((st, w) => {
+    if (!st.team) return [];
+    let wins = 0, timeouts = 0;
+    for (let i = 0; i < RUNS; i++) {
+      const seed = mix(SEED, i), ids = rollOrder(pack, seed).slice(0, 6).sort((a, b) => BEST.indexOf(a) - BEST.indexOf(b)).slice(0, 4);
+      const pool = autoField(pack, ids.map((id) => poolHero(pack, id)));
+      const battle = buildBattle(pack, { seed, stage: w, attempt: 0, pool, leader: ids.includes("char_001") && ids.includes("char_002") ? "char_001" : pickLeader(pool)!, enemy: resolveEnemies(pack, seed, w, ids, "rogue"), mode: "rogue" });
+      const r = runBattle(pack, battle);
+      if (r.winner === "challenger") wins++;
+      if (r.reason === "phase3_timeout") timeouts++;
+    }
+    return [{ wave: w + 1, team: st.party, leader: pack.byId.characters.get(st.team[0]!.hero)!.name, "win %": ((wins / RUNS) * 100).toFixed(0), "timeout %": ((timeouts / RUNS) * 100).toFixed(0) }];
+  }));
+  process.exit(0);
+}
 
 const n = ROGUE_STAGES.length;
 const reached = Array(n).fill(0), fights = Array(n).fill(0), wins = Array(n).fill(0), alive = Array(n).fill(0);

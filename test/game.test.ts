@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { readContentTexts } from "../src/load";
-import { beginPhase, MAX_PHASES, preBattleState, runBattle, runPhase, setupEvent, timeoutWinner, type BattleEvent, type BattleState } from "../src/engine";
+import { beginPhase, effectiveStat, MAX_PHASES, preBattleState, runBattle, runPhase, setupEvent, timeoutWinner, type BattleEvent, type BattleState } from "../src/engine";
 import type { Battle } from "../src/schema";
 import { Collector } from "../src/types";
 import { validateBattle } from "../src/validate/battle";
@@ -17,6 +17,7 @@ import { resolveEnemies, rogueEnemyCount, ROGUE_STAGES, STAGES } from "../game/l
 import { captionsFor, CAPTIONS, fillText, PREP_STEPS, tutorialContext, tutorialEvent, tutorialHero, startTutorial } from "../game/logic/tutorial";
 
 const pack = bootPack(readContentTexts("content"));
+const FIRST_TEAM_WAVE = 14; // zero-based: wave 15
 const SEEDS = Array.from({ length: 40 }, (_, i) => 1000 + i * 7);
 const errors = (battle: unknown) => {
   const c = new Collector();
@@ -265,16 +266,53 @@ function rogueFought(seed: number, dead: (pool: string[]) => string[], won: bool
   return { ...s, fought: { ...f, replay: { ...f.replay, beats }, summary: { ...f.summary, won } } };
 }
 
-test("rogue: 20 stages, enemy counts by wave, generics only, rogue battle id", () => {
+test("rogue: 20 stages, enemy counts by wave, generics up to wave 14, rogue battle id", () => {
   assert.equal(ROGUE_STAGES.length, 20);
   assert.deepEqual([0, 1, 2, 3, 4, 6, 7, 9, 10, 19].map(rogueEnemyCount), [2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
   const s = toPrep(pack, startRun(pack, 3, false, "rogue"));
   for (let i = 0; i < ROGUE_STAGES.length; i++) {
     const e = resolveEnemies(pack, 3, i, poolIds(s), "rogue");
     assert.equal(e.heroes.length, rogueEnemyCount(i));
-    assert.ok(e.heroes.every((h) => isGeneric(pack.byId.characters.get(h.char_id)!)));
+    if (i < FIRST_TEAM_WAVE) assert.ok(e.heroes.every((h) => isGeneric(pack.byId.characters.get(h.char_id)!)));
   }
   assert.equal(buildBattle(pack, { seed: 3, stage: 4, attempt: 0, pool: s.pool, leader: s.leader!, enemy: s.enemy!, mode: "rogue" }).battle_id, "rogue_5");
+});
+
+test("rogue: waves 15+ field six different named heroes, all copies, and validate on every seed", () => {
+  const late = ROGUE_STAGES.slice(FIRST_TEAM_WAVE);
+  assert.equal(late.length, 6);
+  assert.ok(ROGUE_STAGES.slice(0, FIRST_TEAM_WAVE).every((st) => !st.team));
+  for (const seed of SEEDS) {
+    const s = toPrep(pack, startRun(pack, seed, false, "rogue"));
+    late.forEach((_, i) => {
+      const stage = FIRST_TEAM_WAVE + i, e = resolveEnemies(pack, seed, stage, poolIds(s), "rogue"), chars = e.heroes.map((h) => pack.byId.characters.get(h.char_id)!);
+      assert.equal(chars.length, 6);
+      assert.equal(new Set(chars.map((c) => c.name)).size, 6);
+      assert.ok(chars.every((c) => isCopy(c) && !isGeneric(c)));
+      buildBattle(pack, { seed, stage, attempt: 0, pool: s.pool, leader: s.leader!, enemy: e, mode: "rogue" });
+    });
+  }
+});
+
+test("enemy copies keep hero-ID synergies: the enemy Leon's aura works with the enemy Emperor", () => {
+  const leon = pack.byId.characters.get("char_001_c1")!;
+  assert.ok(JSON.stringify(leon.leader_aura).includes('"char_002_c1"') && !JSON.stringify(leon.leader_aura).includes('"char_002"'));
+  const stage = ROGUE_STAGES.findIndex((st) => st.team?.[0]?.hero === "char_001" && st.team.some((t) => t.hero === "char_002"));
+  const s = toPrep(pack, startRun(pack, 5, false, "rogue"));
+  const enemy = resolveEnemies(pack, 5, stage, poolIds(s), "rogue");
+  const def = (side: typeof enemy, id: string) => {
+    const state = preBattleState(pack, buildBattle(pack, { seed: 5, stage, attempt: 0, pool: s.pool, leader: s.leader!, enemy: side, mode: "rogue" }));
+    return effectiveStat(state.units.find((u) => u.id === id)!, "DEF", pack);
+  };
+  const without = (id: string, leader: string) => ({ leader, heroes: enemy.heroes.filter((h) => h.char_id !== id) });
+  const other = enemy.heroes.find((h) => !["char_001_c1", "char_002_c1"].includes(h.char_id))!.char_id;
+  assert.ok(def(enemy, "char_001_c1") > def(without("char_002_c1", "char_001_c1"), "char_001_c1"));
+  assert.ok(def(enemy, "char_002_c1") > def(without("char_001_c1", other), "char_002_c1"));
+});
+
+test("skills, statuses and gear never name a hero: copies share them and could not honour it", () => {
+  const leaf = /"(hero_is|party_has_hero)"/;
+  for (const list of [pack.skills, pack.statuses, pack.equipment, pack.soldiers]) assert.ok(!leaf.test(JSON.stringify(list)));
 });
 
 test("rogue: enemies can repeat a class, ids stay unique and every wave validates", () => {
