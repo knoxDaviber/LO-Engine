@@ -247,7 +247,7 @@ The challenger may adjust between phases. [DEFAULT scope]:
 
 ## 7. PP [DECIDED]
 
-- Active PP base 3, Passive PP base 3 [DECIDED for now, Decision 140]; max 4 with equipment [DECIDED]. Dragon Scale (+1 Active PP) is a valid test.
+- Active PP base 3, Passive PP base 3 [DECIDED for now, Decision 140]; max 4 with equipment [DECIDED]. PP gear shifts PP at a harsh stat cost (Decision 147); PP never goes below 0.
 - Separate pools. Active skills spend Active, passives spend Passive.
 - PP is spent per use (a 1-PP skill can be used twice at 2 PP).
 - **Passives spend PP when their condition triggers them, and the passive then becomes *used*** [DECIDED]. If there is not enough Passive PP when the condition is met, the passive does not fire (logged).
@@ -305,6 +305,7 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 - **Unique statuses stack** [DECIDED]: a status flagged `unique` (Berserk, Dark Dragon's Ire) is exempt from the same-category strongest-wins rule and multiplies with everything. Unique is authored per status; it is usually, not always, set.
 - A status that several skills apply is the same status id, but each application carries its applier's category (Defense Down from Hegemony is passive, from Dark Dragon's Dirge it is active), so a passive-applied and an active-applied copy coexist and multiply. Reapplying within one category refreshes it.
 - **Duplicate accessories are allowed** [DECIDED]: flat stat lines add (two Spiky Gloves = ATK +24), but identical effects from the same category do not stack.
+- **PP gear stacks** [DECIDED, Decision 147]: equipment lines flagged `stacks` add up per stat and sign, across items, and the sum competes as one line against other equipment lines. Unconditional gear HP percent lines change Max HP.
 - A skill or effect can opt out with an explicit `stacks_with` / `stackable` flag ("unless mentioned otherwise").
 - [DEFAULT] The suppressed weaker effect is not deleted. It resumes if the stronger one expires or is removed.
 - [DEFAULT] "Strongest wins" is evaluated per stat, so a skill that buffs ATK and DEF is not cancelled in full by a bigger ATK-only buff.
@@ -611,6 +612,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 144 | Quick Guard counts as GUARD | DECIDED (built) | A hit that ignores GUARD (a damage effect's `ignores_guard`, a skill's guard `ignores`, or a blessing `ignore_guard` such as Rush ATK) bypasses Quick Guard's reduction. Quick Guard may still trigger, spend its Passive PP and be logged; it reduces nothing against that hit and is not consumed by it. Other `reduce_damage` effects (Plate, Sidestep) are not GUARD and still apply. Flagged by `counts_as_guard` on the effect |
 | 145 | Skills are used only through a condition | DECIDED (built) | Revises 136. A skill alone does nothing: every active skill ships a default Main (`default_main`, a leaf or a selector; `always` is a check that never skips) shown in the tactic's Main slot. Effective Main = the tactic's Main, else the skill's default; a player Main REPLACES the default (no longer ANDed). With no effective Main the tactic does not trigger (logged "no condition", next tactic runs; validator warning `W_TACTIC_NO_CONDITION`). Passives are exempt: `default_activation` stays their trigger condition. Shipped defaults: `nearest` for single / row / column enemy attacks, `lowest` hp_percent for single ally heals, `always` for self, caster_row and all-ally skills |
 | 146 | Soldier-squad conditions | DECIDED (built) | A squad is one target with several soldiers. Leaves `soldiers_alive` and `soldiers_percent` (`side`, `op`, `value`; percent of the squad's starting size) are false for a hero; selector metric `soldiers_alive` (heroes sort after every squad, both lowest and highest). `hp_percent`, `class_is` (the squad's class follows its soldier type, so cavalry squads work), `unit_kind` and `row_is` already worked on a squad and only gained editor presets (category Soldiers). `soldier_mounted` stays authored-only |
+| 147 | PP gear | DECIDED for now (built) | Five accessories (Reckless Gauntlets, Bloodpact Ring, Leaden Boots, Vigil Charm, Glass Amulet) move 1 PP between pools, with stat ups and downs for one kind of user. Dragon Scale becomes tank-only (Active +1, DEF / MDEF +20%, SPD -40%, EVA -50%, ATK / INT -10%). Items stack with no warning: PP adds up to the cap, and percent lines flagged `stacks` add, an exception to 9.1. PP is to be priced heavier than stats (item 5). Numbers not simmed |
 
 ---
 

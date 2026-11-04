@@ -1,4 +1,4 @@
-# PP gear with downsides (proposal, 2026-11-04, revised after designer review, not built)
+# PP gear with downsides (built 2026-11-04, Decision 147)
 
 Queue item 14. Gear that moves PP and carries harsh trade-offs, so each item suits one kind of user and hurts everyone else. No number here has been simmed; they are starting values for `tools/balance-series.ts`.
 
@@ -38,7 +38,7 @@ Passive stays at 3 because a tank needs its reactions; it pays in speed instead.
 
 ## Build
 
-- `pp_modifiers` and `modify_stat` percent lines cover everything except Bloodpact Ring.
-- **Bloodpact Ring needs one engine change:** `state.ts` counts only blessing HP percent lines towards Max HP, so a gear line must be added there. Without it the item has no HP penalty.
-- **Stacked percent lines need one engine change:** `stats.ts` keeps only the strongest equipment line per stat, so PP gear lines must be marked to add.
-- PP pricing lands in item 5: `heroCost` ignores `pp_modifiers` today. Add `rules.cost.pp_weights` (Active above Passive), each point above any stat line.
+- Items use `pp_modifiers` and `modify_stat` percent lines.
+- Unconditional gear HP percent lines now change Max HP (`state.ts`), for Bloodpact Ring.
+- Lines flagged `stacks` on `modify_stat` add up (`stats.ts`).
+- Not built, item 5: `heroCost` ignores `pp_modifiers`. Add `rules.cost.pp_weights` (Active above Passive), each point above any stat line.

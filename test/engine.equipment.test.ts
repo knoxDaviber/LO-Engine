@@ -28,13 +28,15 @@ function setup(gear: Record<string, Slots>, opts: { auras?: boolean; damage?: bo
 const dmg = (pack: Pack, id: string) => (pack.byId.skills.get(id) as Skill).effects.find((e) => e.type === "damage") as DamageEffect;
 const HIT = { hit: true, crit: false, guard: false };
 const item = (pack: Pack, id: string) => pack.byId.equipment.get(id) as any;
+/** Clears Dragon Scale's stat lines: the armor-base worked examples below are about the base numbers and the damage maths. */
+const bareScale = { over: (p: Pack) => { item(p, "equip_002").effects = []; } };
 
 test("the equipment step is the first pre-battle step", () => {
   assert.equal(PREBATTLE_STEPS[0]!.name, "equipment");
 });
 
 test("Dragon Scale worked example: bare Leon vs Dragon-Scale Emperor (DEF 140): Charging Assault 32, Thousand Azure Hooves 118", () => {
-  const { pack, u, stat } = setup({ [EMPEROR]: { armor: "equip_002" } });
+  const { pack, u, stat } = setup({ [EMPEROR]: { armor: "equip_002" } }, bareScale);
   close(stat(EMPEROR, "DEF"), 140); // 70 + 70, the heavy armor base (Decision 133) added to base once
   close(stat(EMPEROR, "MDEF"), 40 + 15); // the heavy armor base MDEF line only
   close(stat(LEON, "ATK"), 115);
@@ -43,7 +45,7 @@ test("Dragon Scale worked example: bare Leon vs Dragon-Scale Emperor (DEF 140): 
 });
 
 test("Dragon Scale with Empire's Dominion (Emperor leads, DEF 168): Charging Assault 4, Thousand Azure Hooves 90", () => {
-  const { pack, u, stat, state } = setup({ [EMPEROR]: { armor: "equip_002" } }, { auras: true });
+  const { pack, u, stat, state } = setup({ [EMPEROR]: { armor: "equip_002" } }, { auras: true, ...bareScale });
   assert.equal(state.leaders.defender.leaderId, EMPEROR);
   close(stat(EMPEROR, "DEF"), 140 * 1.2);
   close(stat(LEON, "ATK"), 115); // Leon's own aura needs the Emperor in HIS party
@@ -52,7 +54,7 @@ test("Dragon Scale with Empire's Dominion (Emperor leads, DEF 168): Charging Ass
 });
 
 test("content formula (pool, hero_hits 4, Decision 135 bases): sworded Leon vs Dragon-Scale Emperor", () => {
-  const { pack, u, stat } = setup({ [LEON]: { weapon: "equip_009" }, [EMPEROR]: { armor: "equip_002" } }, { damage: true });
+  const { pack, u, stat } = setup({ [LEON]: { weapon: "equip_009" }, [EMPEROR]: { armor: "equip_002" } }, { damage: true, ...bareScale });
   assert.equal(pack.rules.damage.formula, "pool");
   assert.equal(pack.rules.damage.hero_hits, 4);
   close(stat(LEON, "ATK"), 115 + 150); // sword base ATK 150
@@ -159,4 +161,70 @@ test("Strange Box: pre-battle Confusion on every unit including the wearer; two 
     assert.equal(conf[0]!.category, "equipment");
   }
   assert.ok(ev("trigger").some((e) => e.event === "pre_battle" && e.handler === "Strange box"));
+});
+
+// PP gear (Decision 147): `stacks` lines add up across items; other gear lines keep Section 9.1 (strongest wins).
+const gear = (a: string, b?: string): Slots => ({ accessory_1: a, ...(b ? { accessory_2: b } : {}) });
+const line = (pack: Pack, id: string, st: string) => item(pack, id).effects.find((e: any) => e.stat === st).value as number;
+
+test("two Reckless Gauntlets: percent lines add, Active PP caps at rules.pp.max, Passive loses 2", () => {
+  const { pack, u } = setup({ [LEON]: gear("equip_028", "equip_028") });
+  const one = setup({ [LEON]: gear("equip_028") });
+  const atk = line(pack, "equip_028", "ATK"), def = line(pack, "equip_028", "DEF");
+  const b = statBreakdown(u(LEON), "ATK", pack);
+  close(b.multiplier, 1 + (2 * atk) / 100);
+  close(statBreakdown(u(LEON), "DEF", pack).multiplier, 1 + (2 * def) / 100);
+  close(statBreakdown(one.u(LEON), "ATK", pack).multiplier, 1 + atk / 100);
+  const ch = pack.byId.characters.get(LEON)!.pp, m = item(pack, "equip_028").pp_modifiers, cap = pack.rules.pp.max;
+  assert.equal(u(LEON).pp.active.max, Math.min(ch.active + 2 * m.active, cap));
+  assert.equal(u(LEON).pp.passive.max, ch.passive + 2 * m.passive);
+});
+
+test("Dragon Scale + Leaden Boots: SPD lines add across different items", () => {
+  const { pack, u } = setup({ [EMPEROR]: { armor: "equip_002", accessory_1: "equip_030" } });
+  const b = statBreakdown(u(EMPEROR), "SPD", pack);
+  close(b.multiplier, 1 + (line(pack, "equip_002", "SPD") + line(pack, "equip_030", "SPD")) / 100);
+  assert.equal(b.effects.filter((e) => e.outcome === "winner" && e.mode === "percent").length, 1);
+});
+
+test("a stacking line and a non-stacking gear line on the same stat and sign: the sum and the other line compete, strongest wins", () => {
+  const run = (v: number) => {
+    const { pack, u } = setup({ [LEON]: gear("equip_028", "equip_023") }, { over: (p) => {
+      item(p, "equip_023").effects = [{ type: "modify_stat", stat: "ATK", mode: "percent", value: v }];
+    } });
+    return statBreakdown(u(LEON), "ATK", pack).multiplier;
+  };
+  const probe = setup({});
+  const atk = line(probe.pack, "equip_028", "ATK");
+  close(run(atk + 20), 1 + (atk + 20) / 100); // the plain line is stronger than the stacking sum
+  close(run(atk - 5), 1 + atk / 100); // the stacking line is stronger
+});
+
+test("Bloodpact Ring lowers Max HP and starting HP; two add; maxHp matches statBreakdown HP", () => {
+  const hp = (slots: Slots) => { const { pack, u } = setup({ [LEON]: slots }); return { unit: u(LEON), pack }; };
+  const none = hp({}).unit, one = hp(gear("equip_029")), two = hp(gear("equip_029", "equip_029"));
+  const pct = line(one.pack, "equip_029", "HP");
+  for (const [r, n] of [[one, 1], [two, 2]] as const) {
+    const flat = r.unit.equipFlat.HP, base = r.unit.baseStats.HP;
+    assert.equal(r.unit.maxHp, Math.floor((base + flat) * (1 + (n * pct) / 100) + 1e-9));
+    assert.equal(r.unit.hp, r.unit.maxHp);
+    assert.equal(r.unit.maxHp, Math.floor(statBreakdown(r.unit, "HP", r.pack).result + 1e-9));
+  }
+  assert.ok(one.unit.maxHp < none.maxHp && two.unit.maxHp < one.unit.maxHp);
+});
+
+test("without `stacks`, two identical gear lines still follow strongest-wins (Section 9.1)", () => {
+  const { pack, u } = setup({ [LEON]: gear("equip_023", "equip_023") }, { over: (p) => {
+    item(p, "equip_023").effects = [{ type: "modify_stat", stat: "ATK", mode: "percent", value: 20 }];
+  } });
+  close(statBreakdown(u(LEON), "ATK", pack).multiplier, 1.2);
+});
+
+test("a non-stacking HP percent line worn twice applies once to Max HP", () => {
+  const { pack, u } = setup({ [LEON]: gear("equip_023", "equip_023") }, { over: (p) => {
+    item(p, "equip_023").effects = [{ type: "modify_stat", stat: "HP", mode: "percent", value: 20 }];
+  } });
+  const un = u(LEON);
+  assert.equal(un.maxHp, Math.floor((un.baseStats.HP + un.equipFlat.HP) * 1.2 + 1e-9));
+  assert.equal(un.maxHp, Math.floor(statBreakdown(un, "HP", pack).result + 1e-9));
 });

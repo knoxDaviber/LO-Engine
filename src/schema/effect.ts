@@ -75,6 +75,8 @@ const modifyStat = z.strictObject({
   mode: z.enum(MODIFIER_MODES),
   value: z.number(),
   source_category: z.enum(SOURCE_CATEGORIES).optional(),
+  /** Gear lines with this flag add up with each other (same stat, category, mode, sign) instead of strongest-wins (Decision 147, exception to 9.1). */
+  stacks: z.literal(true).optional(),
   ...common,
 });
 

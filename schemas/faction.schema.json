@@ -415,6 +415,10 @@
                   "terrain"
                 ]
               },
+              "stacks": {
+                "type": "boolean",
+                "const": true
+              },
               "trigger": {
                 "type": "string",
                 "enum": [

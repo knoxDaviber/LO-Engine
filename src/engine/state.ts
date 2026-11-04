@@ -31,7 +31,7 @@ export interface StatusInstance {
   /** Application order; earlier wins ties inside a stacking group. */
   seq: number;
   /** Leader auras (2.5): modifiers carried by the instance itself, since an aura is not a pack status. `statusId` is then `aura:<leader>:<n>`. */
-  inline?: { name: string; modifiers: { stat: Stat; mode: "flat" | "percent"; value: number }[] };
+  inline?: { name: string; modifiers: { stat: Stat; mode: "flat" | "percent"; value: number; stacks?: true }[] };
   /** while_condition statuses: the applying skill's activation (judged from `owner`, the wearer as target); the status ends when it turns false. */
   whileCond?: { cond: ConditionNode; owner: string };
 }
@@ -211,9 +211,10 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     const skillDefs = ch.skills.map((id) => pack.byId.skills.get(id)).filter((sk) => sk !== undefined);
     const blessings = unlockedBlessings(pack, h);
     const cost = heroCost(ch, pack.rules, { squad: pack.byId.soldiers.get(h.squad_id) ?? null, equipment: items, skills: skillDefs, blessings: blessings.flatMap((b) => b.effects) });
-    // [DEFAULT] Max HP is base + flat item lines; status HP modifiers never change it. Exception (3c): unconditional prayer HP percent lines of the
-    // unconditional blessing HP percent lines (either sign) change it like statBreakdown does: one god's lines add per (category, sign), the
-    // strongest god wins per (category, sign), winners multiply (Decision 125). A blessing's HP +20% means 20% more max HP.
+    // [DEFAULT] Max HP is base + flat item lines; status HP modifiers never change it. Exception (3c): unconditional HP percent lines
+    // (either sign) of blessings and gear change it like statBreakdown does. Blessing lines add per god and gods compete per (category, sign);
+    // gear lines compete per (category, sign), except `stacks` lines (Decision 147), which add as one line; winners multiply.
+    // A blessing's HP +20% means 20% more max HP.
     const sums = new Map<string, Map<string, number>>(); // `<category>|<sign>` -> god -> summed percent
     for (const b of blessings) for (const e of b.effects) {
       if (e.type !== "modify_stat" || e.stat !== "HP" || e.mode !== "percent" || e.value === 0 || e.condition || (e.trigger && e.trigger !== "always")) continue;
@@ -221,6 +222,14 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
       const g = sums.get(key) ?? sums.set(key, new Map()).get(key)!;
       g.set(b.god.id, (g.get(b.god.id) ?? 0) + e.value);
     }
+    // Unconditional gear HP percent lines (equipment category): `stacks` lines add up as one line, others compete (stats.ts, Decision 147).
+    items.forEach((eq, n) => eq.effects.forEach((e, i) => {
+      if (e.type !== "modify_stat" || e.stat !== "HP" || e.mode !== "percent" || e.value === 0 || e.condition || (e.trigger && e.trigger !== "always")) return;
+      const key = `${e.source_category ?? "equipment"}|${e.value < 0 ? "-" : "+"}`;
+      const g = sums.get(key) ?? sums.set(key, new Map()).get(key)!;
+      const name = e.stacks ? "stack" : `${n}:${i}`; // one key per worn copy: duplicates compete, they do not add
+      g.set(name, (g.get(name) ?? 0) + e.value);
+    }));
     let hpMult = 1;
     for (const g of sums.values()) hpMult *= 1 + [...g.values()].reduce((a, v) => (Math.abs(v) > Math.abs(a) ? v : a), 0) / 100;
     const maxHp = Math.max(1, Math.floor((ch.base_stats.HP + equipFlat.HP) * hpMult + 1e-9));
@@ -230,13 +239,14 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     // [DEFAULT] A PP override lifts the cap to override + gear when that is above rules.pp.max.
     const capA = opts.pp?.active === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppA);
     const capP = opts.pp?.passive === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppP);
+    const ppActive = Math.max(0, Math.min(ppA, capA)), ppPassive = Math.max(0, Math.min(ppP, capP)); // gear minus can't push a pool below 0
     const unit: Unit = {
       id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, race: ch.race, factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
       baseStats: { ...ch.base_stats }, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
       pp: {
-        active: { cur: Math.min(ppA, capA), max: Math.min(ppA, capA) },
-        passive: { cur: Math.min(ppP, capP), max: Math.min(ppP, capP) },
+        active: { cur: ppActive, max: ppActive },
+        passive: { cur: ppPassive, max: ppPassive },
       },
       statuses: [], alive: true,
       tactics: [...h.tactic_sheet].sort((a, b) => a.priority - b.priority),

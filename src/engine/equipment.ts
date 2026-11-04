@@ -3,13 +3,15 @@
 //   flat lines      the item type's base (rules.equipment_bases, src/equipmentBase.ts; Decision 133), summed into `Unit.equipFlat` when the unit
 //                   is built (state.ts) and added to base before any stacking. Duplicate accessories (allowed by
 //                   `duplicate_allowed_in_both_accessory_slots`, checked by the roster validator) add their lines: two Spiky Gloves = ATK +24.
-//   pp_modifiers    added to the character's PP pools when the unit is built, capped at rules.pp.max (Dragon Scale: Active PP 3).
+//   pp_modifiers    added to the character's PP pools when the unit is built, capped at rules.pp.max (Dragon Scale: Active +1).
 //   effects         by trigger:
 //     none / always modify_stat   an `equipment`-category modifier (or the effect's own source_category) carried by an inline status instance
 //                                 (statusId `equip:<item>:<slot>:<n>`) on the wearer. Put on in the `equipment` pre-battle step (first, design 9);
 //                                 one with a `condition` (Queen's Scepter: HP > 80%) is re-checked with the state passives after every damage,
 //                                 heal and action (`checkEquipment`) and is on exactly while the condition holds (judged from the wearer).
 //                                 Same category, so equipment vs equipment never stacks: two identical accessory effects -> the strongest wins.
+//                                 Exception (Decision 147): lines flagged `stacks` (PP gear: Reckless Gauntlets, Dragon Scale, ...) add up per
+//                                 stat / mode / sign (stats.ts), also for Max HP (state.ts).
 //                                 [DEFAULT] The wearer's own equipment modifiers are not shared with its squad (stats.ts), like its flat lines.
 //     on_hit / on_attack          run after the wearer's own active skill's effects through the hero on-hit path (damage.ts executeSkill), as
 //                                 reactions, once per attacking action: on_hit per unit hit, on_attack once with every unit hit (Longinus:
@@ -183,7 +185,7 @@ export function checkEquipment(x: ExecCtx): void {
     if (holds && !m.inst) {
       const inst: StatusInstance = {
         statusId: `${m.prefix}${item.id}:${m.slot}:${m.index}`, category: effect.source_category ?? m.category, sourceUnitId: owner.id, remaining: null, skipNextTick: false,
-        seq: state.statusSeq++, inline: { name: item.name, modifiers: [{ stat: effect.stat, mode: effect.mode, value: effect.value }] },
+        seq: state.statusSeq++, inline: { name: item.name, modifiers: [{ stat: effect.stat, mode: effect.mode, value: effect.value, ...(effect.stacks ? { stacks: true as const } : {}) }] },
       };
       owner.statuses.push(inst);
       m.inst = inst;

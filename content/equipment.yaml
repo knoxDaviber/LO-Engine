@@ -23,10 +23,16 @@
   slot: armor
   tags: [heavy_armor]
   pp_modifiers: { active: 1, passive: 0 }
-  effects: []
+  effects:
+    - { type: modify_stat, stat: DEF, mode: percent, value: 20, stacks: true }
+    - { type: modify_stat, stat: MDEF, mode: percent, value: 20, stacks: true }
+    - { type: modify_stat, stat: SPD, mode: percent, value: -40, stacks: true }
+    - { type: modify_stat, stat: EVA, mode: percent, value: -50, stacks: true }
+    - { type: modify_stat, stat: ATK, mode: percent, value: -10, stacks: true }
+    - { type: modify_stat, stat: INT, mode: percent, value: -10, stacks: true }
   eligible: { classes: [infantry, cavalry], characters: [char_002, char_001], required_tags: [heavy_armor] }
   rules: { duplicate_allowed_in_both_accessory_slots: false }
-  designer_notes: "Powerful armor that also grants the user +1 Active PP (not a true extra attack)."
+  designer_notes: "Tank armor: +1 Active PP (not a true extra attack), DEF / MDEF +20%, paid in SPD -40%, EVA -50%, ATK / INT -10% (Decision 147)."
   meta:
     pre_standard_stats: "HP 200, ATK 15, INT 15, DEF 50, MDEF 30, SPD -20, HIT -10, SKL 20, CRIT -20, GUARD 30, EVA -20"
     authored_notes: "Stat block listed Active PP: 0 while the effect says 'Grants +1 Active PP'; converted as pp_modifiers.active: 1."
@@ -356,3 +362,74 @@
   eligible: { classes: [], characters: [], required_tags: [] }
   rules: { duplicate_allowed_in_both_accessory_slots: true }
   designer_notes: "Generic kit."
+
+- id: equip_028
+  name: "Reckless Gauntlets"
+  description: "Heavy gloves for those who strike first and never look back."
+  slot: accessory
+  tags: [gloves]
+  pp_modifiers: { active: 1, passive: -1 }
+  effects:
+    - { type: modify_stat, stat: ATK, mode: percent, value: 15, stacks: true }
+    - { type: modify_stat, stat: DEF, mode: percent, value: -20, stacks: true }
+    - { type: modify_stat, stat: MDEF, mode: percent, value: -20, stacks: true }
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "PP gear (Decision 147)."
+
+- id: equip_029
+  name: "Bloodpact Ring"
+  description: "A ring that drinks the wearer's vigor and pays it in power."
+  slot: accessory
+  tags: [ring]
+  pp_modifiers: { active: 1, passive: -1 }
+  effects:
+    - { type: modify_stat, stat: INT, mode: percent, value: 20, stacks: true }
+    - { type: modify_stat, stat: HP, mode: percent, value: -25, stacks: true }
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "PP gear (Decision 147)."
+
+- id: equip_030
+  name: "Leaden Boots"
+  description: "Iron-shod boots: hard to hurt, slow to arrive."
+  slot: accessory
+  tags: [boots]
+  pp_modifiers: { active: 1, passive: -1 }
+  effects:
+    - { type: modify_stat, stat: ATK, mode: percent, value: 10, stacks: true }
+    - { type: modify_stat, stat: DEF, mode: percent, value: 15, stacks: true }
+    - { type: modify_stat, stat: SPD, mode: percent, value: -30, stacks: true }
+    - { type: modify_stat, stat: EVA, mode: percent, value: -30, stacks: true }
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "PP gear (Decision 147)."
+
+- id: equip_031
+  name: "Vigil Charm"
+  description: "A charm for the one who waits and answers every blow."
+  slot: accessory
+  tags: [charm]
+  pp_modifiers: { active: -1, passive: 1 }
+  effects:
+    - { type: modify_stat, stat: DEF, mode: percent, value: 20, stacks: true }
+    - { type: modify_stat, stat: MDEF, mode: percent, value: 20, stacks: true }
+    - { type: modify_stat, stat: ATK, mode: percent, value: -20, stacks: true }
+    - { type: modify_stat, stat: INT, mode: percent, value: -20, stacks: true }
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "PP gear (Decision 147)."
+
+- id: equip_032
+  name: "Glass Amulet"
+  description: "Sharp and brittle; it rewards the counter and punishes the hit."
+  slot: accessory
+  tags: [amulet]
+  pp_modifiers: { active: -1, passive: 1 }
+  effects:
+    - { type: modify_stat, stat: ATK, mode: percent, value: 15, stacks: true }
+    - { type: modify_stat, stat: DEF, mode: percent, value: -25, stacks: true }
+    - { type: modify_stat, stat: MDEF, mode: percent, value: -25, stacks: true }
+  eligible: { classes: [], characters: [], required_tags: [] }
+  rules: { duplicate_allowed_in_both_accessory_slots: true }
+  designer_notes: "PP gear (Decision 147)."

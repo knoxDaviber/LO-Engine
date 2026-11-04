@@ -739,6 +739,10 @@
                       "terrain"
                     ]
                   },
+                  "stacks": {
+                    "type": "boolean",
+                    "const": true
+                  },
                   "trigger": {
                     "type": "string",
                     "enum": [
@@ -1613,6 +1617,10 @@
                   "prayer",
                   "terrain"
                 ]
+              },
+              "stacks": {
+                "type": "boolean",
+                "const": true
               },
               "trigger": {
                 "type": "string",
