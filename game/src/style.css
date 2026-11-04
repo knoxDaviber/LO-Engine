@@ -142,11 +142,12 @@ button:disabled { cursor: not-allowed; }
 .hole-enemy { right: 1%; width: 48%; }
 
 .tile { position: absolute; width: 112px; height: 124px; transform: translate(-50%, -84%); touch-action: none; }
-.tile::before { content: ""; position: absolute; left: 50%; top: 50px; width: 124px; height: 124px; margin-left: -62px; background: var(--tile) center / contain no-repeat; pointer-events: none; }
+.tile::before { content: ""; position: absolute; left: 50%; top: 50px; width: 124px; height: 124px; margin-left: -62px; background: var(--tile) center / contain no-repeat; pointer-events: none; filter: drop-shadow(0 0 1px var(--ally)) drop-shadow(0 0 1px var(--ally)) drop-shadow(0 0 5px var(--ally)); }
+.tile.foe::before { filter: drop-shadow(0 0 1px var(--foe)) drop-shadow(0 0 1px var(--foe)) drop-shadow(0 0 5px var(--foe)); }
 .tile:focus-visible { outline: none; }
+.tile-floor { position: absolute; left: 50%; bottom: 0; width: 86px; height: 86px; margin-left: -43px; margin-bottom: -28px; transform: rotateX(62deg) rotateZ(45deg); border: 2px solid rgba(111, 183, 255, 0.8); box-shadow: 0 0 10px rgba(111, 183, 255, 0.35); border-radius: 8px; transition: background 0.18s, border-color 0.18s, box-shadow 0.18s; }
+.tile.foe .tile-floor { border-color: rgba(255, 107, 99, 0.85); box-shadow: 0 0 10px rgba(255, 107, 99, 0.4); }
 .tile:focus-visible .tile-floor { box-shadow: 0 0 0 2px var(--gold-hi), 0 0 18px var(--gold); }
-.tile-floor { position: absolute; left: 50%; bottom: 0; width: 86px; height: 86px; margin-left: -43px; margin-bottom: -28px; transform: rotateX(62deg) rotateZ(45deg); border: 1.5px solid rgba(111, 183, 255, 0.45); border-radius: 8px; transition: background 0.18s, border-color 0.18s, box-shadow 0.18s; }
-.tile.foe .tile-floor { border-color: rgba(255, 107, 99, 0.5); }
 .tile:hover .tile-floor { background: rgba(111, 183, 255, 0.26); border-color: var(--ally); box-shadow: 0 0 16px rgba(111, 183, 255, 0.55); }
 .tile.foe:hover .tile-floor { background: rgba(255, 107, 99, 0.28); border-color: var(--foe); box-shadow: 0 0 16px rgba(255, 107, 99, 0.55); }
 .tile.vacant { pointer-events: none; opacity: 0.45; }
@@ -279,7 +280,9 @@ button:disabled { cursor: not-allowed; }
 .narrator { position: fixed; z-index: 70; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(660px, 92vw); display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 14px; padding: 14px 18px; background: linear-gradient(180deg, #262544, #15162b); border: 1px solid var(--gold); border-radius: 8px; box-shadow: var(--shadow), 0 0 0 4px rgba(0, 0, 0, 0.3); pointer-events: auto; animation: rise 0.3s var(--ease) both; }
 .narrator.top { bottom: auto; top: 18px; }
 .narrator-seal { flex: none; display: grid; place-items: center; width: 34px; height: 34px; font: 900 18px/1 var(--display); color: #2b1a05; border-radius: 50%; background: linear-gradient(180deg, var(--gold-hi), var(--gold-lo)); }
-.narrator p { flex: 1 1 400px; font-size: 16.5px; line-height: 1.32; }
+.narrator-text { flex: 1 1 400px; }
+.narrator-step { display: block; margin-bottom: 3px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-hi); opacity: 0.8; }
+.narrator p { font-size: 16.5px; line-height: 1.32; }
 .narrator-btns { flex: 1 1 100%; display: flex; justify-content: flex-end; gap: 8px; }
 
 /* Battle */

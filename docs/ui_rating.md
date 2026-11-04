@@ -4,15 +4,15 @@ Scored 1-10 from real screenshots at 1280x720, as a strategy RPG player would (F
 
 Screenshot note: the browser pane barely advances CSS animations, so finish them first (`document.getAnimations()`, `finish()` on the finite ones) or the title menu and narrator look missing.
 
-| Category | P1 | P2 | P3 | P4 |
-|---|---|---|---|---|
-| Board readability | 6 | 8 | 8 | 8 |
-| Tactics setup | 6 | 6 | 8 | 8 |
-| Battle feedback | 6 | 8 | 8 | 8 |
-| Information access | 6 | 7 | 8 | 8 |
-| Menu flow | 7 | 7 | 7 | 8 |
-| Art direction | 7 | 9 | 9 | 9 |
-| Onboarding | 7 | 7 | 7 | 7 |
+| Category | P1 | P2 | P3 | P4 | P5 |
+|---|---|---|---|---|---|
+| Board readability | 6 | 8 | 8 | 8 | 9 |
+| Tactics setup | 6 | 6 | 8 | 8 | 8 |
+| Battle feedback | 6 | 8 | 8 | 8 | 8 |
+| Information access | 6 | 7 | 8 | 8 | 8 |
+| Menu flow | 7 | 7 | 7 | 8 | 8 |
+| Art direction | 7 | 9 | 9 | 9 | 9 |
+| Onboarding | 7 | 7 | 7 | 7 | 8 |
 
 ## Pass 1 (baseline, commit 236ae06)
 
@@ -43,3 +43,17 @@ Screenshot note: the browser pane barely advances CSS animations, so finish them
 - **Menu flow (7 to 8):** a Menu button with an abandon dialog on prep, and Back to Title on defeat. No save or settings screen.
 - **Tactics setup:** stays 8. A plain-English line under each order was built and removed: "Fireball: Nearest" only repeated the box above it and cost height.
 - **Onboarding:** looked at properly this pass. The steps cover everything, but there is no progress indicator and the narrator covers the bottom of the spotlight on the formation step. Stays 7.
+
+## Pass 5 (step counter, narrator placement, side glow): stopped here for the designer's review
+
+- **Board readability (8 to 9):** blue and red glow on every tile shows the two sides at a glance.
+- **Onboarding (7 to 8):** "Step 2 of 15" counter, and the narrator moves clear of the spotlight.
+
+What would still be needed for 10s, none of it done:
+- **Board readability:** sprites standing on the painted ground instead of tiles (the designer's planned 2D sprites).
+- **Tactics setup:** real plain-English order wording, hand-written per condition, and a preview of who an order would hit.
+- **Battle feedback:** per-skill effects and hit sound effects; there are no sound effects yet.
+- **Information access:** inspect from the turn order; matchup tags on the board itself.
+- **Menu flow:** saves and a settings screen.
+- **Art direction:** a matching art pass on panels and icons.
+- **Onboarding:** a way to re-read tips after the tutorial.
