@@ -1,4 +1,4 @@
-# Enchantment proposal (awaiting designer approval, 2026-11-04)
+# Enchantments (approved for now by the designer 2026-11-04, Decision 141; not built)
 
 Critique pass over all 14 two-sided blessings (handover queue item 3). Nothing here is built or simmed; values are starting
 points for the batch sim. 2-pieces stay as the designer gave them. A hero has 4 sigil slots, so one 4-piece enchantment per hero.

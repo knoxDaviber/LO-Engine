@@ -52,12 +52,12 @@ progress in `docs/roadmap.md`.
    **Correction (designer 2026-11-04):** always assume heroes have weapons and gear. The sample / full4v4 wall above comes
    from their bare heroes, so it is not a finding yet.
 1a. **Next: gear up `sample` and `full4v4`,** rerun the batch, and only then judge squad DEF and skill multipliers.
-1b. **Timeout tiebreak (Decision 139, not built):** a phase-3 timeout goes to the higher remaining HP%, exact tie to the
-   defender. Replaces the rule in `runBattle` (`src/engine/phase.ts`); decide whether HP% counts soldiers; update the batch
+1b. **Timeout tiebreak (Decision 139, not built):** a phase-3 timeout goes to the higher remaining HP% over the whole side
+   (heroes and soldiers together), exact tie to the defender. Replaces the rule in `runBattle` (`src/engine/phase.ts`); update the batch
    report, which assumes timeout = defender.
 2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Done in content; tests read PP from content and pass at PP 2, 3 and 4. Sweep PP 2-5 after 1a and 1b, then the designer decides.
-3. **Two-sided blessings: waiting on designer approval of `docs/enchantments_proposal.md`** (critique pass over all 14, not
-   built or simmed). Build only after approval; the sigil choice must record the side (schema change).
+3. **Two-sided blessings: approved for now (Decision 141), not built.** Build the list in `docs/enchantments_proposal.md`, then
+   sim it. The sigil choice must record the side (schema change).
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft
