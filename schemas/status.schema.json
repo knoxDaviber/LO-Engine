@@ -42,7 +42,8 @@
         "equipment",
         "soldier",
         "prayer",
-        "terrain"
+        "terrain",
+        "race"
       ]
     },
     "modifiers": {

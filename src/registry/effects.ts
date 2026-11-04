@@ -7,6 +7,8 @@ export const EFFECT_REGISTRY: Record<string, { communitySafe: boolean; descripti
   modify_stat: { communitySafe: true, description: "Changes a stat" },
   reduce_damage: { communitySafe: true, description: "Reduces incoming damage" },
   remove_buffs: { communitySafe: false, description: "Strips buffs" },
+  self_hp_cost: { communitySafe: true, description: "The caster loses a percent of its current HP, never below 1" },
+  remove_debuffs: { communitySafe: false, description: "Removes up to N debuffs from the target, newest first" },
   modify_pp: { communitySafe: false, description: "Changes PP" },
   delay_action: { communitySafe: false, description: "Delays an action" },
   advance_action: { communitySafe: false, description: "Advances an action" },

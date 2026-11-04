@@ -1,4 +1,4 @@
-# Hero skills, heroes and races (proposal, 2026-11-04, designer answers in, not built)
+# Hero skills, heroes and races (built 2026-11-04, Decision 148)
 
 Queue item 18. Mechanics are taken as ideas from the Langrisser Mobile skill lists (langrisser.fandom.com/wiki/Skills and its sub-pages). Names and wording are ours.
 No number here has been simmed. Everything below is a starting value for `tools/balance-series.ts`.
@@ -32,7 +32,7 @@ The multiplier scales ATK before DEF is taken off, so a small multiplier step is
 | **Bodyguard** | Passive, before hit | 1 | Takes a single-target physical hit aimed at an ally in the same row | Fearless Stance | Costs PP per cover. First content to use `cover` | Ready; no evade for the bodyguard (accepted) |
 | **Thornhide** | Passive, after hit | 1 | While HP > 50%, a melee hit returns DEF x0.8 damage | Barb | About Counter's size, for tanks with low ATK; turns off when hurt | Ready |
 | **Stand Fast** | Passive, while | 2 | While HP < 50%: DEF / MDEF +15% | Last Stand | Defensive twin of Berserk, same PP | Ready (new status) |
-| **Unbroken** | Passive, pre-battle | 2 | Survives one fatal hit at 20% HP, once per battle | Heart of the Twin Moons | Fairy's Grace on self only, and it can be stripped. Official tier only | Ready |
+| **Unbroken** | Passive, pre-battle | 2 | Survives one fatal hit at 20% HP, once per phase as built (units rebuild each phase) | Heart of the Twin Moons | Fairy's Grace on self only, and it can be stripped. Official tier only | Ready |
 
 Purify and Mercy Bolt are deliberately support-heavy: the healer team fell in the last series (handover 11a).
 

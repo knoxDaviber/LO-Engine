@@ -170,6 +170,7 @@ function effectBody(e: Effect, cat: Cat, at?: string, named?: readonly string[])
       if (e.hit_bonus_percent) extra.push(`${signed(e.hit_bonus_percent)}% hit chance`);
       for (const b of e.bonus_vs_class) extra.push(`${signed(b.modifier_percent)}% vs ${b.class}`);
       for (const b of e.bonus_on_terrain ?? []) extra.push(`${signed(b.modifier_percent)}% on ${nameOf(cat, "terrains", b.terrain)}`);
+      if (e.bonus_if_target_full_hp_percent) extra.push(`${signed(e.bonus_if_target_full_hp_percent)}% if the target is at full HP`);
       return [`Deals ${scaling(e.scaling, e.multiplier)} ${e.damage_type} ${e.range} damage${at ? ` to ${at}` : ""}`, ...extra].join("; ");
     }
     case "heal": {
@@ -184,6 +185,8 @@ function effectBody(e: Effect, cat: Cat, at?: string, named?: readonly string[])
     }
     case "remove_buffs":
       return `Removes dispellable buffs from ${e.target !== undefined ? target(e.target) : e.side === "enemy" ? "every enemy" : e.side === "ally" ? "every ally" : "the targets"}`;
+    case "self_hp_cost": return `Costs the caster ${fmt(e.percent)}% of its current HP (never below 1)`;
+    case "remove_debuffs": return `Removes up to ${e.count} debuff${e.count === 1 ? "" : "s"} from ${at ?? "the target"}, newest first`;
     case "modify_stat":
       return `${modText(e.stat, e.mode, e.value, named ? pairOf(e.stat, named) : undefined)}${e.source_category ? ` (${e.source_category} stacking)` : ""}`;
     case "modify_pp":
@@ -194,7 +197,7 @@ function effectBody(e: Effect, cat: Cat, at?: string, named?: readonly string[])
     }
     case "delay_action": return `Delays the target's next action by ${fmt(e.counts)} timeline counts`;
     case "advance_action": return `Brings the target's next action ${fmt(e.counts)} timeline counts closer`;
-    case "cover": return "Takes single-target hits aimed at an ally instead of them";
+    case "cover": return `Takes single-target ${e.damage_type ? `${e.damage_type} ` : ""}hits aimed at an ally${e.same_row ? " in its row" : ""} instead of them`;
     case "reflect_damage": return `Reflects ${fmt(e.percent)}% of the damage taken from an attacking action back at the attacker`;
     case "ignore_guard": return "Its attacks ignore GUARD";
     case "ignore_defense": return `Its attacks ignore ${fmt(e.percent)}% of the target's DEF and MDEF`;

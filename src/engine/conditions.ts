@@ -138,6 +138,7 @@ const LEAVES: Record<string, LeafFn> = {
   lacks_any_buff: (u, _l, c) => !hasBuff(u, c),
   lacks_any_debuff: (u, _l, c) => !hasDebuff(u, c),
   race_is: (u, l) => u.race === l.value,
+  sub_race_is: (u, l) => u.subRace === l.value,
   is_self: (u, _l, c) => u === c.self,
   not_self: (u, _l, c) => u !== c.self,
   always: () => true,

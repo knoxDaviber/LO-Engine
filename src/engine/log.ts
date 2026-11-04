@@ -80,6 +80,7 @@ export type BattleEvent =
   | ({ type: "action_moved"; unit: string; source: string; skill: string; counts: number; due: number | null } & Stamp)
   | ({ type: "action_prevented"; unit: string; status: string } & Stamp)
   | ({ type: "pp_change"; unit: string; source: string; skill: string; pool: "active" | "passive"; amount: number; before: number; after: number } & Stamp)
+  | ({ type: "self_hp_cost"; unit: string; skill: string; amount: number; hp_after: number } & Stamp)
   | ({ type: "death_intercepted"; unit: string; status: string; hp: number; soldier?: number } & Stamp)
   | ({ type: "death"; unit: string; killer: string | null; soldier?: number } & Stamp)
   | ({ type: "squad_attack"; unit: string; attackers: number } & Stamp)
@@ -223,6 +224,9 @@ export function renderLog(events: BattleEvent[]): string {
         break;
       case "pp_change":
         out.push(`${tag(e)}   ${U(e.unit)} ${e.pool} PP ${e.amount > 0 ? "+" : ""}${e.amount} from ${S(e.skill)} (${e.before} -> ${e.after})`);
+        break;
+      case "self_hp_cost":
+        out.push(`${tag(e)}   ${U(e.unit)} pays ${e.amount} HP for ${S(e.skill)} (HP ${e.hp_after})`);
         break;
       case "death_intercepted":
         out.push(`${tag(e)}   ${U(e.unit)}${sol(e)} would fall; ${ST(e.status)} revives it at ${e.hp} HP`);

@@ -15,7 +15,7 @@
   trigger_event: null
   trigger_timing: null
   cooldown: null
-  eligible: { classes: [cavalry], characters: [] }
+  eligible: { classes: [], characters: [char_001] }
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.2, ignores_guard: true, bonus_vs_class: [], hit_bonus_percent: 0 }
@@ -36,7 +36,7 @@
   trigger_event: null
   trigger_timing: null
   cooldown: null
-  eligible: { classes: [cavalry], characters: [] }
+  eligible: { classes: [], characters: [char_001] }
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 20 }
@@ -61,7 +61,7 @@
   trigger_event: null
   trigger_timing: null
   cooldown: null
-  eligible: { classes: [holy], characters: [] }
+  eligible: { classes: [], characters: [char_003] }
   default_activation: null
   effects:
     - { type: apply_status, status_id: buff_003, chance_percent: 100, target: targets }
@@ -105,7 +105,7 @@
   trigger_event: null
   trigger_timing: null
   cooldown: null
-  eligible: { classes: [holy], characters: [] }
+  eligible: { classes: [], characters: [char_003] }
   default_activation: null
   effects:
     - { type: apply_status, status_id: buff_002, chance_percent: 100, target: targets }
@@ -129,7 +129,7 @@
   trigger_event: null
   trigger_timing: null
   cooldown: null
-  eligible: { classes: [lancer], characters: [] }
+  eligible: { classes: [], characters: [char_004] }
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }, { stat: DEF, coef: 0.5 }], multiplier: 1.2, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
@@ -726,3 +726,260 @@
   targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
+
+- id: skl_022
+  name: "Sundering Blow"
+  description: "Strips the target's buffs, then deals 1.3x damage."
+  category: active
+  tags: [damage, debuff]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_017, char_020] }
+  default_activation: null
+  effects:
+    - { type: remove_buffs, target: targets }
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.3, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Lower multiplier than Rend pays for the strip. Official tier only (remove_buffs)."
+
+- id: skl_023
+  name: "Shieldbreaker"
+  description: "Deals 1.0x damage; the target loses 30 GUARD until its next action."
+  category: active
+  tags: [damage, debuff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_015, char_018, char_019] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: apply_status, status_id: debuff_003, chance_percent: 100, target: targets }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Plain Strike damage; the value is setting up allies."
+
+- id: skl_024
+  name: "Blood Price"
+  description: "The caster loses 10% of its current HP (never below 1), then deals 1.7x damage."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_017, char_018] }
+  default_activation: null
+  effects:
+    - { type: self_hp_cost, percent: 10 }
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.7, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Above the 2 PP band, paid in HP; cannot kill the caster."
+
+- id: skl_025
+  name: "First Cut"
+  description: "Deals 1.0x damage, +50% if the target is at full HP."
+  category: active
+  tags: [damage]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_015, char_017, char_018] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0, bonus_if_target_full_hp_percent: 50 }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Strong once per target, then only a Strike."
+
+- id: skl_026
+  name: "Skyfall Volley"
+  description: "Deals 0.7x damage to a row of enemies, +50% against Flyers."
+  category: active
+  tags: [damage, aoe]
+  pp_pool: active
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_015] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: physical, range: ranged, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.7, ignores_guard: false, bonus_vs_class: [{ class: flyer, modifier_percent: 50 }], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: row, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. A volley with a counter-pick, no other gain."
+
+- id: skl_027
+  name: "Purify"
+  description: "Heals one ally for 1.2x INT and removes 1 debuff."
+  category: active
+  tags: [heal, buff]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_003, char_016] }
+  default_activation: null
+  effects:
+    - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 1.2 }
+    - { type: remove_debuffs, count: 1 }
+  targeting: { side: ally, shape: single, default_main: { select: lowest, metric: hp_percent }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Weaker heal than Mend (1.5x), pays for the cleanse."
+
+- id: skl_028
+  name: "Mercy Bolt"
+  description: "Deals 0.8x INT magic damage to one enemy, then heals the lowest-HP% ally for 0.6x INT."
+  category: active
+  tags: [damage, heal]
+  pp_pool: active
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: own_turn
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_003, char_016] }
+  default_activation: null
+  effects:
+    - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+    - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.6, target: lowest_hp_ally }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Lets a healer act when nobody needs a full heal."
+
+- id: skl_029
+  name: "Sworn Banner"
+  description: "Before battle, allies sharing a faction with the Emperor gain ATK and INT +10%."
+  category: passive
+  tags: [buff]
+  pp_pool: passive
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: pre_battle
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_002] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_008, chance_percent: 100, target: targets, condition: { any: [{ type: faction_is, side: target, value: faction_001 }, { type: faction_is, side: target, value: faction_002 }] } }
+  targeting: { side: ally, shape: all, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: skip }
+  interactions: { guard: standard, soldiers: skip_soldiers }
+  designer_notes: "Decision 148 [DEFAULT]. Rewards faction teams; much smaller than the reference. The faction check is an effect condition (any of the Emperor's factions, Empire and Evil), since a player slot holds one leaf."
+
+- id: skl_030
+  name: "Bodyguard"
+  description: "Takes a single-target physical hit aimed at an ally in the same row."
+  category: passive
+  tags: [buff]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: ally_attacked
+  trigger_timing: before_hit
+  cooldown: null
+  eligible: { classes: [], characters: [char_001, char_019] }
+  default_activation: { type: ally_attacked }
+  effects:
+    - { type: cover, same_row: true, damage_type: physical }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Costs 1 Passive PP per cover; the bodyguard does not evade a covered hit (designer answer 5)."
+
+- id: skl_031
+  name: "Thornhide"
+  description: "After a melee hit, while above 50% HP, strikes the attacker for 0.8x DEF."
+  category: passive
+  tags: [damage]
+  pp_pool: passive
+  pp_cost: 1
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: on_event
+  trigger_event: self_hit_by_melee
+  trigger_timing: after_hit
+  cooldown: null
+  eligible: { classes: [], characters: [char_004, char_019, char_020] }
+  default_activation: { all: [{ type: self_hit_by_melee }, { type: hp_percent, side: self, op: ">", value: 50 }] }
+  effects:
+    - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: DEF, coef: 1.0 }], multiplier: 0.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
+  targeting: { side: enemy, shape: attacker, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. About Counter's size, for tanks with low ATK; turns off when hurt."
+
+- id: skl_032
+  name: "Stand Fast"
+  description: "While below 50% HP, gains [Stand Fast] (DEF and MDEF +15%)."
+  category: passive
+  tags: [buff]
+  pp_pool: passive
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: while_condition
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_019, char_020] }
+  default_activation: { type: hp_percent, side: self, op: "<", value: 50 }
+  effects:
+    - { type: apply_status, status_id: buff_009, chance_percent: 100, target: self }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Defensive twin of Berserk, same PP."
+
+- id: skl_033
+  name: "Unbroken"
+  description: "Before battle, gains [Fairy's Grace] on itself: survives one fatal hit at 20% HP."
+  category: passive
+  tags: [buff, revive]
+  pp_pool: passive
+  pp_cost: 2
+  pp_recovery: { allowed: null }
+  use_limit: null
+  trigger: pre_battle
+  trigger_event: null
+  trigger_timing: null
+  cooldown: null
+  eligible: { classes: [], characters: [char_016, char_020] }
+  default_activation: null
+  effects:
+    - { type: apply_status, status_id: buff_003, chance_percent: 100, target: self }
+  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  interactions: { guard: standard, soldiers: standard }
+  designer_notes: "Decision 148 [DEFAULT]. Fairy's Grace on self only, and it can be stripped. Official tier only (revive)."

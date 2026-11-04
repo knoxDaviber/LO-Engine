@@ -1,8 +1,9 @@
 // Battle state types and construction. Plain data; functions elsewhere take the state and mutate it explicitly.
-import type { Battle, Character, ConditionNode, DamageFormulaName, Effect, Race, Row, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
+import type { Battle, Character, ConditionNode, DamageFormulaName, Effect, Race, Row, SubRace, SoldierType, SourceCategory, Stat, Status, Tactic, UnitClass } from "../schema";
 import { STATS } from "../schema";
 import { columnsOffBoard, resolvePlacements, resolveSquadPlacement, rowOverflows, slotConflicts } from "../formation";
 import { equipmentStats } from "../equipmentBase";
+import { leanedBase } from "../race";
 import { heroCost } from "../validate/cost";
 import type { Blessing } from "../devotion";
 import { unlockedBlessings } from "../devotion";
@@ -81,6 +82,10 @@ export interface Unit {
   class: UnitClass;
   /** Heroes: the character's race. Squads: [DEFAULT] human (soldier types carry no race). */
   race: Race;
+  /** Heroes: the character's optional sub-race (Decision 148). Squads: none. */
+  subRace?: SubRace;
+  /** Race trait (Decision 148): percent added to the heals this unit casts (computeHeal). */
+  healPercent?: number;
   factions: string[];
   isLeader: boolean;
   /** Heroes: hero row. Squads: the squad_row, i.e. the soldier row in front of (front) or behind (back) the hero rows. */
@@ -232,18 +237,29 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
     }));
     let hpMult = 1;
     for (const g of sums.values()) hpMult *= 1 + [...g.values()].reduce((a, v) => (Math.abs(v) > Math.abs(a) ? v : a), 0) / 100;
-    const maxHp = Math.max(1, Math.floor((ch.base_stats.HP + equipFlat.HP) * hpMult + 1e-9));
+    // Race and sub-race lean (Decision 148 [DEFAULT]): flat deltas on the base stats, Max HP included; a sub-race adds to its parent's.
+    const baseStats = leanedBase(pack.rules, ch);
+    const maxHp = Math.max(1, Math.floor((baseStats.HP + equipFlat.HP) * hpMult + 1e-9));
     // The leader's squad is the only deployed one, so only the leader carries pairing penalties (Leon's SPD -20 with non-mounted soldiers).
     const pairedType = h.char_id === s.leader ? pack.byId.soldiers.get(h.squad_id) : undefined;
     const innate = pairedType ? pairingPenalties(ch, pairedType, notes) : [];
+    // Race traits of the battle's time of day: the sub-race's replace the parent's. Own `race` stacking category, so they multiply with the rest.
+    const time = battle.time ?? "day";
+    const traitSource = ch.sub_race ? pack.rules.sub_races[ch.sub_race] : pack.rules.races[ch.race];
+    let healPercent = 0;
+    for (const t of traitSource?.traits ?? []) {
+      if (t.time !== time) continue;
+      if ("heal_percent" in t) healPercent += t.heal_percent;
+      else innate.push({ id: `race:${ch.sub_race ?? ch.race}`, stat: t.stat, mode: t.mode, value: t.value, category: "race" });
+    }
     // [DEFAULT] A PP override lifts the cap to override + gear when that is above rules.pp.max.
     const capA = opts.pp?.active === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppA);
     const capP = opts.pp?.passive === undefined ? pack.rules.pp.max : Math.max(pack.rules.pp.max, ppP);
     const ppActive = Math.max(0, Math.min(ppA, capA)), ppPassive = Math.max(0, Math.min(ppP, capP)); // gear minus can't push a pool below 0
     const unit: Unit = {
-      id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, race: ch.race, factions: [...ch.factions], isLeader: h.char_id === s.leader,
+      id: ch.id, kind: "hero", soldiers: [], innate, leaderId: null, soldierTypeId: null, side, charId: ch.id, name: ch.name, class: ch.class, race: ch.race, ...(ch.sub_race ? { subRace: ch.sub_race } : {}), ...(healPercent ? { healPercent } : {}), factions: [...ch.factions], isLeader: h.char_id === s.leader,
       row: pl.row, column: pl.column, formationIndex: pl.formationIndex,
-      baseStats: { ...ch.base_stats }, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
+      baseStats, equipFlat, equipment: worn, blessings, hp: maxHp, maxHp,
       pp: {
         active: { cur: ppActive, max: ppActive },
         passive: { cur: ppPassive, max: ppPassive },

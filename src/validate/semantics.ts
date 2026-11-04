@@ -1,7 +1,7 @@
 import { blessingKind } from "../devotion";
 import { FILES } from "../content";
 import { EFFECT_REGISTRY, OFFICIAL_ONLY_STATUS_FLAGS } from "../registry/effects";
-import { CANONICAL_ID, COUNTED_DURATIONS, isSelector, SLOT_TAGS, type Effect } from "../schema";
+import { CANONICAL_ID, COUNTED_DURATIONS, isSelector, SLOT_TAGS, SUB_RACE_PARENT, type Effect } from "../schema";
 import type { Collector, Tier } from "../types";
 import { checkCondition } from "./conditions";
 import { canEquip, skillEligible } from "./eligibility";
@@ -217,6 +217,7 @@ function checkCharacters(c: Collector, pack: Pack, tier: Tier): void {
     h.factions.forEach((f, i) => {
       if (!pack.byId.factions.has(f)) c.error("E_REF_MISSING", `unknown faction '${f}'`, { ...loc, path: `factions[${i}]` });
     });
+    if (h.sub_race && SUB_RACE_PARENT[h.sub_race] !== h.race) c.error("E_SUB_RACE_PARENT", `sub-race '${h.sub_race}' belongs to ${SUB_RACE_PARENT[h.sub_race]}, not ${h.race}`, { ...loc, path: "sub_race" });
     const seen = new Set<string>();
     h.skills.forEach((sid, i) => {
       const skill = pack.byId.skills.get(sid);

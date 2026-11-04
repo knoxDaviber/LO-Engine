@@ -82,7 +82,7 @@ import type { EventSink, SoldierRef } from "./log";
 import { at, r4 } from "./log";
 import type { Rng } from "./rng";
 import { evaluateCondition } from "./conditions";
-import { applyStatus, completeAction, effectiveStat, summedStat } from "./stats";
+import { applyStatus, completeAction, effectiveStat, isDebuffStatus, summedStat } from "./stats";
 import type { StatusInstance } from "./state";
 import type { TacticDecision } from "./tactics";
 import { recordSkillUse, tacticCondition } from "./tactics";
@@ -155,6 +155,7 @@ export function bonusPercents(attacker: Unit, defender: Unit, effect: DamageEffe
   else if (m === -1) out.push(matchup.disadvantage_damage_percent);
   for (const b of effect.bonus_vs_class) if (b.class === defender.class) out.push(b.modifier_percent);
   for (const b of effect.bonus_on_terrain ?? []) if (ctx.battlefield != null && b.terrain === ctx.battlefield) out.push(b.modifier_percent);
+  if (effect.bonus_if_target_full_hp_percent && defender.hp >= defender.maxHp) out.push(effect.bonus_if_target_full_hp_percent); // same as hp_percent = 100
   return out;
 }
 
@@ -260,9 +261,10 @@ export function computeDamage(attacker: Unit, defender: Unit, effect: DamageEffe
 }
 
 export function computeHeal(target: Unit, caster: Unit, effect: HealEffect, pack: Pick<Pack, "byId">): number {
-  if (effect.percent_max_hp !== undefined) return fl((effect.percent_max_hp / 100) * target.maxHp);
+  const bonus = 1 + (caster.healPercent ?? 0) / 100; // race trait (Decision 148)
+  if (effect.percent_max_hp !== undefined) return fl((effect.percent_max_hp / 100) * target.maxHp * bonus);
   const scaled = (effect.scaling ?? []).reduce((n, t) => n + t.coef * effectiveStat(caster, t.stat, pack), 0);
-  return fl(scaled * (effect.multiplier ?? 1));
+  return fl(scaled * (effect.multiplier ?? 1) * bonus);
 }
 
 // ------------------------------------------------------------------ state-changing parts
@@ -771,6 +773,27 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
       }
       break;
     }
+    case "self_hp_cost": {
+      const cost = Math.min(actor.hp - 1, fl((effect.percent / 100) * actor.hp));
+      if (cost > 0) {
+        actor.hp -= cost;
+        log.emit({ type: "self_hp_cost", ...at(state), unit: actor.id, skill: skill.id, amount: cost, hp_after: actor.hp });
+      }
+      break;
+    }
+    case "remove_debuffs": {
+      // Newest first (highest seq); inline gear / terrain / blessing instances are not pack statuses and never match.
+      for (const t of targets) {
+        if (!t.alive) continue;
+        const real = t.statuses.filter((i) => { const st = state.pack.byId.statuses.get(i.statusId); return st !== undefined && !i.inline && isDebuffStatus(st) && st.removal.removable_by_dispel; });
+        for (const inst of real.sort((a, b) => b.seq - a.seq).slice(0, effect.count)) {
+          t.statuses = t.statuses.filter((s) => s !== inst);
+          log.emit({ type: "status_expired", ...at(state), unit: t.id, status: inst.statusId, reason: "removed" });
+          touched.add(t);
+        }
+      }
+      break;
+    }
     case "reduce_damage": {
       const span = reductionSpan(effect.duration, ev);
       if (!span) { ni(`not implemented: reduce_damage with duration ${effect.duration} in ${skill.name}`); break; }
@@ -812,13 +835,19 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
       // The actor takes the triggering single-target hit aimed at an ally hero (rollOutcome follows the redirect).
       const p = ev?.bus === "before_hit" ? (ev.payload as BusPayloads["before_hit"]) : null;
       if (!p) { ni(`not implemented: cover outside a before_hit event in ${skill.name}`); break; }
-      if (p.covered || p.redirect || p.single !== true || p.defender === actor || p.defender.kind !== "hero" || p.defender.side !== actor.side) break;
+      if (!canCover(actor, p, effect)) break;
       p.redirect = actor;
       break;
     }
     default:
       ni(`not implemented: effect ${effect.type} in ${skill.name}`);
   }
+}
+
+/** Whether `owner` may take this before_hit: a single-target hit on another hero of its side not already covered, within the cover effect's own limits. */
+export function canCover(owner: Unit, p: BusPayloads["before_hit"], e: Extract<Effect, { type: "cover" }>): boolean {
+  return !p.covered && !p.redirect && p.single === true && p.defender !== owner && p.defender.kind === "hero" && p.defender.side === owner.side
+    && (!e.same_row || p.defender.row === owner.row) && (!e.damage_type || p.damageType === e.damage_type);
 }
 
 /** An idle action: no PP, no skill, statuses do not tick. */

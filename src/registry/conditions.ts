@@ -6,7 +6,7 @@
 //                   ban      : defender ban sheets
 //   communitySafe false = official content only (community packs are rejected at the community tier)
 import { z } from "zod/v4";
-import { AURA_TYPES, BOARD_ROWS, CLASSES, COMPARATORS, RACES, SKILL_TAGS, STATS, TIMES } from "../schema/enums";
+import { AURA_TYPES, BOARD_ROWS, CLASSES, COMPARATORS, RACES, SKILL_TAGS, STATS, SUB_RACES, TIMES } from "../schema/enums";
 
 export type CondContext = "tactic" | "authored" | "ban";
 
@@ -79,6 +79,7 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   always: player(none, "Always true (a check that never skips)"),
   not_self: player(none, "The unit is not the acting hero"),
   race_is: player(z.strictObject({ side, value: z.enum(RACES) }), "Unit race (squads count as human)"),
+  sub_race_is: player(z.strictObject({ side, value: z.enum(SUB_RACES) }), "Unit sub-race (squads have none)"),
   // Status
   has_status: { fields: z.strictObject({ side, status_id: idStr }), contexts: PLAYER, communitySafe: true, description: "Has a status" },
   lacks_status: { fields: z.strictObject({ side, status_id: idStr }), contexts: PLAYER, communitySafe: true, description: "Lacks a status" },

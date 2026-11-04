@@ -19,6 +19,7 @@
 import { classDefaultRow } from "./formation";
 import type { Battle, BanSheet, Character, ConditionNode, Equipment, RosterBattle, RosterHero, Row, Stat } from "./schema";
 import { STATS } from "./schema";
+import { leanedBase } from "./race";
 import { equipmentStats } from "./equipmentBase";
 import { heroCost } from "./validate/cost";
 import { unlockedBlessings } from "./devotion";
@@ -90,7 +91,8 @@ function candidate(pack: Pack, entry: RosterHero, order: number): Candidate {
     .filter((e): e is Equipment => e !== undefined);
   const skills = ch.skills.map((id) => pack.byId.skills.get(id)).filter((s) => s !== undefined);
   const cost = heroCost(ch, pack.rules, { squad: pack.byId.soldiers.get(entry.squad_id) ?? null, equipment: items, skills, blessings: unlockedBlessings(pack, entry).flatMap((b) => b.effects) });
-  const stat = (s: Stat) => ch.base_stats[s] + items.reduce((n, e) => n + equipmentStats(e, pack.rules.equipment_bases)[s], 0);
+  const lean = leanedBase(pack.rules, ch);
+  const stat = (s: Stat) => lean[s] + items.reduce((n, e) => n + equipmentStats(e, pack.rules.equipment_bases)[s], 0);
   return { entry, ch, cost, order, stat };
 }
 

@@ -490,6 +490,269 @@
         }
       }
     },
+    "races": {
+      "type": "object",
+      "propertyNames": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "human",
+              "elf",
+              "beastfolk",
+              "dwarf",
+              "dragon",
+              "demon",
+              "angel"
+            ]
+          },
+          {
+            "not": {}
+          }
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "lean": {
+            "type": "object",
+            "propertyNames": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "HP",
+                    "ATK",
+                    "INT",
+                    "DEF",
+                    "MDEF",
+                    "SPD",
+                    "HIT",
+                    "SKL",
+                    "CRIT",
+                    "GUARD",
+                    "EVA"
+                  ]
+                },
+                {
+                  "not": {}
+                }
+              ]
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "time": {
+                      "type": "string",
+                      "enum": [
+                        "day",
+                        "night"
+                      ]
+                    },
+                    "stat": {
+                      "type": "string",
+                      "enum": [
+                        "HP",
+                        "ATK",
+                        "INT",
+                        "DEF",
+                        "MDEF",
+                        "SPD",
+                        "HIT",
+                        "SKL",
+                        "CRIT",
+                        "GUARD",
+                        "EVA"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "flat",
+                        "percent"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "time",
+                    "stat",
+                    "mode",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "time": {
+                      "type": "string",
+                      "enum": [
+                        "day",
+                        "night"
+                      ]
+                    },
+                    "heal_percent": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "time",
+                    "heal_percent"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "lean",
+          "traits"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "sub_races": {
+      "type": "object",
+      "propertyNames": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "high_elf",
+              "dark_elf",
+              "werebeast",
+              "rabbit_folk"
+            ]
+          },
+          {
+            "not": {}
+          }
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "lean": {
+            "type": "object",
+            "propertyNames": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "HP",
+                    "ATK",
+                    "INT",
+                    "DEF",
+                    "MDEF",
+                    "SPD",
+                    "HIT",
+                    "SKL",
+                    "CRIT",
+                    "GUARD",
+                    "EVA"
+                  ]
+                },
+                {
+                  "not": {}
+                }
+              ]
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "time": {
+                      "type": "string",
+                      "enum": [
+                        "day",
+                        "night"
+                      ]
+                    },
+                    "stat": {
+                      "type": "string",
+                      "enum": [
+                        "HP",
+                        "ATK",
+                        "INT",
+                        "DEF",
+                        "MDEF",
+                        "SPD",
+                        "HIT",
+                        "SKL",
+                        "CRIT",
+                        "GUARD",
+                        "EVA"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "flat",
+                        "percent"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "time",
+                    "stat",
+                    "mode",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "time": {
+                      "type": "string",
+                      "enum": [
+                        "day",
+                        "night"
+                      ]
+                    },
+                    "heal_percent": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "time",
+                    "heal_percent"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "lean",
+          "traits"
+        ],
+        "additionalProperties": false
+      }
+    },
     "cost": {
       "type": "object",
       "properties": {
@@ -632,6 +895,8 @@
     "draft",
     "limits",
     "equipment_bases",
+    "races",
+    "sub_races",
     "cost"
   ],
   "additionalProperties": false

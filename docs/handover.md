@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 404/404 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 419/419 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -100,7 +100,7 @@ progress in `docs/roadmap.md`.
 7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a
    stack trace.
 
-**Designer requests 2026-11-04 (in this order).** Next: item 5 balance pass (can start now that items 9-12 are in). Waiting on the designer: go-ahead to build item 18, and the meta loop design for item 16.
+**Designer requests 2026-11-04 (in this order).** Next: item 5 balance pass (can start now that items 9-12 are in). Waiting on the designer: the meta loop design for item 16.
 
 8. **Done 2026-11-04:** PP 3/3 recorded as locked for now in Decision 140 and the design doc.
 9. **Done 2026-11-04:** every `draft_city` hero has sigils, 24 a side (4-piece or 2+2, same pattern as `city4v4`). Draft picks unchanged; 100 runs: 64% challenger, 6% timeouts. Picks and `sigil_side` are placeholders.
@@ -113,7 +113,8 @@ progress in `docs/roadmap.md`.
 15. **Shelved 2026-11-04 (designer):** creation system for heroes, skills and gear, nothing built. There is no game or audience yet, cost and caps can't limit created content (item 5), and items 14 and 18 may change the shapes. Community skills and gear aren't wanted for now: players of this genre build from a balanced set, and a shared pool is what makes rosters and bans readable. Player-made heroes stay a game feature for later (Decision 105: generic heroes are their base), Etrian-style choices from tuned lists, with no community tier; open question in design doc Section 18. If community content ever comes back: `pp_modifiers` on gear has no tier check, and the real content fails community tier (11 errors), so created entries would need checking apart from official ones.
 16. **Start the actual game (answered 2026-11-04):** Vite + React for now, to be ported to Godot later, so keep game logic out of React components. First playable slice: a tower run. **Blocked on design:** the tower needs the meta loop (Step 6), so that design comes first. Design doc Section 18 has the open questions.
 17. **Done 2026-11-04 (Decision 146):** leaves `soldiers_alive` and `soldiers_percent` (false on a hero), selector metric `soldiers_alive` (heroes sort after every squad, lowest and highest), a "Soldiers" preset category. `hp_percent`, `class_is` and `unit_kind` already worked on squads. A player slot holds one leaf, so "cavalry squads only" can't be written; class presets match heroes too.
-18. **Hero skills, heroes and races proposal (designer 2026-11-04):** `docs/skills_heroes_races_proposal.md`, using the Langrisser skill list as a reference only. All 5 questions answered: schema races plus sub-races, re-gate the 6 skills, 6 new heroes, Hegemony stays, bodyguard does not evade. Sub-races drafted (High-Elf, Dark-Elf, Werebeast, Rabbit-folk). A `sub_race_is` tactic leaf is in scope (designer). Waiting on go-ahead to build.
+18. **Done 2026-11-04 (Decision 148):** `docs/skills_heroes_races_proposal.md` built: 12 skills (skl_022-033), 6 heroes (char_015-020), races and sub-races (`rules.races`, `rules.sub_races`, `src/race.ts`), 6 skills re-gated to heroes, leaf `sub_race_is`, effects `self_hp_cost` and `remove_debuffs` (respects `removable_by_dispel`), `bonus_if_target_full_hp_percent`, `cover` fields `same_row` / `damage_type`. No battle uses the new heroes or skills, so nothing is simmed; sim logs unchanged.
+   **Open calls:** Unbroken is once per phase, not per battle (needs a per-battle "spent" record, as its own item). First Cut, Shieldbreaker and Blood Price are melee, even on the back-row archer Sylwen. **Known gap:** `editor/src/Units.tsx:140` shows authored `base_stats`, without race lean.
 19. **Done 2026-11-04:** `docs/reference_skills.md`: 21 mechanic families with fit ratings, plus indexes for Etrian Odyssey X, Unicorn Overlord actives, Langrisser Mobile (9 pages) and EON weapon skills. Indexes are keyword-tagged, so some tags are wrong. Unicorn passive, brave and leader skills not collected. DeepSeek use was approved for this item only.
 
 Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6). Main game client: now queued as item 16 (Decision 137: the editor is a separate tool). Soldier skill points (Decision 138: 20 per soldier type, trees with prerequisites, 5 levels per category, season-end

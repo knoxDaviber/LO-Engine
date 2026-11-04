@@ -7,6 +7,11 @@ export type Stat = (typeof STATS)[number];
 export const RACES = ["human", "elf", "beastfolk", "dwarf", "dragon", "demon", "angel"] as const;
 export type Race = (typeof RACES)[number];
 
+/** Sub-races (Decision 148): an optional layer under one race; the map gives each its parent. */
+export const SUB_RACES = ["high_elf", "dark_elf", "werebeast", "rabbit_folk"] as const;
+export type SubRace = (typeof SUB_RACES)[number];
+export const SUB_RACE_PARENT: Record<SubRace, Race> = { high_elf: "elf", dark_elf: "elf", werebeast: "beastfolk", rabbit_folk: "beastfolk" };
+
 /** Time of day of a battle (battle input `time`, default day). */
 export const TIMES = ["day", "night"] as const;
 
@@ -50,7 +55,7 @@ export const SOLDIER_MODES = ["standard", "skip_soldiers", "soldiers_only"] as c
 export const MODIFIER_MODES = ["flat", "percent"] as const;
 export const SIGIL_SIDES = ["def", "atk"] as const; // the two 4-piece enchantments of a god (Decision 141)
 export type SigilSide = (typeof SIGIL_SIDES)[number];
-export const SOURCE_CATEGORIES = ["passive", "active", "equipment", "soldier", "prayer", "terrain"] as const; // stacking categories
+export const SOURCE_CATEGORIES = ["passive", "active", "equipment", "soldier", "prayer", "terrain", "race"] as const; // stacking categories
 export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
 export const STATUS_SOURCE = ["inherit", ...SOURCE_CATEGORIES] as const;
 

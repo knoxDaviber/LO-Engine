@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { CLASSES, DRAFT_ACTIONS, DRAFT_ACTORS, DRAFT_SOURCES, EQUIPMENT_TAGS, STATS } from "./enums";
+import { CLASSES, DRAFT_ACTIONS, DRAFT_ACTORS, DRAFT_SOURCES, EQUIPMENT_TAGS, MODIFIER_MODES, RACES, STATS, SUB_RACES, TIMES } from "./enums";
 
 const pct = z.number();
 
@@ -14,6 +14,13 @@ export type DamageFormulaName = (typeof DAMAGE_FORMULAS)[number];
 const equipmentBases = z.partialRecord(z.enum(EQUIPMENT_TAGS), z.partialRecord(z.enum(STATS), z.number())).superRefine((v, ctx) => {
   for (const t of EQUIPMENT_TAGS) if (!v[t]) ctx.addIssue({ code: "custom", message: `equipment type '${t}' has no base stats`, path: [t] });
 });
+
+/** Race / sub-race entry (Decision 148): `lean` is a flat stat delta (scores 0 under cost.stat_weights); `traits` are the time-of-day lines. */
+const raceTrait = z.union([
+  z.strictObject({ time: z.enum(TIMES), stat: z.enum(STATS), mode: z.enum(MODIFIER_MODES), value: z.number() }),
+  z.strictObject({ time: z.enum(TIMES), heal_percent: z.number() }), // heals the unit casts +percent
+]);
+const raceEntry = z.strictObject({ lean: z.partialRecord(z.enum(STATS), z.number()), traits: z.array(raceTrait) });
 
 export const rulesSchema = z.strictObject({
   damage: z.strictObject({
@@ -52,6 +59,8 @@ export const rulesSchema = z.strictObject({
     stat_ceiling: z.number().positive().nullable(),
   }),
   equipment_bases: equipmentBases,
+  races: z.partialRecord(z.enum(RACES), raceEntry), // human has no entry
+  sub_races: z.partialRecord(z.enum(SUB_RACES), raceEntry),
   cost: z.strictObject({
     stat_weights: z.strictObject({
       HP: z.number(), ATK: z.number(), INT: z.number(), DEF: z.number(), MDEF: z.number(), SPD: z.number(),

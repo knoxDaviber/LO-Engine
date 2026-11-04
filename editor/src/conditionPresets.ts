@@ -1,7 +1,7 @@
 // Main / Sub condition presets for the tactics board: plain-English labels mapped onto one condition leaf or selector each.
 // Kind: Check = "only use the skill if ..." (self / board condition), Filter = keeps matching targets (skipped if none),
 // Prioritise = orders targets, never skips. Browser-safe (the test imports it too).
-import { CLASSES, RACES, STATS } from "../../src/schema/enums";
+import { CLASSES, RACES, STATS, SUB_RACES } from "../../src/schema/enums";
 
 export type Kind = "Check" | "Filter" | "Prioritise";
 export interface Preset { id: string; label: string; category: string; kind: Kind; tip: string; value: Record<string, unknown> }
@@ -43,7 +43,7 @@ export function buildPresets(statuses: StatusRef[]): Preset[] {
 
   // Unit Type
   const U = "Unit Type";
-  for (const [kindName, list, leaf] of [["class", CLASSES, "class_is"], ["race", RACES, "race_is"]] as const)
+  for (const [kindName, list, leaf] of [["class", CLASSES, "class_is"], ["race", RACES, "race_is"], ["sub_race", SUB_RACES, "sub_race_is"]] as const)
     for (const v of list) {
       prefer(U, `prefer_${kindName}_${v}`, `Prioritise ${cap(v)}`, { type: leaf, side: T, value: v }, `${cap(v)} targets`);
       add(U, `${kindName}_${v}`, cap(v), "Filter", `are ${cap(v)} (${kindName}); skipped if none.`, { type: leaf, side: T, value: v });

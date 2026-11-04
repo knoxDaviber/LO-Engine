@@ -199,3 +199,50 @@
   stacking: { stackable: true, unique: true, on_reapply: refresh, max_stacks: 1, suppress_weaker: false }
   removal: { removable_by_dispel: true, removed_on_death: true }
   meta: { authored_notes: "Generic monster passive (Frenzy). Modeled on Berserk: unique, lasts while HP is below 50%." }
+
+- id: debuff_003
+  name: "Shieldbreak"
+  description: "GUARD -30 until the target's next action."
+  category: debuff
+  source_category: inherit
+  modifiers:
+    - { stat: GUARD, mode: flat, value: -30 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: affected_unit_actions, count: 1, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Decision 148: Shieldbreaker. Ends after the target's next active skill." }
+
+- id: buff_008
+  name: "Sworn Banner"
+  description: "ATK and INT +10% for the battle."
+  category: buff
+  source_category: inherit
+  modifiers:
+    - { stat: ATK, mode: percent, value: 10 }
+    - { stat: INT, mode: percent, value: 10 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: battle, count: null, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: false, unique: false, on_reapply: refresh, max_stacks: 1, suppress_weaker: true }
+  removal: { removable_by_dispel: false, removed_on_death: true }
+  meta: { authored_notes: "Decision 148: Sworn Banner. Not strippable (aura-like), like a leader aura." }
+
+- id: buff_009
+  name: "Stand Fast"
+  description: "DEF and MDEF +15% while below 50% HP."
+  category: other
+  source_category: inherit
+  modifiers:
+    - { stat: DEF, mode: percent, value: 15 }
+    - { stat: MDEF, mode: percent, value: 15 }
+  flags: { blocks_debuffs: false, intercepts_death: { enabled: false, revive_hp_percent: 20 }, overrides_targeting: null,
+           ignores_tactics: false, prevents_action: false, delays_pending_action: false,
+           removes_on_hit: false, prevents_evasion: false, heals_on_hit_percent_max_hp: 0 }
+  duration: { unit: while_condition, count: null, counts_actions_of: affected, applying_action_counts: false, expires: after_action }
+  stacking: { stackable: true, unique: true, on_reapply: refresh, max_stacks: 1, suppress_weaker: false }
+  removal: { removable_by_dispel: true, removed_on_death: true }
+  meta: { authored_notes: "Decision 148: Stand Fast. Unique, like Berserk." }

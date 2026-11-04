@@ -81,6 +81,22 @@ equipment_bases:
   cloak:       { DEF: 12, MDEF: 25 }
   belt:        { HP: 80, DEF: 12 }
 
+# Races and sub-races (Decision 148) [DEFAULT]: `lean` = flat stat deltas applied to base stats (Max HP included), each summing to 0 under
+# cost.stat_weights (Decision 112); a sub-race adds its lean to its parent's. `traits` apply by battle time of day (stat lines go through
+# the unit's own `race` stacking category; heal_percent raises the heals the unit casts); a sub-race's traits REPLACE its parent's. Human: none.
+races:
+  elf:       { lean: { SKL: 10, EVA: 10, HP: -60, DEF: -5 },   traits: [{ time: night, stat: EVA, mode: flat, value: 5 }] }
+  beastfolk: { lean: { SPD: 5, ATK: 10, INT: -8, MDEF: -10 },  traits: [{ time: night, stat: CRIT, mode: flat, value: 5 }] }
+  dwarf:     { lean: { HP: 100, DEF: 5, GUARD: 10, SPD: -10, EVA: -14 }, traits: [{ time: day, stat: GUARD, mode: flat, value: 5 }] }
+  dragon:    { lean: { HP: 100, ATK: 10, EVA: -20, SKL: -20 }, traits: [{ time: day, stat: DEF, mode: percent, value: 5 }, { time: day, stat: MDEF, mode: percent, value: 5 }] }
+  demon:     { lean: { ATK: 10, INT: 10, DEF: -15, MDEF: -10 }, traits: [{ time: night, stat: ATK, mode: percent, value: 10 }, { time: night, stat: INT, mode: percent, value: 10 }, { time: day, stat: DEF, mode: percent, value: -5 }, { time: day, stat: MDEF, mode: percent, value: -5 }] }
+  angel:     { lean: { INT: 12, MDEF: 10, ATK: -10, HP: -100 }, traits: [{ time: day, heal_percent: 10 }, { time: night, stat: ATK, mode: percent, value: -5 }, { time: night, stat: INT, mode: percent, value: -5 }] }
+sub_races:
+  high_elf:    { lean: { INT: 10, MDEF: 5, ATK: -10, CRIT: -8 }, traits: [{ time: day, stat: SKL, mode: flat, value: 5 }] }
+  dark_elf:    { lean: { ATK: 10, CRIT: 10, INT: -7, MDEF: -10 }, traits: [{ time: night, stat: EVA, mode: flat, value: 5 }, { time: night, stat: CRIT, mode: flat, value: 5 }, { time: day, stat: EVA, mode: flat, value: -5 }] }
+  werebeast:   { lean: { HP: 60, ATK: 6, SPD: -5, EVA: -12 }, traits: [{ time: night, stat: ATK, mode: percent, value: 10 }, { time: day, stat: ATK, mode: percent, value: -5 }] }
+  rabbit_folk: { lean: { SPD: 5, EVA: 12, ATK: -6, HP: -60 }, traits: [{ time: night, stat: EVA, mode: flat, value: 5 }] }
+
 cost:                               # computed, never authored. All placeholders until the gauntlet calibrates them.
   stat_weights: { HP: 0.1, ATK: 1.0, INT: 1.0, DEF: 0.8, MDEF: 0.8, SPD: 1.2, HIT: 0.5, SKL: 0.5, CRIT: 0.5, GUARD: 0.5, EVA: 0.5 }
   skill_price: 10

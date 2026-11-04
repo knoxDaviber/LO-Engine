@@ -34,6 +34,7 @@ const damage = z.strictObject({
   bonus_vs_class: z.array(z.strictObject({ class: z.enum(CLASSES), modifier_percent: z.number() })),
   bonus_on_terrain: z.array(z.strictObject({ terrain: idRef, modifier_percent: z.number() })).default([]), // applies when the battlefield matches
   hit_bonus_percent: z.number(),
+  bonus_if_target_full_hp_percent: z.number().optional(), // Decision 148: +percent damage while the target is at 100% HP (squads: all soldiers' HP full)
   ...common,
 });
 
@@ -69,6 +70,11 @@ const removeBuffs = z
   })
   .refine((v) => (v.target !== undefined) !== (v.side !== undefined), { message: "give exactly one of 'target' or 'side'" });
 
+/** Decision 148: the caster loses `percent` of its current HP (floored), never below 1 HP. */
+const selfHpCost = z.strictObject({ type: z.literal("self_hp_cost"), percent: pct, ...common });
+/** Decision 148: removes up to `count` debuffs from the target, newest first (real statuses only). */
+const removeDebuffs = z.strictObject({ type: z.literal("remove_debuffs"), count: z.number().int().positive(), ...common });
+
 const modifyStat = z.strictObject({
   type: z.literal("modify_stat"),
   stat: z.enum(STATS),
@@ -102,7 +108,12 @@ const reduceDamage = z.strictObject({
 const delayAction = z.strictObject({ type: z.literal("delay_action"), counts: z.number().positive(), ...common });
 const advanceAction = z.strictObject({ type: z.literal("advance_action"), counts: z.number().positive(), ...common });
 /** Cover (Decision 116): run by a before_hit passive on an ally's event (e.g. ally_attacked); the owner takes that single-target hit instead. */
-const cover = z.strictObject({ type: z.literal("cover"), ...common });
+const cover = z.strictObject({
+  type: z.literal("cover"),
+  same_row: z.literal(true).optional(), // Decision 148 (Bodyguard): only a hit on an ally in the owner's row
+  damage_type: z.enum(["physical", "magical"]).optional(), // only hits of this damage type
+  ...common,
+});
 /** Devotion (Mirror): fixed damage = percent of the damage the wearer took from an attacking action, dealt back to the attacker after it (engine equipment.ts). */
 const reflectDamage = z.strictObject({ type: z.literal("reflect_damage"), percent: pct, ...common });
 /** Devotion (Rush): while active (its condition), the wearer's attacks ignore GUARD, like a damage effect's `ignores_guard`. */
@@ -115,5 +126,5 @@ const damageBonus = z.strictObject({ type: z.literal("damage_bonus"), percent: z
 /** Devotion (Meteor): while active, crit hits the wearer deals / takes change by `percent`, a multiplier on rules.damage.crit_multiplier. */
 const critDamage = z.strictObject({ type: z.literal("crit_damage"), on: z.enum(["dealt", "taken"]), percent: z.number().min(-100), ...common });
 
-export const effectSchema = z.discriminatedUnion("type", [damage, heal, applyStatus, removeBuffs, modifyStat, modifyPp, reduceDamage, delayAction, advanceAction, cover, reflectDamage, ignoreGuard, ignoreDefense, damageBonus, critDamage]);
+export const effectSchema = z.discriminatedUnion("type", [damage, heal, applyStatus, removeBuffs, selfHpCost, removeDebuffs, modifyStat, modifyPp, reduceDamage, delayAction, advanceAction, cover, reflectDamage, ignoreGuard, ignoreDefense, damageBonus, critDamage]);
 export type Effect = z.infer<typeof effectSchema>;

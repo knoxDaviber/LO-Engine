@@ -13,7 +13,7 @@
   lore: "A loyal knight with dashing looks, blue eyes, blonde hair. As powerful as he is handsome. He serves the empire and it's emperor with unwavering spirit. Tales across the land sing of his heroics, and while his enemies fear him, they can't help but be awestruck by his very presence."
   base_stats: { HP: 800, ATK: 115, INT: 30, DEF: 70, MDEF: 46, SPD: 50, HIT: 100, SKL: 35, CRIT: 30, GUARD: 30, EVA: 30 }
   pp: { active: 3, passive: 3 }
-  skills: [skl_cav_active_001, skl_cav_active_002, skl_passive_001]
+  skills: [skl_cav_active_001, skl_cav_active_002, skl_passive_001, skl_030]
   restrictions:
     equipment_tags: [sword, spear, heavy_armor, light_armor]
     soldier:
@@ -55,7 +55,7 @@
   lore: "The Emperor of the Empire who has been ruling for as long as it's people remember. He has greyed and aged but his skills have not. He rules his people with an Iron fist but is still respected and close to deified. He has conquered evil and has taken evil's power for himself. Evil submits to him."
   base_stats: { HP: 950, ATK: 100, INT: 30, DEF: 70, MDEF: 40, SPD: 30, HIT: 100, SKL: 22, CRIT: 30, GUARD: 45, EVA: 10 }
   pp: { active: 3, passive: 3 }
-  skills: [skl_inf_active_002, skl_passive_002, skl_inf_active_001]
+  skills: [skl_inf_active_002, skl_passive_002, skl_inf_active_001, skl_029]
   restrictions:
     equipment_tags: [sword, heavy_armor]
     soldier: { mounted_only: false, stat_penalties: [] }
@@ -90,7 +90,7 @@
   lore: "Childhood friend of Leon, secret child of The Emperor. Wishes for peace across the lands but born in a warring time. She retreats to the monastery to lead a life of piety, praying for peace and taking care of the vulnerable. But the monastery is attacked and now she wanders the continent trying to help those who need it the most."
   base_stats: { HP: 550, ATK: 20, INT: 100, DEF: 40, MDEF: 70, SPD: 30, HIT: 100, SKL: 15, CRIT: 30, GUARD: 30, EVA: 20 }
   pp: { active: 3, passive: 3 }
-  skills: [skl_passive_003, skl_passive_004, skl_passive_001, skl_heal_active_001]
+  skills: [skl_passive_003, skl_passive_004, skl_passive_001, skl_heal_active_001, skl_027, skl_028]
   restrictions:
     equipment_tags: [staff, robe, light_armor]
     soldier: { mounted_only: false, stat_penalties: [] }
@@ -126,7 +126,7 @@
   lore: "A young spearman from the forests to the south. He ventured out of his reclusive home in order to temper himself but finds himself in a continental conflict as he fights against the Empire's desire to conquer to continent."
   base_stats: { HP: 800, ATK: 90, INT: 40, DEF: 70, MDEF: 46, SPD: 40, HIT: 100, SKL: 22, CRIT: 30, GUARD: 30, EVA: 30 }
   pp: { active: 3, passive: 3 }
-  skills: [skl_lancer_active_001, skl_lancer_active_002, skl_passive_005]
+  skills: [skl_lancer_active_001, skl_lancer_active_002, skl_passive_005, skl_031]
   restrictions:
     equipment_tags: [spear, light_armor]
     soldier: { mounted_only: false, stat_penalties: [] }
@@ -468,3 +468,191 @@
   preferred_row: front
   unique_effects: []
   designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Generic baseline hero for the class." }
+
+- id: char_015
+  name: Sylwen
+  class: archer
+  race: elf
+  sub_race: dark_elf
+  factions: []
+  role: "Back-row anti-air and setup"
+  lore: "A dark-elf markswoman who strikes from the tree line."
+  base_stats: { HP: 550, ATK: 100, INT: 25, DEF: 45, MDEF: 45, SPD: 41, HIT: 100, SKL: 25, CRIT: 30, GUARD: 15, EVA: 31 }
+  pp: { active: 3, passive: 3 }
+  skills: [skl_002, skl_007, skl_passive_001, skl_019, skl_026, skl_025, skl_023]
+  restrictions:
+    equipment_tags: [bow, dagger, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Archer Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: archer }
+      include_soldiers: false
+    description: "Allied archer heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Placeholder (Decision 148): generic class stats plus the race lean from rules.yaml; lore and notes to be replaced." }
+
+- id: char_016
+  name: Aurael
+  class: mage
+  race: angel
+  factions: []
+  role: "Battle healer, hard to remove"
+  lore: "An angel who mends the line between spells."
+  base_stats: { HP: 500, ATK: 15, INT: 100, DEF: 40, MDEF: 80, SPD: 39, HIT: 100, SKL: 20, CRIT: 30, GUARD: 20, EVA: 20 }
+  pp: { active: 3, passive: 3 }
+  skills: [skl_003, skl_010, skl_011, skl_passive_001, skl_028, skl_027, skl_033]
+  restrictions:
+    equipment_tags: [tome, staff, robe]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Mage Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: mage }
+      include_soldiers: false
+    description: "Allied mage heroes gain 10% INT."
+    effects:
+      - { type: modify_stat, stat: INT, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Placeholder (Decision 148): generic class stats plus the race lean from rules.yaml; lore and notes to be replaced." }
+
+- id: char_017
+  name: Vexis
+  class: flyer
+  race: demon
+  factions: []
+  role: "High-risk diver"
+  lore: "A demon who dives at full health and pays for it."
+  base_stats: { HP: 600, ATK: 100, INT: 25, DEF: 40, MDEF: 55, SPD: 55, HIT: 100, SKL: 20, CRIT: 30, GUARD: 15, EVA: 38 }
+  pp: { active: 3, passive: 3 }
+  skills: [skl_001, skl_008, skl_passive_001, skl_019, skl_024, skl_022, skl_025]
+  restrictions:
+    equipment_tags: [spear, sword, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Flyer Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: flyer }
+      include_soldiers: false
+    description: "Allied flyer heroes gain 10% SPD."
+    effects:
+      - { type: modify_stat, stat: SPD, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Placeholder (Decision 148): generic class stats plus the race lean from rules.yaml; lore and notes to be replaced." }
+
+- id: char_018
+  name: Rikka
+  class: assassin
+  race: beastfolk
+  sub_race: rabbit_folk
+  factions: []
+  role: "Opener on fresh targets"
+  lore: "A quick rabbit-folk who ends fights before they start."
+  base_stats: { HP: 500, ATK: 100, INT: 20, DEF: 40, MDEF: 40, SPD: 42, HIT: 100, SKL: 30, CRIT: 45, GUARD: 10, EVA: 40 }
+  pp: { active: 3, passive: 3 }
+  skills: [skl_001, skl_009, skl_passive_001, skl_018, skl_025, skl_023, skl_024]
+  restrictions:
+    equipment_tags: [dagger, sword, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Assassin Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: assassin }
+      include_soldiers: false
+    description: "Allied assassin heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: back
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Placeholder (Decision 148): generic class stats plus the race lean from rules.yaml; lore and notes to be replaced." }
+
+- id: char_019
+  name: Brunna
+  class: aquatic
+  race: dwarf
+  factions: []
+  role: "Front-row protector"
+  lore: "A dwarf who stands in front of her friends."
+  base_stats: { HP: 800, ATK: 100, INT: 30, DEF: 60, MDEF: 60, SPD: 40, HIT: 100, SKL: 20, CRIT: 30, GUARD: 19, EVA: 20 }
+  pp: { active: 3, passive: 3 }
+  skills: [skl_001, skl_015, skl_014, skl_020, skl_030, skl_031, skl_032, skl_023]
+  restrictions:
+    equipment_tags: [spear, dagger, axe, light_armor]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Aquatic Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: aquatic }
+      include_soldiers: false
+    description: "Allied aquatic heroes gain 10% DEF."
+    effects:
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Placeholder (Decision 148): generic class stats plus the race lean from rules.yaml; lore and notes to be replaced." }
+
+- id: char_020
+  name: Ashkarn
+  class: monster
+  race: dragon
+  factions: []
+  role: "Late-fight anchor"
+  lore: "A dragon that grows harder to kill as the fight drags on."
+  base_stats: { HP: 1000, ATK: 100, INT: 30, DEF: 80, MDEF: 45, SPD: 47, HIT: 100, SKL: 20, CRIT: 30, GUARD: 40, EVA: 10 }
+  pp: { active: 3, passive: 3 }
+  skills: [skl_001, skl_004, skl_016, skl_021, skl_022, skl_033, skl_031, skl_032]
+  restrictions:
+    equipment_tags: [hammer, sword, heavy_armor, light_armor, shield]
+    soldier: { mounted_only: false, stat_penalties: [] }
+  leader_aura:
+    name: "Monster Banner"
+    type: ally_buff
+    faction_id: null
+    trigger: always
+    trigger_event: null
+    condition: null
+    target:
+      side: ally
+      filter: { type: class_is, side: ally, value: monster }
+      include_soldiers: false
+    description: "Allied monster heroes gain 10% ATK."
+    effects:
+      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
+  preferred_row: front
+  unique_effects: []
+  designer_notes: { strengths: "", weaknesses: "", synergies: "", balance: "Placeholder (Decision 148): generic class stats plus the race lean from rules.yaml; lore and notes to be replaced." }

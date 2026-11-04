@@ -27,7 +27,7 @@ import type { Skill, Tactic } from "../schema";
 import type { CondResult } from "./conditions";
 import { evaluateCondition } from "./conditions";
 import type { EffectSkill, ExecCtx } from "./damage";
-import { runEffect } from "./damage";
+import { canCover, runEffect } from "./damage";
 import type { BusPayloads, EventCtx } from "./events";
 import { EVENT_SPECS, busEventFor, eventAttacker, eventUnit } from "./events";
 import { at } from "./log";
@@ -135,16 +135,13 @@ function subscribeEventPassive(state: BattleState, owner: Unit, skill: Skill, ta
     return;
   }
   const spec = EVENT_SPECS[skill.trigger_event!]!;
-  const covers = skill.effects.some((e) => e.type === "cover");
+  const cover = skill.effects.find((e) => e.type === "cover");
   state.bus.subscribe({
     event: busEvent, id: skill.name, owner, order: PASSIVE_ORDER, effect: effectsLabel(skill),
     match: (payload) => {
       const ev: EventCtx = { bus: busEvent, payload };
       if (!spec.match(owner, ev)) return false;
-      if (covers) { // cover only takes a single-target hit aimed at another hero of its side
-        const p = payload as BusPayloads["before_hit"];
-        if (busEvent !== "before_hit" || p.covered || p.single !== true || p.defender === owner || p.defender.kind !== "hero" || p.defender.side !== owner.side) return false;
-      }
+      if (cover?.type === "cover" && (busEvent !== "before_hit" || !canCover(owner, payload as BusPayloads["before_hit"], cover))) return false; // cover only takes a hit it may
       const focus = focusOf(skill, ev);
       if (focus !== undefined && (!focus || !focus.alive || !onSide(skill, owner, focus))) return false;
       const act = activation(state, owner, skill, tactic, ev, focus);
