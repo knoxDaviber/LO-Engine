@@ -4,7 +4,7 @@ import { STAGES } from "../logic/stages";
 import { pack } from "./pack";
 import { Backdrop, cap, Crest, Screen, useScale } from "./ui";
 
-export function Reveal({ s, onNext }: { s: RunState; onNext: () => void }) {
+export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => void; onReroll?: () => void }) {
   const k = useScale();
   const recruit = s.stage > 0;
   const stage = STAGES[s.stage]!;
@@ -22,7 +22,7 @@ export function Reveal({ s, onNext }: { s: RunState; onNext: () => void }) {
             const ch = pack.byId.characters.get(h.entry.char_id)!;
             const isNew = s.fresh.includes(ch.id);
             return (
-              <li key={ch.id} className={`card${isNew ? " card-new" : " card-old"}`} style={{ animationDelay: isNew ? `${0.35 + flip++ * 0.32}s` : "0s" }}>
+              <li key={`${s.seed}-${ch.id}`} className={`card${isNew ? " card-new" : " card-old"}`} style={{ animationDelay: isNew ? `${0.35 + flip++ * 0.32}s` : "0s" }}>
                 <div className="card-in">
                   <div className="card-back"><span className="card-seal"><Crest cls={ch.class} size={Math.round(58 * k)} /></span></div>
                   <div className={`card-front glow-${ch.class}`}>
@@ -39,9 +39,13 @@ export function Reveal({ s, onNext }: { s: RunState; onNext: () => void }) {
             );
           })}
         </ul>
-        <button className="btn btn-primary btn-xl reveal-go" onClick={onNext} autoFocus style={{ animationDelay: `${0.5 + s.fresh.length * 0.32}s` }}>
-          {recruit ? `March on ${stage.name}` : "To the Field"}
-        </button>
+        {onReroll && <p className="reveal-hint">Not the company you wanted? Reroll as often as you like.</p>}
+        <div className="reveal-actions">
+          {onReroll && <button className="btn btn-ghost" onClick={onReroll}>Reroll Company</button>}
+          <button className="btn btn-primary btn-xl reveal-go" onClick={onNext} autoFocus style={{ animationDelay: `${0.5 + s.fresh.length * 0.32}s` }}>
+            {recruit ? `March on ${stage.name}` : "To the Field"}
+          </button>
+        </div>
       </div>
     </Screen>
   );

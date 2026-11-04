@@ -11,8 +11,8 @@ import { validateBattle } from "../src/validate/battle";
 import { bootPack } from "../game/logic/content";
 import { buildBattle } from "../game/logic/battle";
 import { autoField, kitOf, moveHero, pickLeader, poolHero, rollOrder, type PoolHero } from "../game/logic/party";
-import { buildReplay } from "../game/logic/replay";
-import { afterResult, fight, fightBlocker, moveTo, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
+import { buildReplay, motionOf, type Beat, type Pop, type UnitInfo } from "../game/logic/replay";
+import { afterResult, fight, fightBlocker, moveTo, poolIds, rerollStart, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
 import { resolveEnemies, STAGES } from "../game/logic/stages";
 import { captionsFor, CAPTIONS, fillText, PREP_STEPS, tutorialContext, tutorialEvent, tutorialHero, startTutorial } from "../game/logic/tutorial";
 
@@ -66,6 +66,21 @@ test("pools grow 4, 5, 6 and at most rules.draft.fielded fight, against 2, 3, 4 
       assert.deepEqual(errors(battle), []);
     });
   }
+});
+
+test("a reroll of the starting pool rolls a new, full, valid company", () => {
+  const s = startRun(pack, 5, false);
+  const r = rerollStart(pack, s, 6);
+  assert.equal(r.screen, "reveal");
+  assert.equal(r.seed, 6);
+  assert.deepEqual(r.order, rollOrder(pack, 6));
+  assert.equal(r.pool.length, START_POOL);
+  assert.equal(new Set(poolIds(r)).size, START_POOL);
+  assert.ok(r.leader && r.pool.find((h) => h.entry.char_id === r.leader)!.slot);
+  assert.deepEqual(rerollStart(pack, s, 6), r);
+  assert.deepEqual(fight(pack, toPrep(pack, r)).fought!.replay.notImplemented, []);
+  const recruit = { ...s, stage: 1 };
+  assert.equal(rerollStart(pack, recruit, 7), recruit);
 });
 
 test("a benched hero cannot join a full team, a swap keeps the count, a benched leader hands over", () => {
@@ -213,4 +228,17 @@ test("tutorial text fills in for any party and the waits advance", () => {
   const won = fight(pack, toPrep(pack, startRun(pack, 4, true)));
   assert.equal(afterResult(pack, { ...won, fought: { ...won.fought!, summary: { ...won.fought!.summary, won: true } } }).tutorial, null);
   assert.equal(tutorialEvent(startTutorial(), "fight")!.step, 0);
+});
+
+test("motionOf: attack, support and class motions", () => {
+  const mk = (id: string, side: "challenger" | "defender", cls = "warrior") => ({ id, side, cls, kind: "hero" }) as UnitInfo;
+  const a = mk("a", "challenger", "archer"), ally = mk("b", "challenger"), foe = mk("c", "defender"), units = [a, ally, foe];
+  const beat = (pops: Pop[], kind = "action", actor = "a") => ({ kind, actor, pops }) as Beat;
+  assert.equal(motionOf(a, beat([{ kind: "heal", unit: "a", amount: 3 }]), units), "support");
+  assert.equal(motionOf(a, beat([{ kind: "heal", unit: "b", amount: 3 }]), units), "support");
+  assert.equal(motionOf(a, beat([{ kind: "text", unit: "c", text: "Slow" }]), units), "shot");
+  assert.equal(motionOf(a, beat([{ kind: "damage", unit: "c", amount: 5, crit: false, guard: false }, { kind: "heal", unit: "a", amount: 2 }]), units), "shot");
+  assert.equal(motionOf(a, beat([{ kind: "text", unit: "a", text: "Up" }]), units), "shot");
+  assert.equal(motionOf(a, beat([], "stunned"), units), "stun");
+  assert.equal(motionOf(a, beat([], "action", "c"), units), null);
 });

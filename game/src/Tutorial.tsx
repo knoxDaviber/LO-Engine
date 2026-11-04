@@ -16,7 +16,7 @@ function useTarget(target: string | null): Box | null {
       if (!live) return;
       const el = document.querySelector(`[data-tut="${target}"]`);
       const r = el?.getBoundingClientRect();
-      const pad = 8;
+      const pad = 18; // room for a nameplate hanging below its tile
       setBox((b) => {
         if (!r) return null;
         const x = Math.max(0, r.x - pad), y = Math.max(0, r.y - pad);

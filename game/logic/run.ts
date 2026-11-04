@@ -42,6 +42,14 @@ export function startRun(pack: Pack, seed: number, guided: boolean): RunState {
 
 export const poolIds = (s: RunState): string[] => s.pool.map((h) => h.entry.char_id);
 
+/** Free reroll of the starting pool: a new seed rolls a new order, and the recruits, enemies and battles follow it. */
+export function rerollStart(pack: Pack, s: RunState, seed: number): RunState {
+  if (s.stage !== 0) return s;
+  const order = rollOrder(pack, seed);
+  const pool = autoField(pack, order.slice(0, START_POOL).map((id) => poolHero(pack, id)));
+  return { ...s, seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, START_POOL) };
+}
+
 export const toPrep = (pack: Pack, s: RunState): RunState => ({ ...s, screen: "prep", fresh: [], fought: null, enemy: resolveEnemies(pack, s.seed, s.stage, poolIds(s)) });
 
 /** Keeps the leader valid after a move: a benched leader hands over, a first fielded hero takes it. */

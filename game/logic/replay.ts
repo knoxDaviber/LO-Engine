@@ -43,6 +43,22 @@ export interface Beat {
   at: number;
 }
 
+/** How the actor moves this beat; renderers map it to their own animation. */
+export type Motion = "melee" | "shot" | "cast" | "support" | "squad" | "stun";
+
+/** The actor's motion from its class and what the beat actually did (damage or a debuff on a foe is an attack; a heal or buff on others is support, whatever the class). */
+export function motionOf(u: UnitInfo, beat: Beat | null, units: UnitInfo[]): Motion | null {
+  if (!beat || beat.actor !== u.id) return null;
+  if (beat.kind === "stunned") return "stun";
+  if (beat.kind === "squad" || u.kind === "squad") return "squad";
+  const foe = (id: string) => units.find((x) => x.id === id)?.side !== u.side;
+  const attack = beat.pops.some((p) => p.unit !== u.id && (p.kind === "damage" || p.kind === "miss" || (p.kind === "text" && foe(p.unit))));
+  if (!attack && beat.pops.some((p) => p.unit !== u.id || p.kind === "heal")) return "support";
+  if (u.cls === "archer") return "shot";
+  if (u.cls === "mage" || u.cls === "holy") return "cast";
+  return "melee";
+}
+
 export interface Replay {
   units: UnitInfo[];
   beats: Beat[];

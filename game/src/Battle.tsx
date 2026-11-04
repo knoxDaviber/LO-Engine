@@ -1,7 +1,7 @@
 // The animated replay: it plays game/logic/replay.ts beats on the same field the prep screen uses.
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Sprite } from "../../editor/src/Sprite";
-import type { Beat, Pop, UnitInfo, UnitSnap } from "../logic/replay";
+import { motionOf, type Beat, type Motion, type Pop, type UnitInfo, type UnitSnap } from "../logic/replay";
 import type { RunState } from "../logic/run";
 import { STAGES } from "../logic/stages";
 import { captionsFor, CAPTIONS, fillText, tutorialContext } from "../logic/tutorial";
@@ -28,18 +28,32 @@ function Bar({ hp, max }: { hp: number; max: number }) {
   return <div className={`hp${pct < 30 ? " low" : ""}`} role="img" aria-label={`${hp} of ${max} HP`}><i className="hp-lag" style={{ width: `${pct}%` }} /><i className="hp-fill" style={{ width: `${pct}%` }} /></div>;
 }
 
-function Unit({ u, snap, beat, landed, speed, size, lunge }: { u: UnitInfo; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; lunge: { dx: number; dy: number } | null }) {
+interface Aim { dx: number; dy: number; reach: number }
+
+function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo; units: UnitInfo[]; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; aim: Aim | null }) {
   const lane = u.row as Lane;
   const pos = fieldPos(u.side, lane, u.column);
   const mirror = u.side === "defender";
   const acting = beat?.actor === u.id;
+  const motion = motionOf(u, beat, units);
   const pops = beat?.pops.filter((p) => p.unit === u.id) ?? [];
   const hit = landed && pops.some((p) => p.kind === "damage");
   const healed = landed && pops.some((p) => p.kind === "heal");
-  const style = { left: `${pos.x}%`, top: `${pos.y}%`, ["--speed" as string]: speed, ["--dx" as string]: `${lunge?.dx ?? 0}vw`, ["--dy" as string]: `${lunge?.dy ?? 0}vh` } as CSSProperties;
-  const cls = `unit unit-${u.kind} side-${u.side}${snap.alive ? "" : " dead"}${acting ? " acting" : ""}${hit ? " hit" : ""}${healed ? " healed" : ""}`;
+  // The body travels part of the way to the target; a projectile flies all of it.
+  const body = !aim ? { dx: 0, dy: 0 }
+    : motion === "melee" ? { dx: aim.dx * aim.reach, dy: (aim.dy * aim.reach) / 1.6 }
+      : motion === "squad" ? { dx: aim.dx * 0.22, dy: aim.dy * 0.22 }
+        : motion === "shot" ? { dx: aim.dx * -0.1, dy: aim.dy * -0.1 }
+          : { dx: 0, dy: 0 };
+  const style = {
+    left: `${pos.x}%`, top: `${pos.y}%`, ["--speed" as string]: speed, ["--dx" as string]: `${body.dx}vw`, ["--dy" as string]: `${body.dy}vh`,
+    ["--ax" as string]: `${aim?.dx ?? 0}vw`, ["--ay" as string]: `${aim?.dy ?? 0}vh`,
+  } as CSSProperties;
+  const cls = `unit unit-${u.kind} side-${u.side}${snap.alive ? "" : " dead"}${acting ? " acting" : ""}${motion ? ` motion-${motion}` : ""}${hit ? " hit" : ""}${healed ? " healed" : ""}`;
   return (
     <div className={cls} style={style} data-unit={u.id}>
+      {aim && (motion === "shot" || motion === "cast") && <i key={beat!.index} className={`fx fx-${motion}`} aria-hidden />}
+      {acting && beat?.skill && <span key={beat!.index} className="skill-tag">{beat.skill}</span>}
       <div className="unit-body" key={acting ? `a${beat!.index}` : "idle"}>
         {u.kind === "hero" ? (
           <Sprite cls={u.cls} name={u.name} size={size} mirror={mirror} />
@@ -48,7 +62,7 @@ function Unit({ u, snap, beat, landed, speed, size, lunge }: { u: UnitInfo; snap
         )}
       </div>
       <div className="hud">
-        <div className="hud-name">{snap.leader && <em className="crown" />}{u.kind === "hero" ? <Crest cls={u.cls} size={15} /> : null}<span>{u.kind === "hero" ? u.name : `Squad x${snap.soldiers}`}</span></div>
+        <div className="hud-name">{snap.leader && <em className="crown" />}{u.kind === "hero" ? <Crest cls={u.cls} size={15} /> : null}<span>{u.kind === "hero" ? u.name : `${u.name.split("'s ").pop()} x${snap.soldiers}`}</span></div>
         <Bar hp={snap.hp} max={snap.maxHp} />
         {u.kind === "hero" && <div className="hud-pp"><Pips n={snap.ppActive} max={u.ppActive} kind="active" /><Pips n={snap.ppPassive} max={u.ppPassive} kind="passive" /></div>}
         {snap.statuses.length > 0 && <div className="hud-st">{snap.statuses.map((st) => <span key={st.id} className={`st st-${st.category}`} title={st.name}>{st.name}</span>)}</div>}
@@ -103,16 +117,17 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
     setI(last);
   };
 
-  const lungeFor = (u: UnitInfo) => {
-    if (beat?.actor !== u.id || !beat.targets.length) return null;
-    const t = units.find((x) => x.id === beat.targets[0]);
-    if (!t || t.id === u.id) return null;
+  /** Where the actor's action lands, in vw/vh from its own spot: the chosen target, else whoever the beat actually touched (squads attack without a target selection). */
+  const aimFor = (u: UnitInfo): Aim | null => {
+    if (beat?.actor !== u.id) return null;
+    const tid = beat.targets[0] ?? beat.pops.find((p) => p.unit !== u.id)?.unit;
+    if (!tid || tid === u.id) return null;
+    const t = units.find((x) => x.id === tid);
+    if (!t) return null;
     const a = fieldPos(u.side, u.row as Lane, u.column), b = fieldPos(t.side, t.row as Lane, t.column);
-    const reach = t.side === u.side ? 0.1 : 0.42;
-    return { dx: (b.x - a.x) * reach, dy: ((b.y - a.y) * reach) / 1.6 };
+    return { dx: b.x - a.x, dy: b.y - a.y, reach: t.side === u.side ? 0.1 : 0.42 };
   };
 
-  const actorInfo = units.find((u) => u.id === beat?.actor);
   const banner = beat && (beat.kind === "phase" || beat.kind === "phase_end" || beat.kind === "end");
   const logLines = beats.slice(0, i + 1).flatMap((b) => b.lines);
 
@@ -138,14 +153,8 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
       </header>
 
       <section className="field battle-field" aria-label="Battle">
-        {units.map((u) => <Unit key={u.id} u={u} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} lunge={lungeFor(u)} />)}
+        {units.map((u) => <Unit key={u.id} u={u} units={units} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} aim={aimFor(u)} />)}
       </section>
-
-      {beat?.skill && actorInfo && (
-        <div className={`skill-banner side-${actorInfo.side}`} key={beat.index}>
-          <small>{actorInfo.name}</small><b>{beat.skill}</b>
-        </div>
-      )}
 
       {banner && (
         <div className={`phase-banner${beat!.kind === "end" ? ` end ${replay.winner === "challenger" ? "won" : "lost"}` : ""}`} key={beat!.index}>
