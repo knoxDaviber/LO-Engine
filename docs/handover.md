@@ -60,7 +60,7 @@ progress in `docs/roadmap.md`.
 2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Tests read PP from content. **Swept 2026-11-04** (active/passive 2-5, 100 runs,
    geared battles): active 2 leaves 20-57% timeouts on the three city battles, active 3+ drops them to 0-8%, so 2 is too low. Passive above 3
    changes nothing much (sample/full4v4 have no passives on sheets, so they are flat by construction). Challenger win is not monotonic in active PP
-   (city4v4-edit 95% at 3, 60% at 4, 85% at 5), so active PP swings matchups. No reason found to move off 3/3. **Designer call:** lock 3/3?
+   (city4v4-edit 95% at 3, 60% at 4, 85% at 5), so active PP swings matchups. No reason found to move off 3/3. **Locked at 3/3 for now (designer 2026-11-04);** still to do: update Decision 140 and design doc Section 8 wording (item 8).
 3. **Done 2026-11-04 (Decision 141):** two-sided enchantments built per `docs/enchantments_proposal.md`: `sigil_side: def | atk` on the hero entry
    (`E_SIGIL_SIDE_MISSING`, `W_SIGIL_SIDE_UNUSED`), `four_piece_def` / `four_piece_atk` in `gods.yaml`, effects `ignore_defense`, `damage_bonus`, `crit_damage`.
    2-pieces follow the proposal table, not the old `gods.yaml` (Full Moon, Plate, Gift, Breeze changed). Editor side picker clicked through.
@@ -97,8 +97,19 @@ progress in `docs/roadmap.md`.
 7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a
    stack trace.
 
-Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6). Main game client (Decision 137:
-the editor is a separate tool) and soldier skill points (Decision 138: 20 per soldier type, trees with prerequisites, 5 levels per category, season-end
+**Designer requests 2026-11-04 (in this order; none started).** Items 9-11 change combat, so do them before the item 5 balance pass, then rerun `tools/balance-series.ts`.
+
+8. **PP 3/3 locked for now:** record it in Decision 140 and the design doc (docs only).
+9. **Sigils in drafts:** everyone in the draft battles should have sigils (`draft_city` rosters: today several heroes have none; both sides, even count).
+10. **Roll evade and hit before skills:** hit / evade is rolled before the skill resolves. If the attack is evaded the skill does not trigger, so it costs nothing (no PP spent). Today the order is `decideTactic` -> spend PP -> resolve effects, with rolls per hit. **Ask first:** multi-target skills (one target evades, others do not) and multi-hit skills, and whether an evaded skill still uses up the unit's action.
+11. **Quick Guard counts as GUARD:** ignoring guard bypasses Quick Guard, even if it shows up (it can still trigger and appear in the log, it just does nothing against `ignore_guard`).
+12. **Skills need a condition:** a skill alone does nothing; every skill is used only through a condition. Most skills come with a default condition, shown in their main condition slot. Without a valid condition a skill does not trigger. This changes Decision 136 (`main: null` is allowed today and skill defaults are ANDed in): content, tactic sheets, validator, editor picker and design doc all need updating. **Ask first:** which skills get no default, so the player must pick one.
+13. **Editor: banned units obvious:** make it clearer in the visual UI which units are banned, fade them out.
+14. **PP gear with downsides:** introduce gear that increases PP and carries a downside. Designer to approve items and penalties (`pp_modifiers` already exists; max 4, Dragon Scale is +1 Active PP).
+15. **Creation system:** a proper system where users create heroes, skills and gear. Overlaps item 6 (skill / equipment / character editors), so fold those in. **Ask first:** whether it lives in the editor or the game, and what limits apply (community tier rules, cost).
+16. **Start the actual game:** begin the main game client (Decision 137: separate from the editor, default content, visual-first UI). This schedules what "Blocked / later" listed as unscheduled. **Ask first:** stack, and the first playable slice. Design doc Section 18 has the open questions.
+
+Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6). Main game client: now queued as item 16 (Decision 137: the editor is a separate tool). Soldier skill points (Decision 138: 20 per soldier type, trees with prerequisites, 5 levels per category, season-end
 reallocation, slight cost) are specced, not scheduled; open questions in design doc Section 18.
 
 ## Brief: editor visual overhaul (done via the designer zip, applied 2026-11-03; kept for reference)
