@@ -83,8 +83,9 @@ export function Pips({ n, max, kind }: { n: number; max: number; kind: "active" 
 // ------------------------------------------------------------------ scenery
 export function Backdrop({ scene, dim, embers = 22 }: { scene: Scene; dim?: boolean; embers?: number }) {
   return (
-    <div className="backdrop" aria-hidden>
+    <div className={`backdrop scene-${scene}`} aria-hidden>
       <img src={SCENES[scene].bg} alt="" />
+      <div className="backdrop-haze" />
       {dim && <div className="backdrop-dim" />}
       <div className="embers">
         {Array.from({ length: embers }, (_, i) => (

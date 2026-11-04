@@ -39,11 +39,25 @@ button:disabled { cursor: not-allowed; }
 
 /* Scenery */
 .backdrop { position: absolute; inset: 0; overflow: hidden; }
-.backdrop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.backdrop { --haze: rgba(255, 190, 130, 0.5); }
+.backdrop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: bg-drift 52s ease-in-out infinite alternate; }
+@keyframes bg-drift { from { transform: scale(1); } to { transform: scale(1.06) translate(-1.2%, -0.8%); } }
+.backdrop-haze { position: absolute; inset: -10% -30%; opacity: 0.28; filter: blur(36px); pointer-events: none; background: radial-gradient(ellipse 30% 40% at 25% 55%, var(--haze), transparent), radial-gradient(ellipse 35% 35% at 70% 40%, var(--haze), transparent); animation: haze-drift 44s ease-in-out infinite alternate; }
+@keyframes haze-drift { from { transform: translateX(-9%); } to { transform: translateX(9%); } }
+.scene-plains, .scene-title { --haze: rgba(255, 238, 190, 0.5); }
+.scene-forest { --haze: rgba(170, 230, 160, 0.45); }
+.scene-swamp { --haze: rgba(150, 200, 130, 0.45); }
+.scene-mountains { --haze: rgba(200, 220, 255, 0.5); }
+.scene-lake { --haze: rgba(170, 210, 240, 0.5); }
 .backdrop-dim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 6, 20, 0.45), rgba(8, 6, 20, 0.15) 40%, rgba(8, 6, 20, 0.5)); }
 .mute-fixed { position: fixed; top: 12px; right: 14px; z-index: 60; }
 .embers { position: absolute; inset: 0; pointer-events: none; }
 .embers i { position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%; background: radial-gradient(circle, #ffe0a0, #ff8a3c 55%, transparent 70%); box-shadow: 0 0 8px 2px rgba(255, 140, 60, 0.5); animation: ember linear infinite; }
+.scene-plains .embers i, .scene-title .embers i { background: radial-gradient(circle, #fffbe0, #f3e08a 55%, transparent 70%); box-shadow: 0 0 6px 1px rgba(255, 245, 190, 0.45); }
+.scene-forest .embers i, .scene-swamp .embers i { width: 5px; height: 5px; background: radial-gradient(circle, #f4ffb8, #b8f060 50%, transparent 70%); box-shadow: 0 0 10px 3px rgba(190, 255, 110, 0.5); }
+.scene-mountains .embers i { top: -10px; bottom: auto; width: 4px; height: 4px; background: #f4f8ff; box-shadow: 0 0 4px rgba(255, 255, 255, 0.6); animation-name: snow; }
+.scene-lake .embers i { width: 9px; height: 9px; background: radial-gradient(circle, rgba(225, 240, 255, 0.8), transparent 70%); box-shadow: none; }
+@keyframes snow { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 0.9; } 90% { opacity: 0.8; } 100% { transform: translate(var(--drift), 104vh); opacity: 0; } }
 @keyframes ember { 0% { transform: translate(0, 0) scale(1); opacity: 0; } 12% { opacity: 1; } 85% { opacity: 0.7; } 100% { transform: translate(var(--drift), -92vh) scale(0.3); opacity: 0; } }
 
 /* Crests, pips */
@@ -400,7 +414,8 @@ button:disabled { cursor: not-allowed; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-  .sprite-anim, .embers, .march-line { animation: none !important; }
+  .sprite-anim, .march-line, .backdrop img, .backdrop-haze { animation: none !important; }
+  .embers { display: none; }
   .pop { animation-duration: 1s !important; }
 }
 
