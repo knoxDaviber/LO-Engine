@@ -204,6 +204,10 @@
           "damage_percent": {
             "type": "number",
             "minimum": 0
+          },
+          "disadvantage_percent": {
+            "type": "number",
+            "maximum": 0
           }
         },
         "required": [

@@ -56,8 +56,19 @@ test("a class_advantage pair's damage_percent replaces the global advantage for 
   mon.class = "monster";
   const ctx = { pack: s.pack };
   assert.equal(computeDamage(holy, mon, strike(), ctx, HIT).matchup, 1.5);
-  assert.equal(computeDamage(mon, holy, strike(), ctx, HIT).matchup, 0.85); // disadvantage side unchanged
+  assert.equal(computeDamage(mon, holy, strike(), ctx, HIT).matchup, 1 + s.pack.rules.matchup.disadvantage_damage_percent / 100); // disadvantage side keeps the global
   assert.equal(computeDamage(unit(s, LIEF), unit(s, LEON), strike(), ctx, HIT).matchup, 1.25); // other pairs keep the global 25
+});
+
+test("a pair's disadvantage_percent replaces the global loser penalty (flyer hitting an archer: none; lancer hitting infantry: global)", () => {
+  const s = sampleState();
+  const fly = unit(s, LIEF), arc = unit(s, LEON), inf = unit(s, JASMINE);
+  fly.class = "flyer"; arc.class = "archer"; inf.class = "infantry";
+  const ctx = { pack: s.pack };
+  assert.equal(computeDamage(fly, arc, strike(), ctx, HIT).matchup, 1 + (s.pack.rules.class_advantage.find((p) => p.attacker === "archer")!.disadvantage_percent ?? NaN) / 100);
+  const lan = unit(s, LIEF);
+  lan.class = "lancer";
+  assert.equal(computeDamage(lan, inf, strike(), ctx, HIT).matchup, 1 + s.pack.rules.matchup.disadvantage_damage_percent / 100);
 });
 
 test("Flyer: EVA x1.5 against melee hits only (rules.class_traits.flyer_melee_eva_bonus 50)", () => {

@@ -378,6 +378,6 @@ export function describeTerrain(t: Terrain, cat: Cat): Described {
 // ------------------------------------------------------------------ rules
 /** "Infantry beats lancer (+X% damage)" for every class_advantage pair; pair override or the default matchup percent. */
 export function describeClassAdvantage(cat: Cat): Described {
-  const lines = cat.rules.class_advantage.map((p) => `${p.attacker} beats ${p.defender} (+${fmt(p.damage_percent ?? cat.rules.matchup.advantage_damage_percent)}% damage)`);
+  const lines = cat.rules.class_advantage.map((p) => `${p.attacker} beats ${p.defender} (+${fmt(p.damage_percent ?? cat.rules.matchup.advantage_damage_percent)}% damage; the loser ${fmt(p.disadvantage_percent ?? cat.rules.matchup.disadvantage_damage_percent)}%)`);
   return { summary: lines.length ? `${lines.length} class advantages` : "No class advantages", lines };
 }

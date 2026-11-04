@@ -254,6 +254,7 @@ test("matchupPct reads the class rules: advantage up, reverse down, same class n
   assert.ok(matchupPct(pack, p.attacker, p.defender) > 0);
   assert.equal(matchupPct(pack, p.defender, p.attacker), pack.rules.matchup.disadvantage_damage_percent);
   assert.equal(matchupPct(pack, p.attacker, p.attacker), 0);
+  assert.equal(matchupPct(pack, "flyer", "archer"), pack.rules.class_advantage.find((q) => q.attacker === "archer")!.disadvantage_percent ?? NaN);
 });
 
 /** A rogue run's fought battle with chosen heroes dead at the last beat and a chosen result. */

@@ -515,7 +515,7 @@ caps:
 rules:
   damage:    { min_damage: 1, crit_multiplier: 1.5 }   # floor(max(1, power * multiplier * matchup - defense)); no variance
   guard:     { damage_reduction_percent: 50, total_reduction_cap_percent: 75 }
-  matchup:   { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -15 }
+  matchup:   { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -50 }
   timeline:  { interval_constant: 1000, min_spd: 5 }
   pp:        { base_active: 2, base_passive: 2, max: 4 }
   board:     { rows: 4, columns: 3, hero_rows: 2 }

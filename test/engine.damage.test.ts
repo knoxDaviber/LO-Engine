@@ -54,7 +54,9 @@ test("class advantage and disadvantage apply to power before defense", () => {
   const { eff, ctx, leon, lief } = setup();
   const e = eff("skl_cav_active_001");
   assert.equal(computeDamage(lief, leon, e, ctx, HIT).amount, 65); // lancer > cavalry: 90 x 1.2 x 1.25 = 135 - 70
-  assert.equal(computeDamage(leon, lief, e, ctx, HIT).amount, 47); // cavalry vs lancer: 138 x 0.85 = 117.3 - 70
+  const lose = 1 + ctx.pack.rules.matchup.disadvantage_damage_percent / 100;
+  const big = eff("skl_cav_active_002"); // power 207 before matchup, so the min-damage floor does not hide the percent
+  assert.equal(computeDamage(leon, lief, big, ctx, HIT).amount, Math.floor(207 * lose - 70)); // cavalry vs lancer
 });
 
 test("bonus_vs_class multiplies with the class matchup; hybrid defense is the average of DEF and MDEF", () => {
@@ -221,7 +223,7 @@ test("pool formula: (ATK - DEF) x (1 + bonus% - reduction%), crit after, capped 
   const capped = computeDamage(leon, emp, ca, { ...one, reductions: [50, 50] }, { hit: true, crit: false, guard: true });
   assert.equal(capped.amount, 17); // 1.25 - 1.5 < 0.25: capped at 0.25
   assert.deepEqual(capped.pool, { bonus: 25, reduction: 150, factor: 0.25 });
-  assert.equal(computeDamage(leon, lief, ca, one, HIT).amount, 57); // cavalry vs lancer -15: 68 x 0.85 = 57.8
+  assert.equal(computeDamage(leon, lief, ca, one, HIT).amount, Math.floor(68 * (1 + s.pack.rules.matchup.disadvantage_damage_percent / 100))); // cavalry vs lancer: 68 x loss factor
   assert.equal(computeDamage(leon, emp, { ...ca, bonus_vs_class: [{ class: "infantry", modifier_percent: 25 }] }, one, HIT).amount, 102); // 68 x 1.5 (additive)
   assert.equal(computeDamage(jas, emp, ca, one, HIT).amount, 1); // core min 1 x 1.25, floored
   // hero_hits (content value 4) multiplies the final amount; a squad's damage is untouched

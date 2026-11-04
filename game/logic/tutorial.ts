@@ -68,7 +68,7 @@ export function advantageText(pack: Pack): string {
   const { class_advantage: pairs, matchup } = pack.rules;
   const plain = pairs.filter((p) => p.damage_percent === undefined).map((p) => `${cap(p.attacker)} beats ${cap(p.defender)}`);
   const special = pairs.filter((p) => p.damage_percent !== undefined).map((p) => `${cap(p.attacker)} deals +${p.damage_percent}% to ${cap(p.defender)}`);
-  return `${plain.join(", ")}: +${matchup.advantage_damage_percent}% damage and +${matchup.advantage_hit} to hit, and the losing side deals ${Math.abs(matchup.disadvantage_damage_percent)}% less. ${special.join(", ")}.`;
+  return `${plain.join(", ")}: +${matchup.advantage_damage_percent}% damage and +${matchup.advantage_hit} to hit, and the losing side deals ${Math.abs(matchup.disadvantage_damage_percent)}% less${pairs.some((p) => p.disadvantage_percent !== undefined) ? " (flyers take no penalty)" : ""}. ${special.join(", ")}.`;
 }
 
 /** The hero the walkthrough talks about and points at: the first fielded one (the pool only as a fallback, the tutorial keeps someone fielded). */

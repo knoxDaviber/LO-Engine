@@ -187,5 +187,6 @@ export function matchupPct(pack: Pack, mine: UnitClass, theirs: UnitClass): numb
   const { class_advantage: pairs, matchup } = pack.rules;
   const win = pairs.find((p) => p.attacker === mine && p.defender === theirs);
   if (win) return win.damage_percent ?? matchup.advantage_damage_percent;
-  return pairs.some((p) => p.attacker === theirs && p.defender === mine) ? matchup.disadvantage_damage_percent : 0;
+  const lose = pairs.find((p) => p.attacker === theirs && p.defender === mine);
+  return lose ? lose.disadvantage_percent ?? matchup.disadvantage_damage_percent : 0;
 }

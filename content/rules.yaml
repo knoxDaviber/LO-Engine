@@ -15,7 +15,7 @@
 # least min_damage). Squads already sum their 10 soldiers and are unaffected; heals are unaffected. What-if: --hero-hits=N (sim), lists on batch.
 damage:   { min_damage: 1, crit_multiplier: 1.5, formula: pool, ratio_k: 100, floor_pct: 20, def_weight: 1, hero_hits: 4 }
 guard:    { damage_reduction_percent: 50, total_reduction_cap_percent: 75 }
-matchup:  { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -15 }
+matchup:  { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -50 }
 timeline: { interval_constant: 1000, min_spd: 5 }                                  # interval = round(constant / max(SPD, min_spd))
 pp:       { base_active: 3, base_passive: 3, max: 4 }
 board:    { rows: 4, columns: 3, hero_rows: 2 }
@@ -33,7 +33,7 @@ class_advantage:                    # attacker has the advantage over defender
   - { attacker: infantry, defender: lancer }
   - { attacker: lancer,   defender: cavalry }
   - { attacker: cavalry,  defender: infantry }
-  - { attacker: archer,   defender: flyer,   damage_percent: 50 }
+  - { attacker: archer,   defender: flyer,   damage_percent: 50, disadvantage_percent: 0 }   # the flyer takes no penalty hitting an archer
   - { attacker: holy,     defender: monster, damage_percent: 50 }   # per-pair override of advantage_damage_percent
 
 draft:

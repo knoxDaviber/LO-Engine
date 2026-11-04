@@ -260,7 +260,7 @@ function Matchups({ leaving, onClose }: { leaving: boolean; onClose: () => void 
             </li>
           ))}
         </ul>
-        <p className="chart-note">The winning side also gets +{matchup.advantage_hit} to hit. The losing side of a matchup deals {Math.abs(matchup.disadvantage_damage_percent)}% less damage.</p>
+        <p className="chart-note">The winning side also gets +{matchup.advantage_hit} to hit. The losing side deals {Math.abs(matchup.disadvantage_damage_percent)}% less damage{pairs.some((p) => p.disadvantage_percent !== undefined) ? " (flyers take no penalty)" : ""}.</p>
       </section>
     </div>
   );

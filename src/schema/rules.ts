@@ -37,8 +37,9 @@ export const rulesSchema = z.strictObject({
   timeline: z.strictObject({ interval_constant: z.number().positive(), min_spd: z.number().positive() }),
   pp: z.strictObject({ base_active: z.number().int().min(0), base_passive: z.number().int().min(0), max: z.number().int().positive() }),
   board: z.strictObject({ rows: z.number().int().positive(), columns: z.number().int().positive(), hero_rows: z.number().int().positive() }),
-  // damage_percent (optional) replaces matchup.advantage_damage_percent for that pair only; hit bonus and the disadvantage side are unchanged.
-  class_advantage: z.array(z.strictObject({ attacker: z.enum(CLASSES), defender: z.enum(CLASSES), damage_percent: z.number().min(0).optional() })),
+  // damage_percent (optional) replaces matchup.advantage_damage_percent for that pair only; hit bonus is unchanged.
+  // disadvantage_percent (optional, <= 0) replaces matchup.disadvantage_damage_percent for the defender hitting the attacker of that pair (flyer vs archer: 0).
+  class_advantage: z.array(z.strictObject({ attacker: z.enum(CLASSES), defender: z.enum(CLASSES), damage_percent: z.number().min(0).optional(), disadvantage_percent: z.number().max(0).optional() })),
   stun_pushback_counts: z.number().positive().nullable(),
   rolls: z.strictObject({
     hit_min: z.number(), hit_max: z.number(), crit_min: z.number(), crit_max: z.number(), guard_min: z.number(), guard_max: z.number(),

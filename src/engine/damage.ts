@@ -6,7 +6,7 @@
 //   defense = DEF_total = DEF (physical), MDEF (magical), average of both (hybrid); a squad sums its living soldiers
 //   core    = max(min_damage, power - defense)
 //   bonus % (added up) = class advantage percent (rules.matchup.advantage_damage_percent, or the class_advantage pair's own damage_percent)
-//                        or the disadvantage percent (negative), + every bonus_vs_class modifier_percent for the defender's class,
+//                        or the disadvantage percent (negative; the pair's own disadvantage_percent, e.g. 0 for a flyer hitting an archer, else rules.matchup.disadvantage_damage_percent), + every bonus_vs_class modifier_percent for the defender's class,
 //                        + every bonus_on_terrain modifier_percent for the battle's battlefield, + the attacker's damage_bonus percents (DamageCtx.damageBonus).
 //   reduction % (added up) = rules.guard.damage_reduction_percent when the guard activates, + every reduce_damage percent of the defender in
 //                        force for this hit (Plate, Quick Guard, any duration; reductionsOn). Quick Guard counts as GUARD: a hit that ignores guard skips it
@@ -17,7 +17,7 @@
 //   power   = sum(coef * effective stat) * skill multiplier * matchup
 //   matchup = class factor (1 + advantage/disadvantage percent) * product of the skill's bonus_vs_class factors for the defender's class
 //             * product of its bonus_on_terrain factors for the battle's battlefield. A class_advantage pair's own damage_percent, when set,
-//             replaces advantage_damage_percent for that pair (the disadvantage side keeps the global percent).
+//             replaces advantage_damage_percent for that pair, its disadvantage_percent the global disadvantage.
 //   base    = floor(max(min_damage, formula(power, defense)))  (baseDamage): subtract power - defense; ratio power * K / (K + defense);
 //             scaled_subtract max(power * floor_pct/100, power - defense * def_weight)
 //   crit    = floor(base * crit_multiplier)                 applied after defense, to the already floored damage
@@ -149,10 +149,10 @@ export function classMatchup(pack: Pick<Pack, "rules">, a: Unit, d: Unit): 1 | 0
 export function bonusPercents(attacker: Unit, defender: Unit, effect: DamageEffect, ctx: DamageCtx): number[] {
   const { matchup } = ctx.pack.rules;
   const m = classMatchup(ctx.pack, attacker, defender);
-  const pair = m === 1 ? ctx.pack.rules.class_advantage.find((p) => p.attacker === attacker.class && p.defender === defender.class) : undefined;
+  const pair = ctx.pack.rules.class_advantage.find((p) => m === 1 ? p.attacker === attacker.class && p.defender === defender.class : p.attacker === defender.class && p.defender === attacker.class);
   const out: number[] = [];
   if (m === 1) out.push(pair?.damage_percent ?? matchup.advantage_damage_percent);
-  else if (m === -1) out.push(matchup.disadvantage_damage_percent);
+  else if (m === -1) out.push(pair?.disadvantage_percent ?? matchup.disadvantage_damage_percent);
   for (const b of effect.bonus_vs_class) if (b.class === defender.class) out.push(b.modifier_percent);
   for (const b of effect.bonus_on_terrain ?? []) if (ctx.battlefield != null && b.terrain === ctx.battlefield) out.push(b.modifier_percent);
   if (effect.bonus_if_target_full_hp_percent && defender.hp >= defender.maxHp) out.push(effect.bonus_if_target_full_hp_percent); // same as hp_percent = 100
