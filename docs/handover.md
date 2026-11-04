@@ -71,6 +71,11 @@ progress in `docs/roadmap.md`.
    `self_killed_enemy` works only as a top-level condition.
 3a. **Side check 2026-11-04 (300 runs, swap test, after gear, HP% timeout and blessings):** challenger win / same battle with sides swapped: sample 100 / 0,
    full4v4 93 / 7, city4v4 35 / 69, city4v4-edit 98 / 8; draft_city 0 (not swapped). The winner follows the team, not the side: no defender penalty in the engine.
+3b. **NEXT TASK (designer 2026-11-04): a series of balance tests.** Start by gearing the defenders in the test battles to match the challengers (equal gear and
+   sigils on both sides; today `city4v4-edit` has the challenger fully kitted, defender not, and `sample` / `full4v4` field a damage-less healer on the defending side).
+   Then rerun with sides swapped: if defenders still lose from an even start, that is a real problem. Design the series so each test isolates one thing (side,
+   gear, sigils, team comp); include `draft_city` and the real defender advantages (ban sheet, draft order), which fielded battles skip. Check why filled accessories moved
+   `city4v4` from 35% to 75% challenger. Scratch sims used `runMatchup` from `src/batchReport.ts`. All conclusions with gear on (see CLAUDE.md).
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft
