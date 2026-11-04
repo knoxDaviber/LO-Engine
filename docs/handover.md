@@ -110,6 +110,7 @@ progress in `docs/roadmap.md`.
 15. **Creation system:** a proper system where users create heroes, skills and gear. Overlaps item 6 (skill / equipment / character editors), so fold those in. **Ask first:** whether it lives in the editor or the game, and what limits apply (community tier rules, cost).
 16. **Start the actual game:** begin the main game client (Decision 137: separate from the editor, default content, visual-first UI). This schedules what "Blocked / later" listed as unscheduled. **Ask first:** stack, and the first playable slice. Design doc Section 18 has the open questions.
 17. **Soldier targeting conditions (designer 2026-11-04):** add conditions that target soldiers, based on the current conditions (leaves in `src/registry/conditions.ts`, presets in `editor/src/conditionPresets.ts`). Scope to confirm when reached.
+18. **Hero skills, heroes and races proposal (designer 2026-11-04):** draft in `docs/skills_heroes_races_proposal.md`, using the Langrisser skill list as a reference only. Classes keep generic skills; each hero gets at most 4 unique skills, which heroes can sometimes share. Nothing is built until the designer approves.
 
 Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6). Main game client: now queued as item 16 (Decision 137: the editor is a separate tool). Soldier skill points (Decision 138: 20 per soldier type, trees with prerequisites, 5 levels per category, season-end
 reallocation, slight cost) are specced, not scheduled; open questions in design doc Section 18.
