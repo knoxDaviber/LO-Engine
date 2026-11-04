@@ -11,7 +11,7 @@
 //                    on activation and stays on while the condition holds; when the condition ends, the statuses it applied are removed
 //                    (`passive_ended`, status_expired "condition"); if the condition returns, it spends again. Conditional equipment
 //                    modifiers (equipment.ts checkEquipment) are re-checked at the same moments.
-//   pre_battle       runs once per phase in a pre-battle step (prebattle.ts), spending PP. The step follows design 9's order, by what the passive
+//   pre_battle       runs once per phase in a pre-battle step (prebattle.ts), spending PP; once its status has saved a death it is spent for the battle (`Unit.spentSaves`). The step follows design 9's order, by what the passive
 //                    does (`preBattleStepOf`): remove_buffs -> buff_removal; a debuff status (stats.ts DEBUFF_CATEGORIES) or an enemy-side
 //                    target -> debuffs; a blocks_debuffs status (Immunity) -> immunity; anything else -> buff_grants.
 // PP and "used" (design 7): each trigger spends pp_cost once from the skill's pool; not enough PP -> it does not fire (`passive_blocked`). A state
@@ -186,6 +186,10 @@ export function runPreBattlePassives(x: ExecCtx, step: PreBattlePassiveStep): vo
     if (u.kind !== "hero" || !u.alive) continue;
     for (const { skill, tactic } of sheetPassives(state, u)) {
       if (skill.trigger !== "pre_battle" || preBattleStepOf(state, skill) !== step) continue;
+      if (u.spentSaves.includes(skill.id)) {
+        log.emit({ type: "passive_blocked", ...at(state), unit: u.id, skill: skill.id, reason: "spent (its status saved a death earlier this battle)" });
+        continue;
+      }
       const act = activation(state, u, skill, tactic);
       if (!act.value) {
         if (unimplemented(act).length) note(x, u, skill, unimplemented(act));

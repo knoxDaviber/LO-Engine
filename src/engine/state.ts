@@ -35,6 +35,8 @@ export interface StatusInstance {
   inline?: { name: string; modifiers: { stat: Stat; mode: "flat" | "percent"; value: number; stacks?: true }[] };
   /** while_condition statuses: the applying skill's activation (judged from `owner`, the wearer as target); the status ends when it turns false. */
   whileCond?: { cond: ConditionNode; owner: string };
+  /** Applied by this pre_battle passive (skill id): when the status saves a death, the passive is spent for the battle (`Unit.spentSaves` of `sourceUnitId`). */
+  fromPassive?: string;
 }
 
 export interface PpPool {
@@ -115,6 +117,8 @@ export interface Unit {
   skillUses: Record<string, { uses: number; readyAt: number }>;
   /** Heroes: computed roster cost (validate/cost.ts heroCost), for the `cost` leaf. Squads: 0. */
   cost: number;
+  /** pre_battle passives (skill ids) whose status saved a death; they do not fire again this battle (carried across phases by beginPhase). */
+  spentSaves: string[];
 }
 
 export interface TimelineEntry {
@@ -267,7 +271,7 @@ function buildUnits(pack: Pack, side: Side, battle: Battle, notes: BattleState["
       statuses: [], alive: true,
       tactics: [...h.tactic_sheet].sort((a, b) => a.priority - b.priority),
       skills: [...ch.skills],
-      actions: 0, skillUses: {}, cost,
+      actions: 0, skillUses: {}, cost, spentSaves: [],
     };
     return unit;
   });
@@ -326,7 +330,7 @@ function buildSquad(pack: Pack, side: Side, battle: Battle, heroes: Unit[], note
     row: sp.row, column: 0, formationIndex: sp.row === "front" ? -1 : heroes.length,
     baseStats: stats, equipFlat: zeroStats(), equipment: [], hp: 0, maxHp: 0,
     pp: { active: { cur: 0, max: 0 }, passive: { cur: 0, max: 0 } },
-    statuses: [], alive: true, tactics: [], skills: [], actions: 0, skillUses: {}, cost: 0,
+    statuses: [], alive: true, tactics: [], skills: [], actions: 0, skillUses: {}, cost: 0, spentSaves: [],
   };
   // Soldier max HP is the effective HP stat (base plus always-on soldier modifiers).
   const perSoldier = Math.max(1, Math.floor(statBreakdown(squad, "HP", pack).result));

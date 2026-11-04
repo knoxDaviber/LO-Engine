@@ -101,6 +101,7 @@ export function beginPhase(pack: Pack, battle: Battle, phase: number, prev: Batt
       const p = prev.units.find((x) => x.id === u.id)!;
       u.hp = p.hp;
       u.alive = p.alive;
+      u.spentSaves = [...p.spentSaves];
       for (const sd of u.soldiers) { // soldiers never respawn: HP and deaths persist
         const ps = p.soldiers[sd.index]!;
         sd.hp = ps.hp;

@@ -166,6 +166,64 @@ test("Fairy's Grace intercepts death once: revive at 20% HP, pending action pres
   assert.equal(emp.alive, false);
 });
 
+const UNBROKEN = "skl_033";
+const LAST_CHANCE = "skl_heal_active_001";
+/** Phase 1 and a phase 2 begun from it, with Unbroken on the Emperor. */
+function unbroken() {
+  const { pack, battle } = loadReal();
+  addPassive(pack, battle, EMPEROR, UNBROKEN);
+  const log1 = new EventLog();
+  const p1 = beginPhase(pack, battle, 1, null, log1);
+  const fire = (state: typeof p1.state) => {
+    const log = new EventLog();
+    const x: ExecCtx = { state, rng: p1.rng, log };
+    return { log, x, emp: state.units.find((v) => v.id === EMPEROR)!, foe: state.units.find((v) => v.id === LEON)! };
+  };
+  return { pack, battle, p1, log1, fire };
+}
+
+test("Unbroken saves once per battle: spent after the save, no fire and no PP in the next phase", () => {
+  const { pack, battle, p1, log1, fire } = unbroken();
+  const a = fire(p1.state);
+  assert.equal(a.emp.statuses.some((s) => s.statusId === "buff_003"), true);
+  const cost = pack.byId.skills.get(UNBROKEN)!.pp_cost;
+  applyDamage(a.x, a.foe, a.emp, { id: "s" }, amountOf(10000));
+  assert.equal(a.emp.alive, true);
+  assert.deepEqual(a.emp.spentSaves, [UNBROKEN]);
+  const log2 = new EventLog();
+  const p2 = beginPhase(pack, battle, 2, p1.state, log2);
+  const b = fire(p2.state);
+  assert.equal(b.emp.statuses.some((s) => s.statusId === "buff_003"), false);
+  assert.equal(b.emp.pp.passive.cur, b.emp.pp.passive.max);
+  assert.equal(log2.events.some((e) => e.type === "pp_spend" && e.unit === EMPEROR && e.skill === UNBROKEN), false);
+  assert.equal(log2.events.some((e) => e.type === "passive_blocked" && e.unit === EMPEROR && e.skill === UNBROKEN), true);
+  assert.equal(log1.events.some((e) => e.type === "pp_spend" && e.unit === EMPEROR && e.skill === UNBROKEN && e.cost === cost), true);
+  applyDamage(b.x, b.foe, b.emp, { id: "s" }, amountOf(10000));
+  assert.equal(b.emp.alive, false);
+});
+
+test("Unbroken unused in phase 1 fires again in phase 2", () => {
+  const { pack, battle, p1 } = unbroken();
+  const log2 = new EventLog();
+  const p2 = beginPhase(pack, battle, 2, p1.state, log2);
+  const emp = p2.state.units.find((v) => v.id === EMPEROR)!;
+  assert.deepEqual(emp.spentSaves, []);
+  assert.equal(emp.statuses.some((s) => s.statusId === "buff_003"), true);
+  assert.equal(log2.events.some((e) => e.type === "pp_spend" && e.unit === EMPEROR && e.skill === UNBROKEN), true);
+});
+
+test("a save from a status an active skill applied spends nothing, on wearer or caster", () => {
+  const { pack, state, x, u } = fight();
+  const emp = u(EMPEROR), caster = u(JASMINE);
+  const sk = pack.byId.skills.get(LAST_CHANCE)!;
+  state.bus.beginAction();
+  runEffect(x, caster, { id: sk.id, name: sk.name, shape: "single", interactions: sk.interactions, trigger: sk.trigger }, sk.effects[0]!, [emp], new Set(), false);
+  assert.equal(emp.statuses.some((s) => s.statusId === "buff_003"), true);
+  applyDamage(x, u(LEON), emp, { id: "s" }, amountOf(10000));
+  assert.equal(emp.alive, true);
+  assert.deepEqual([emp.spentSaves, caster.spentSaves], [[], []]);
+});
+
 // ------------------------------------------------------------------ Immunity and buff removal in the pre-battle order
 
 const DEBUFF_AURA = { type: "enemy_debuff", faction_id: null, condition: null, target: { side: "enemy", filter: null, include_soldiers: false }, effects: [{ type: "modify_stat", stat: "DEF", mode: "percent", value: -20 }] };

@@ -388,6 +388,11 @@ export function useStatus(x: ExecCtx, unit: Unit, inst: StatusInstance): void {
   x.log.emit({ type: "status_expired", ...at(x.state), unit: unit.id, status: inst.statusId, reason: "used" });
 }
 
+/** A save by a status a pre_battle passive applied spends that passive for the battle. */
+function spendPassive(state: BattleState, inst: StatusInstance): void {
+  if (inst.fromPassive) state.units.find((u) => u.id === inst.sourceUnitId)?.spentSaves.push(inst.fromPassive);
+}
+
 /** Fairy's Grace: the unit's first intercepts_death status, if any, and its revive percent. */
 function deathGuard(state: BattleState, unit: Unit): { inst: StatusInstance; percent: number } | null {
   for (const inst of unit.statuses) {
@@ -436,6 +441,7 @@ export function applyDamage(x: ExecCtx, attacker: Unit, defender: Unit, skill: P
     defender.hp = Math.max(1, fl((guard.percent / 100) * defender.maxHp));
     x.log.emit({ type: "death_intercepted", ...at(x.state), unit: defender.id, status: guard.inst.statusId, hp: defender.hp });
     useStatus(x, defender, guard.inst);
+    spendPassive(x.state, guard.inst);
   }
   if (defender.hp === 0) killUnit(x, defender, attacker);
   const { noEvent, ...hm } = meta;
@@ -478,6 +484,7 @@ export function applySoldierDamage(x: ExecCtx, attacker: Unit, squad: Unit, sold
       cur.hp = Math.max(1, fl((guard.percent / 100) * cur.maxHp));
       x.log.emit({ type: "death_intercepted", ...at(x.state), unit: squad.id, status: guard.inst.statusId, hp: cur.hp, soldier: cur.index });
       useStatus(x, squad, guard.inst);
+      spendPassive(x.state, guard.inst);
     }
     let died = false;
     if (cur.hp > 0) syncSquad(squad);
@@ -750,6 +757,7 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
         const cat = st.source_category === "inherit" ? applier : st.source_category;
         const inst = res.instant ? undefined : t.statuses.find((s) => s.statusId === effect.status_id && s.category === cat)!;
         if (inst && st.duration.unit === "while_condition" && skill.activation) inst.whileCond = { cond: skill.activation, owner: actor.id };
+        if (inst && skill.trigger === "pre_battle") inst.fromPassive = skill.id;
         log.emit({ type: "status_applied", ...at(state), unit: t.id, status: effect.status_id, category: cat, source: actor.id, remaining: inst ? inst.remaining : null, notes: res.instant ? [...notes, "instant"] : notes });
         if (st.flags.delays_pending_action) stun(x, t, st.name);
         touched.add(t);

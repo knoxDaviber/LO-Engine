@@ -965,7 +965,7 @@
 
 - id: skl_033
   name: "Unbroken"
-  description: "Before battle, gains [Fairy's Grace] on itself: survives one fatal hit at 20% HP."
+  description: "Before battle, gains [Fairy's Grace] on itself: survives one fatal hit at 20% HP, once per battle."
   category: passive
   tags: [buff, revive]
   pp_pool: passive
