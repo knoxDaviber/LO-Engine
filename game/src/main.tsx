@@ -1,7 +1,7 @@
 // The game client. One RunState drives everything; every screen only renders it and calls game/logic.
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { afterResult, fight, rerollStart, startRun, titleState, toPrep, toResult, type RunState } from "../logic/run";
+import { afterResult, fight, pickRecruit, rerollStart, startRun, titleState, toPrep, toResult, type RunState } from "../logic/run";
 import { pack } from "./pack";
 import { Battle } from "./Battle";
 import { Prep } from "./Prep";
@@ -21,7 +21,7 @@ function App() {
   useMusic(s.screen === "title" || s.screen === "reveal" ? "title" : s.screen === "victory" || won ? "victory" : stagesOf(s)[s.stage]!.scene);
   switch (s.screen) {
     case "title": return <Title onStart={begin} />;
-    case "reveal": return <Reveal s={s} onNext={() => set(toPrep(pack, s))} onReroll={s.stage === 0 ? reroll : undefined} />;
+    case "reveal": return <Reveal s={s} onNext={() => set(toPrep(pack, s))} onPick={(id) => set(pickRecruit(pack, s, id))} onReroll={s.stage === 0 ? reroll : undefined} />;
     case "prep": return <Prep s={s} set={set} onFight={(next) => set(fight(pack, next))} onTitle={() => set(titleState())} />;
     case "fight": return <Battle s={s} set={set} onDone={() => set((x) => toResult(x))} />;
     case "result": return <Result s={s} onNext={() => set(afterResult(pack, s))} onTitle={() => set(titleState())} />;

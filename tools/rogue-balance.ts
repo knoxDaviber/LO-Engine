@@ -3,7 +3,7 @@
 //   npx tsx tools/rogue-balance.ts [--runs=N] [--seed=S]
 import { loadContentPack } from "../src/cliBattle";
 import { autoField, pickLeader } from "../game/logic/party";
-import { afterResult, companyLeft, fight, startRun, toPrep, type RunState } from "../game/logic/run";
+import { afterResult, companyLeft, fight, pickRecruit, startRun, toPrep, type RunState } from "../game/logic/run";
 import { ROGUE_STAGES } from "../game/logic/stages";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split("=")[1];
@@ -28,6 +28,7 @@ for (let i = 0; i < RUNS; i++) {
     const stage = s.stage;
     if (companyLeft(s).length === 0) break;
     s = afterResult(pack, s);
+    if (s.offers.length) s = pickRecruit(pack, s, s.offers[0]!);
     if (s.screen === "victory") { cleared++; break; }
     if (s.stage === stage && s.attempt >= MAX_ATTEMPTS) break;
   }

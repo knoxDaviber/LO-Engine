@@ -3,7 +3,7 @@ import { runBattle, type BattleResult } from "../../src/engine";
 import type { BattleSide, Tactic } from "../../src/schema";
 import type { Pack } from "../../src/validate/pack";
 import { buildBattle } from "./battle";
-import { autoField, freeSlot, moveHero, pickLeader, poolHero, rollOrder, type PoolHero, type Slot } from "./party";
+import { autoField, freeSlot, mix, moveHero, mulberry, pickLeader, poolHero, rollOrder, shuffled, type PoolHero, type Slot } from "./party";
 import { buildReplay, summarize, type Replay, type Summary } from "./replay";
 import { resolveEnemies, stagesOf, type Mode } from "./stages";
 import { startTutorial, type TutorialState } from "./tutorial";
@@ -26,6 +26,8 @@ export interface RunState {
   leader: string | null;
   /** Rogue mode: heroes lost for good, in order of death. */
   fallen: string[];
+  /** Rogue: the two heroes the player picks one recruit from, after a win. */
+  offers: string[];
   stage: number;
   attempt: number;
   /** Heroes the reveal screen shows as new. */
@@ -36,7 +38,7 @@ export interface RunState {
 }
 
 export const titleState = (): RunState => ({
-  screen: "title", mode: "tutorial", fallen: [], seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
+  screen: "title", mode: "tutorial", fallen: [], offers: [], seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
 });
 
 export function startRun(pack: Pack, seed: number, guided: boolean, mode: Mode = "tutorial"): RunState {
@@ -105,20 +107,27 @@ export const fellInBattle = (s: RunState): string[] => {
 /** Rogue: heroes still in the company once this battle's dead are out. Zero ends the run. */
 export const companyLeft = (s: RunState): string[] => poolIds(s).filter((id) => !fellInBattle(s).includes(id));
 
-/** Rogue: the dead leave the pool for good; a win recruits the next hero of the order (none left: straight to prep), a loss retries with the survivors. */
+/** Rogue: the dead leave the pool for good; a win offers two of the heroes not owned or fallen (none left: straight to prep), a loss retries with the survivors. */
 function afterRogue(pack: Pack, s: RunState): RunState {
   const dead = fellInBattle(s);
   const pool = s.pool.filter((h) => !dead.includes(h.entry.char_id));
-  const base = withLeader({ ...s, pool, fallen: [...s.fallen, ...dead], fought: null }, pool);
+  const lined = pool.some((h) => h.slot) ? pool : autoField(pack, pool); // only the bench survived: field them
+  const base = withLeader({ ...s, pool: lined, fallen: [...s.fallen, ...dead], fought: null }, lined);
   if (pool.length === 0) return titleState();
   if (!s.fought!.summary.won) return toPrep(pack, { ...base, attempt: s.attempt + 1 });
   if (s.stage + 1 >= stagesOf(s).length) return { ...base, screen: "victory" };
   const next = { ...base, stage: s.stage + 1, attempt: 0 };
-  const id = s.order[pool.length + next.fallen.length];
-  if (!id) return toPrep(pack, next);
-  const joined = { ...next, pool: [...pool, poolHero(pack, id)] };
-  const slot = pool.filter((h) => h.slot).length < pack.rules.draft.fielded ? freeSlot(pack, joined.pool, id) : null;
-  return { ...(slot ? moveTo(pack, joined, id, slot) : joined), screen: "reveal", fresh: [id] };
+  const owned = [...poolIds(next), ...next.fallen];
+  const offers = shuffled(s.order.filter((id) => !owned.includes(id)), mulberry(mix(s.seed, s.stage, 0xc))).slice(0, 2);
+  return offers.length === 0 ? toPrep(pack, next) : { ...next, screen: "reveal", offers, fresh: offers };
+}
+
+/** Rogue: the player's pick of the offered heroes joins (fielded on a free slot while the team is short) and the next wave's prep opens. */
+export function pickRecruit(pack: Pack, s: RunState, id: string): RunState {
+  if (!s.offers.includes(id)) return s;
+  const joined = { ...s, pool: [...s.pool, poolHero(pack, id)], offers: [] };
+  const slot = s.pool.filter((h) => h.slot).length < pack.rules.draft.fielded ? freeSlot(pack, joined.pool, id) : null;
+  return toPrep(pack, slot ? moveTo(pack, joined, id, slot) : joined);
 }
 
 /** After the result: a loss retries the stage, a win recruits and moves on, the last win ends the run. */

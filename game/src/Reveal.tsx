@@ -5,11 +5,12 @@ import { pack } from "./pack";
 import { MuteButton } from "./music";
 import { Backdrop, cap, Crest, Screen, useScale } from "./ui";
 
-export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => void; onReroll?: () => void }) {
+export function Reveal({ s, onNext, onReroll, onPick }: { s: RunState; onNext: () => void; onReroll?: () => void; onPick: (id: string) => void }) {
   const k = useScale();
   const recruit = s.stage > 0;
   const stage = stagesOf(s)[s.stage]!;
-  const shown = s.mode === "rogue" ? s.pool.filter((h) => s.fresh.includes(h.entry.char_id)) : s.pool; // ten cards would not fit
+  const choose = s.offers.length > 0;
+  const shown = choose ? s.offers : (s.mode === "rogue" ? s.pool.filter((h) => s.fresh.includes(h.entry.char_id)) : s.pool).map((h) => h.entry.char_id); // ten cards would not fit
   let flip = 0;
   return (
     <Screen name="reveal">
@@ -18,14 +19,15 @@ export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => voi
       <div className="reveal-col">
         <header className="reveal-head">
           <p className="kicker">{recruit ? "A hero joins your company" : "Fate deals your company"}</p>
-          <h2>{recruit ? `${pack.byId.characters.get(s.fresh[0]!)!.name} answers the call` : "Your Company"}</h2>
+          <h2>{choose ? "Choose a recruit" : recruit ? `${pack.byId.characters.get(s.fresh[0]!)!.name} answers the call` : "Your Company"}</h2>
         </header>
         <ul className={`cards cards-${shown.length}`}>
-          {shown.map((h) => {
-            const ch = pack.byId.characters.get(h.entry.char_id)!;
+          {shown.map((id) => {
+            const ch = pack.byId.characters.get(id)!;
             const isNew = s.fresh.includes(ch.id);
             return (
               <li key={`${s.seed}-${ch.id}`} className={`card${isNew ? " card-new" : " card-old"}`} style={{ animationDelay: isNew ? `${0.35 + flip++ * 0.32}s` : "0s" }}>
+                {(() => { const body = (
                 <div className="card-in">
                   <div className="card-back"><span className="card-seal"><Crest cls={ch.class} size={Math.round(58 * k)} /></span></div>
                   <div className={`card-front glow-${ch.class}`}>
@@ -38,6 +40,7 @@ export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => voi
                     </div>
                   </div>
                 </div>
+                ); return choose ? <button type="button" className="card-pick" aria-label={ch.name} onClick={() => onPick(ch.id)}>{body}</button> : body; })()}
               </li>
             );
           })}
@@ -45,9 +48,9 @@ export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => voi
         {onReroll && <p className="reveal-hint">Not the company you wanted? Reroll as often as you like.</p>}
         <div className="reveal-actions">
           {onReroll && <button className="btn btn-ghost" onClick={onReroll}>Reroll Company</button>}
-          <button className="btn btn-primary btn-xl reveal-go" onClick={onNext} autoFocus style={{ animationDelay: `${0.5 + s.fresh.length * 0.32}s` }}>
+          {!choose && <button className="btn btn-primary btn-xl reveal-go" onClick={onNext} autoFocus style={{ animationDelay: `${0.5 + s.fresh.length * 0.32}s` }}>
             {recruit ? `March on ${stage.name}` : "To the Field"}
-          </button>
+          </button>}
         </div>
       </div>
     </Screen>
