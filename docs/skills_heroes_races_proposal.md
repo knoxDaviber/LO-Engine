@@ -1,4 +1,4 @@
-# Hero skills, heroes and races (proposal, 2026-11-04, not built)
+# Hero skills, heroes and races (proposal, 2026-11-04, designer answers in, not built)
 
 Queue item 18. Mechanics are taken as ideas from the Langrisser Mobile skill lists (langrisser.fandom.com/wiki/Skills and its sub-pages). Names and wording are ours.
 No number here has been simmed. Everything below is a starting value for `tools/balance-series.ts`.
@@ -29,7 +29,7 @@ The multiplier scales ATK before DEF is taken off, so a small multiplier step is
 | **Purify** | Active, single ally | 1 | Heal INT x1.2, removes 1 debuff | Heal | Weaker heal than Mend (x1.5), pays for the cleanse | New: remove debuff |
 | **Mercy Bolt** | Active, single, magic | 1 | x0.8, then heals the lowest-HP% ally INT x0.6 | Faith | Lets a healer act when nobody needs a full heal. Well below Mend plus Bolt | New: heal lowest ally as a rider |
 | **Sworn Banner** | Passive, pre-battle | 2 | Allies sharing a faction with the hero: ATK / INT +10% | Fusion Power | Rewards faction teams. Much smaller than the reference's +20-30% | Check: faction filter on a pre-battle `all` |
-| **Bodyguard** | Passive, before hit | 1 | Takes a single-target physical hit aimed at an ally in the same row | Fearless Stance | Costs PP per cover. First content to use `cover` | Ready; see question 5 |
+| **Bodyguard** | Passive, before hit | 1 | Takes a single-target physical hit aimed at an ally in the same row | Fearless Stance | Costs PP per cover. First content to use `cover` | Ready; no evade for the bodyguard (accepted) |
 | **Thornhide** | Passive, after hit | 1 | While HP > 50%, a melee hit returns DEF x0.8 damage | Barb | About Counter's size, for tanks with low ATK; turns off when hurt | Ready |
 | **Stand Fast** | Passive, while | 2 | While HP < 50%: DEF / MDEF +15% | Last Stand | Defensive twin of Berserk, same PP | Ready (new status) |
 | **Unbroken** | Passive, pre-battle | 2 | Survives one fatal hit at 20% HP, once per battle | Heart of the Twin Moons | Fairy's Grace on self only, and it can be stripped. Official tier only | Ready |
@@ -40,7 +40,7 @@ Purify and Mercy Bolt are deliberately support-heavy: the healer team fell in th
 
 ## Proposed heroes
 
-Existing heroes first. Six skills on them are gated by class today, though they read as hero skills; see question 2.
+Existing heroes first. Six skills on them are gated by class today; they move to hero gating (answer 2).
 
 | Hero | Class / race | Unique skills (max 4) | Added here |
 |---|---|---|---|
@@ -79,12 +79,17 @@ Day and night answer the open call from Decision 136. A hero with no race bonus 
 
 Humans stay exactly as they are, so all 14 current heroes and the balance baseline do not move. Only Demon and Angel swing both ways, to pay for the largest bonuses. Shift sizes are set when built, by keeping the score equal.
 
+### Sub-races (designer 2026-11-04)
+
+The schema's 7 races stay; a sub-race is an optional layer under one. Decision 109's names fit here: High-Elf and Dark-Elf under Elf, Werebeast and Rabbit-folk under Beastfolk.
+Draft: optional `sub_race` on characters, and a sub-race shifts its parent's lean without changing the score. The list, stat shifts and which new heroes get one are still to be drafted.
+
 **Build:** a `races` block in `rules.yaml` for stat leans and time effects, applied in `state.ts`. `race` on characters and `time_is` already exist. Racial soldier types and classes (Decision 112) are left out here.
 
-## Questions for the designer
+## Designer answers (2026-11-04)
 
-1. **Races:** Decision 109's working list (Werebeasts, Rabbit-folk, High-Elf, Dark-Elf) differs from the schema's 7. This draft uses the schema. Keep it? Decision 112 also held racial traits until after the batch sim, which now exists, so this would lift that hold.
-2. **Re-gating:** move Charging Assault, Thousand Azure Hooves, Last Chance, Preventative Care, Vine Stab and Defensive Strike from class to hero, so generic heroes cannot take them? Generic class sheets do not use them, so sims should not move.
-3. **Hero count:** is 6 new heroes right for now, or start with fewer?
-4. **Names:** Hegemony also appears under that name in the reference list. Rename it, and check the other existing names, before any public release?
-5. **Cover:** Bodyguard is the first content to use `cover`. A covered hit keeps the original target's hit roll, so the bodyguard gets no evade. Accept that?
+1. **Races:** keep the schema's 7 and add sub-races (section above). Taken as lifting Decision 112's hold on racial traits.
+2. **Re-gating:** yes. Charging Assault, Thousand Azure Hooves, Last Chance, Preventative Care, Vine Stab and Defensive Strike move from class to hero.
+3. **Hero count:** 6 new heroes.
+4. **Names:** Hegemony is based on the reference skill and stays.
+5. **Cover:** accepted, the bodyguard does not evade a covered hit.
