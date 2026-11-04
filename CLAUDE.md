@@ -7,6 +7,8 @@ Detailed engine, battle-input and editor notes: docs/engine_notes.md. Running st
 
 Content schema, validator and a deterministic battle engine (Step 1 vertical slice) for a tactics auto-battler. Game content is YAML in `content/`; TypeScript (zod v4) defines the schema and a layered validator checks it. Design intent: `docs/design_doc_v2.md` (tags **[DECIDED]** / **[DEFAULT]** tunable / **[OPEN]**); authoring templates: `docs/templates_v2.md`. When docs and `src/schema/` disagree, **the schema wins**. `docs/conversion_report.md` tracks designer decisions applied and questions still open.
 
+`editor/` is a separate tool (simulation, testing, character creator, import/export), not the main game, which is a future client with default content and a visual-first UI (Decision 137).
+
 ## Commands
 
 Full flags and descriptions: docs/engine_notes.md.

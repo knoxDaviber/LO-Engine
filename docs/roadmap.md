@@ -89,16 +89,24 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 
 ## Step 5: Editor (Section 15, step 5)
 
+- The editor is a simulation, testing and character creation tool, separate from the main game (Decision 137).
 - Tech stack **decided** (Decision 127): local web app, Vite + React + TypeScript, plain CSS; a Vite plugin serves a JSON API (`editor/api.ts`) that runs the existing zod schema, validator and engine in Node. No hosting, no accounts.
-- **Milestone 1 (tactics board + run sim): done.** `npm run editor` (`editor/`): open a battle file (either form) or start a new one; edit both sides (heroes, squad, rows, equipment, sigils, leader or leader line / anchor / battlefield / draft picks, seeds); tactics board per hero in the player slot shape with leaf parameter inputs generated from the leaf JSON Schema; live validation with click-to-field; per-stat Section 9.1 breakdown (phase 1-3 pre-battle); run the sim and read the log with a unit filter; save to `content/battles/` (refused with errors). Not editable yet (kept as loaded): between-phase edits, the defender ban sheet.
+- **Milestone 1 (tactics board + run sim): done.** `npm run editor` (`editor/`): open a battle file (either form) or start a new one; edit both sides (heroes, squad, rows, equipment, sigils, leader or leader line / anchor / battlefield / draft picks, seeds); tactics board per hero in the player slot shape with leaf parameter inputs generated from the leaf JSON Schema; live validation with click-to-field; per-stat Section 9.1 breakdown (phase 1-3 pre-battle); run the sim and read the log with a unit filter; save to `content/battles/` (refused with errors). Between-phase edits and the defender ban sheet are editable too (compound ban filters stay read-only).
 - Order: tactics board first (schema-driven dropdowns, slot-shape limits, per-stat stacking breakdown), then skills, equipment, characters.
-- Done when a player can build a roster, write tactic sheets, run a sim and read the log without touching YAML.
+- Done when a designer can build a roster, write tactic sheets, run a sim and read the log without touching YAML.
 
 ## Step 6: Tower service (Section 15, step 6)
 
 - **Blocking design work:** the rest of the meta loop (gear acquisition, rewards, defender rewards, onboarding; hero progression is out for now, Decision 114) is an undesigned known gap and must be designed before this step. Also: tower attempt limits, HP persistence between floors, anti-degenerate measures.
 - Hero acquisition (Decisions 103-108, 110-111): hero-instance layer in the roster schema (per-copy variance and allocation), server-seeded rolls (12 shown, keep 10) with locks and preview, owned pool frozen per season, unlimited saved teams with per-team loadouts (gear, tactics, squad, row), 10 distinct heroes (no duplicates), defender team picked on reaching the top and frozen for the season.
 - Snapshots (party, gear, formation, leader, tactics, battlefield, anchor, ban sheet, content/rules version), server re-simulation with hidden per-phase seeds, seasons with pinned content versions, top-10 rollover.
+
+---
+
+## Later (not scheduled)
+
+- **Main game client** (Decision 137): separate from the editor, all default content built in, visual-first UI inspired by Unicorn Overlord; import and export with the editor.
+- **Soldier skill points** (Decision 138): limited points into soldier skill trees; design the open questions in Section 18 first.
 
 ---
 

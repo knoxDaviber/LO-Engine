@@ -76,7 +76,8 @@ progress in `docs/roadmap.md`.
 7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a
    stack trace.
 
-Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6).
+Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6). Main game client (Decision 137:
+the editor is a separate tool) and soldier skill points (Decision 138) are specced, not scheduled; open questions in design doc Section 18.
 
 ## Brief: editor visual overhaul (done via the designer zip, applied 2026-11-03; kept for reference)
 

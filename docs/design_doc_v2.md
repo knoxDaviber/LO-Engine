@@ -55,6 +55,7 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 - **Squads share their leader's buffs and debuffs** [DECIDED]: any stat buff or debuff applied to the leader also applies to the leader's squad, because they are one squad. Status and buff effects that hit "everyone in a row" or "the party" skip squads unless they say otherwise, so a squad is otherwise buffed only through its leader (Iron Fist's row guard reaches the squad only when the Emperor is leader). **Only stat modifiers propagate** [DECIDED]: death intercepts (Fairy's Grace), Regen and control statuses (Stun, Confusion) stay on the leader.
 - Heroes can filter targeting to heroes only, ignoring soldiers [DECIDED] (see Section 4).
 - Soldier squad wiped: the hero lives. Hero dead: squad removed.
+- **Soldier skill points** [DECIDED concept, later] (Decision 138): players allocate a limited pool of points into soldier skill trees, so that everyone's soldiers differ. Example nodes: more damage to the class triangle, less damage taken from the class triangle, more damage to buffed or debuffed units, more damage from the back row, less damage taken on certain battlefields. Not built yet; open questions are in Section 18.
 
 ---
 
@@ -376,6 +377,7 @@ Rules [DEFAULT] (Decision 125):
 
 ## 12. Authoring and the Editor
 
+- **The editor and the main game are two separate products** [DECIDED] (Decision 137). The **editor** (`editor/`) is a tool: battle simulation, testing and balance, plus a character creator, with import and export into the main game. It is not what players play, and its UI can stay technical. The **main game** is a separate client, not built yet: it ships with all default heroes, weapons, soldiers and other content, and has a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Both share the same content schema and engine. The import/export format is not designed yet.
 - Mechanics are stored as structured data (JSON/YAML). Markdown is for lore only. Free-text fields like "1.2x" or "Armour/Armor" are what produce validation errors.
 - Enumerated tags for equipment types: weapons `sword`, `spear`, `axe`, `staff`, `tome`, `bow`, `dagger`, `hammer`; armor `light_armor`, `heavy_armor`, `robe`; accessory categories `shield`, `gloves`, `boots`, `ring`, `amulet`, `charm`, `bracelet`, `earring`, `cloak`, `belt`. A class can use several weapon types (Decision 120). Every item has exactly one type valid for its slot (`E_EQUIP_TYPE`). A hero must list weapon, armor and shield types in `restrictions.equipment_tags` to wear them; the other accessory categories are open to every hero.
 - The editor shows the per-stat stacking breakdown (Section 9.1) alongside the tactics board.
@@ -402,7 +404,7 @@ Designer rule: all equipment of one type has the same base stats; types differ f
 | | | earring | ATK 25, INT 25 |
 | | | cloak | DEF 12, MDEF 25 |
 | | | belt | HP 80, DEF 12 |
-- A schema-driven in-game editor generates dropdowns for stats, tags, conditions and references, and validates IDs, duplicates and missing fields before a battle.
+- The schema-driven editor generates dropdowns for stats, tags, conditions and references, and validates IDs, duplicates and missing fields before a battle.
 - Build order for the editor: **tactics board first**, then skills, equipment, characters.
 
 Example tactic (illustrative structure, not content). A player tactic is a skill plus Main and Sub, each one leaf or one selector (Decision 136); here Main is an "only if" on the board and Sub picks the most wounded candidate:
@@ -589,6 +591,8 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 134 | Additive-pool damage, hero hits, Speed Boots | DECIDED formula shape, DEFAULT values | "ATK (from all sources) - DEF (from all sources) x (DMG bonus - DMG reduction)": `pool` formula, `(ATK_total - DEF_total) x (1 + bonus% - reduction%)`, class advantage / pair / bonus_vs_class / bonus_on_terrain in the bonus part, guard and reduce_damage in the reduction part, cap 75%, crit after (Section 8). "Heroes hit for 4x to begin with": `rules.damage.hero_hits` 4 multiplies hero damage (not squads, not heals), sweepable. Older formulas kept selectable. equip_006 Speed Ring re-typed to boots as Speed Boots |
 | 135 | Equipment base retune | DEFAULT values (designer guide) | "Increase weapon stats by roughly 3x, then defence gear roughly 1/3 - 1/2 of weapons; sword ATK 150 DEF 24, Leather Armour (light_armor) DEF 50 HP 150. Armour should give a better stat total, ATK is just very powerful. Building up a high defence should be an intentional build." The designer asked "roughly 3x" with the sword anchored at ATK 150 / DEF 24; the anchor set weapon ATK at 5x the previous base table (sword ATK 30), weapon secondary lines ~3x; armor main defensive line 1/3-1/2 of a weapon line with a slightly higher raw total; offensive accessories scale with weapons; defensive accessories about 2x, kept modest, so stacking DEF is deliberate; CRIT / GUARD / SPD identities unchanged. Table in Section 12.1 |
 | 136 | Tactic = skill + Main + Sub | DECIDED (DEFAULT details) | Player tactics drop `activation`, `targeting` and `fallback`: `{ priority, skill_id, enabled, main, sub }`, each slot one condition leaf or a selector (Section 4.1-4.3). Leaves filter the candidates (self / board leaves act as "only if"), selectors only order (Main first, Sub tie-break; new `prefer` with a `filter` leaf, metrics max_hp / max_active_pp / max_passive_pp; selector `side` dropped). Skill default_activation and default_main always apply; default_sub only without a selector. Races (`race` on characters: human, elf, beastfolk, dwarf, dragon, demon, angel; [DEFAULT] squads human), battle `time: day / night` (default day; no race day/night bonuses yet) and new leaves: time_is, race_is, has_any_buff / lacks_any_buff / lacks_any_debuff, row_size, row_rank (ties count as both, among occupied rows), column_full, average_hp_percent ([DEFAULT] every living hero and soldier counts once), combatants, side_has, is_self / not_self, attacked_since_last_action with damage_type / shape / by_class / by_race filters |
+| 137 | Editor and main game are separate | DECIDED | The editor is the simulation, testing and character creation tool, with import and export into the main game. The main game is a separate client with all default content built in and a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Same schema and engine; import/export format open (Section 12) |
+| 138 | Soldier skill points | DECIDED concept, later | Limited points allocated into soldier skill trees to differentiate players' soldiers (class triangle damage dealt/taken, vs buffed or debuffed units, back-row damage, damage taken by battlefield). Separate from hero progression (Decision 114). Details open (Section 18) |
 
 ---
 
@@ -652,6 +656,8 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
 - Devotion: the pantheon and blessings are placeholders (Decision 125); final gods and blessing balance come with the batch sim.
 - **Races** (Decisions 109, 112): final race list and lore; each race's stat lean and racial soldier type or class option; whether to add a racial passive list after the batch sim. Factions (Evil, Light, Forest-folk) may need recasting as political allegiances so they do not overlap races.
+- **Soldier skill points** (Decision 138): how many points and where they come from, whether they are spent per soldier type or per squad, whether they can be respecced, the tree layout and node values, and how they affect cost (Section 2A).
+- **Editor import/export** (Decision 137): the file format and what can move between the editor and the main game (official tier vs community content).
 
 
 ## Implementation note: schema is the source of truth
