@@ -1,6 +1,6 @@
 # Plan: deploying the game page
 
-Status: plan only, nothing changed yet. Today `.github/workflows/pages.yml` deploys only the editor, on every push to main, after typecheck and tests.
+Status: done 2026-11-04 (handover item 23). `.github/workflows/pages.yml` deploys the editor and the game on every push to main, after typecheck and tests. Step 4 (editor link) skipped.
 
 ## Shape
 

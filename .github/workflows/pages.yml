@@ -1,4 +1,4 @@
-name: Deploy editor to GitHub Pages
+name: Deploy editor and game to GitHub Pages
 
 on:
   push:
@@ -30,6 +30,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run editor:build   # static editor build (content bundled, runs fully in the browser) into editor/dist
+      - run: npm run game:build     # static game client, served at /game/ inside the same Pages artifact
+      - run: cp -r game/dist editor/dist/game
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

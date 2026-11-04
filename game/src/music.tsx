@@ -5,7 +5,7 @@ import { SCENES, trackUrl, type Track } from "./scenes";
 const audio = new Audio();
 audio.volume = 0.4;
 let muted = false;
-try { muted = localStorage.getItem("muted") === "1"; } catch { /* storage blocked */ }
+try { muted = localStorage.getItem("lo-muted") === "1"; } catch { /* storage blocked */ }
 audio.muted = muted;
 let armed = false;
 const listen = () => { addEventListener("pointerdown", arm, { once: true }); addEventListener("keydown", arm, { once: true }); };
@@ -30,7 +30,7 @@ export function MuteButton({ fixed }: { fixed?: boolean }) {
   const toggle = () => {
     muted = audio.muted = !m;
     setM(muted);
-    try { localStorage.setItem("muted", muted ? "1" : "0"); } catch { /* storage blocked */ }
+    try { localStorage.setItem("lo-muted", muted ? "1" : "0"); } catch { /* storage blocked */ }
   };
   return <button className={`btn btn-small mute${fixed ? " mute-fixed" : ""}`} aria-pressed={m} aria-label="Mute music" onClick={toggle}>{m ? "Sound off" : "Sound on"}</button>;
 }
