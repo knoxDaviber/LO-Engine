@@ -257,3 +257,31 @@ test("every skip carries a reason string and decisions are deterministic", () =>
   assert.deepEqual(a, b);
   assert.ok(a.evaluations.every((e) => e.reason.length > 0));
 });
+
+test("soldier selector and presets: soldiers_alive orders squads; a real tactic with a Soldiers preset targets the expected squad", async () => {
+  const { buildPresets } = await import("../editor/src/conditionPresets");
+  const presets = buildPresets([]);
+  const val = (id: string) => presets.find((p) => p.id === id)!.value as any;
+  const s = sampleState(1, { squads: true });
+  const leon = unit(s, LEON);
+  const sq1 = unit(s, `squad_${EMPEROR}`);
+  const sq2 = { ...sq1, id: "squad_extra", soldiers: sq1.soldiers.map((x) => ({ ...x })) } as typeof sq1;
+  for (const x of sq2.soldiers.slice(0, 4)) x.alive = false;
+  s.units.push(sq2);
+  const sk = s.pack.byId.skills.get(ASSAULT)!;
+  const saved = structuredClone(sk.interactions);
+  try {
+    sk.interactions.soldiers = "soldiers_only";
+    const first = (main: any) => { leon.tactics = [tactic(ASSAULT, { main })]; return ids(decideTactic(s, leon, rng()))[0]; };
+    assert.equal(first(val("squad_fewest")), "squad_extra");
+    assert.equal(first(val("squad_most")), sq1.id);
+    assert.equal(first(val("kind_squad")), sq1.id); // filter keeps both, default order: lowest id first among equals
+    sk.interactions.soldiers = "standard";
+    assert.equal(first(val("prefer_squads")) !== EMPEROR, true); // squads before heroes, whatever the board order
+    assert.equal(first(val("prefer_heroes")), EMPEROR);
+    assert.equal(first(val("squad_most")), sq1.id); // heroes sort after squads
+    assert.equal(first(val("squad_fewest")), "squad_extra"); // mixed hero and squad pool: the squad, never a hero
+  } finally {
+    sk.interactions = saved;
+  }
+});

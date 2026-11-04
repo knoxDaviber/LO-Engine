@@ -101,7 +101,7 @@ export const APPLIES_TO = ["physical", "magical", "all"] as const;
 export const COMPARATORS = [">", "<", ">=", "<=", "=", "!="] as const;
 export const SELECTORS = ["lowest", "highest", "nearest", "farthest", "random_seeded", "prefer"] as const;
 /** lowest / highest selector metrics (plus any STATS name). */
-export const SELECTOR_METRICS = ["hp_percent", "hp_current", "hp_missing", "max_hp", "active_pp", "passive_pp", "max_active_pp", "max_passive_pp"] as const;
+export const SELECTOR_METRICS = ["hp_percent", "hp_current", "hp_missing", "max_hp", "active_pp", "passive_pp", "max_active_pp", "max_passive_pp", "soldiers_alive"] as const;
 export const SOLDIER_PASSIVE_TARGETS = ["self_squad", "leader", "party"] as const;
 
 export const DRAFT_ACTORS = ["challenger", "defender"] as const;

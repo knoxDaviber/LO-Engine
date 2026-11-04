@@ -96,6 +96,8 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   active_pp: { fields: cmp(), contexts: PLAYER, communitySafe: true, description: "Active PP" },
   passive_pp: { fields: cmp(), contexts: PLAYER, communitySafe: true, description: "Passive PP" },
   // Counts
+  soldiers_alive: { fields: cmp(), contexts: PLAYER, communitySafe: true, description: "Living soldiers in a squad (false for a hero)" },
+  soldiers_percent: { fields: cmp(), contexts: PLAYER, communitySafe: true, description: "Living soldiers in a squad as a percent of its starting size (false for a hero)" },
   enemies_alive: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Enemies alive" },
   allies_alive: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Allies alive" },
   enemy_soldiers_remaining: { fields: z.strictObject({ op, value: num }), contexts: PLAYER, communitySafe: true, description: "Enemy soldiers remaining" },

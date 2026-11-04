@@ -8,7 +8,7 @@
 //    too; default_sub only when neither player slot is a selector. Ties fall back to nearest (front row first), then column index, then unit id. The first candidate is the anchor:
 //    single = it, row/column = everyone alive in its row/column on its side, all = every candidate that passed the filters,
 //    self = the caster, caster_row = the caster's row.
-//  - selector metrics: hp_percent / hp_current / hp_missing / max_hp / active_pp / passive_pp / max_active_pp / max_passive_pp / a stat name.
+//  - selector metrics: hp_percent / hp_current / hp_missing / max_hp / active_pp / passive_pp / max_active_pp / max_passive_pp / soldiers_alive / a stat name.
 //  - use_limit / cooldown (skillReady below): a skill that is not ready is skipped with the reason.
 //  - The skill-level fallback (re_evaluate/skip) both mean "continue with the next tactic" in the slice.
 //  - Confusion (a status with ignores_tactics, design 9): the sheet's conditions and targeting are ignored. [DEFAULT] The unit uses its first
@@ -103,6 +103,7 @@ function metricValue(u: Unit, metric: string, pack: Pack): number | null {
     case "passive_pp": return u.pp.passive.cur;
     case "max_active_pp": return u.pp.active.max;
     case "max_passive_pp": return u.pp.passive.max;
+    case "soldiers_alive": return u.soldiers.filter((s) => s.alive).length;
     default: return (STATS as readonly string[]).includes(metric) ? effectiveStat(u, metric as Stat, pack) : null;
   }
 }
@@ -127,7 +128,8 @@ function selectorKey(sel: Selector, cands: Unit[], caster: Unit, state: BattleSt
       for (const u of cands) {
         const v = metricValue(u, metric, state.pack);
         if (v === null) return `not implemented: selector metric ${metric}`;
-        key.set(u, sel.select === "lowest" ? v : -v);
+        // A hero has no soldiers: it sorts after every squad both ways (Infinity - Infinity = NaN is falsy, so heroes tie and keep the default order).
+        key.set(u, metric === "soldiers_alive" && u.kind !== "squad" ? Infinity : sel.select === "lowest" ? v : -v);
       }
       return { key, note: `${sel.select} ${metric}` };
     }

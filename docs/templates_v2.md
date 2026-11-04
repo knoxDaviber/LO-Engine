@@ -13,7 +13,7 @@ stats: [HP, ATK, INT, DEF, MDEF, SPD, HIT, SKL, CRIT, GUARD, EVA]
 races: [human, elf, beastfolk, dwarf, dragon, demon, angel]   # a character's `race`; squads count as human
 times: [day, night]                                       # battle input `time` (default day)
 selectors: [lowest, highest, nearest, farthest, random_seeded, prefer]
-selector_metrics: [hp_percent, hp_current, hp_missing, max_hp, active_pp, passive_pp, max_active_pp, max_passive_pp]   # or any stat name
+selector_metrics: [hp_percent, hp_current, hp_missing, max_hp, active_pp, passive_pp, max_active_pp, max_passive_pp, soldiers_alive]   # or any stat name
 classes: [infantry, lancer, cavalry, archer, flyer, mage, assassin, holy, aquatic, monster]   # more classes will come
 equipment_slots: [weapon, armor, accessory]        # accessory fills Accessory 1 or 2
 equipment_tags: [sword, spear, axe, staff, tome, bow, dagger, hammer, light_armor, heavy_armor, robe, shield, gloves, boots, ring, amulet, charm, bracelet, earring, cloak, belt]   # one per item (Decision 133)
@@ -334,6 +334,7 @@ Leaf `type` options for the prototype and beyond:
 | Counts | `enemies_alive`, `allies_alive`, `enemy_soldiers_remaining` | `op`, `value` |
 | Counts (combatants) | `combatants` | `side: ally \| enemy`, `op`, `value` |
 | Presence | `side_has` | `side: ally \| enemy`, exactly one of `class` / `race`, `present: true \| false` |
+| Squad size | `soldiers_alive`, `soldiers_percent` | `side`, `op`, `value` (living soldiers of a squad: count / percent of its starting size; false for a hero) |
 | Side HP | `average_hp_percent` | optional `side`, `op`, `value` |
 | Attacked | `attacked_since_last_action` | optional `damage_type` (physical \| magical), `shape` (single \| row \| column \| all), `by_class`, `by_race` |
 | Events | `was_attacked_since_last_action`, `ally_attacked`, `just_healed`, `self_attacked`, `unit_attacked`, `self_targeted_by_physical_attack`, `self_action_completed`, `unit_hit_by_single_target_attack` | none |

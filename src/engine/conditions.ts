@@ -21,6 +21,7 @@
 //   enemies_alive / allies_alive   living heroes (allies include the actor); enemy_soldiers_remaining: living soldiers of enemy squads
 //   action_count             the actor's own completed actions this phase (skills and idles): "first action" = action_count = 0
 //   has_any_buff / lacks_*   buff = a `buff`-category status or an aura instance with a positive modifier (debuff as above)
+//   soldiers_alive / soldiers_percent  living soldiers of a squad (count; percent of its starting size); false for a hero
 //   is_self / not_self       the unit is / is not the actor
 //   always                   true (the default Main of skills that need no filter)
 //   row_size / row_rank      living combatants (a hero 1, a squad its living soldiers) in the unit's board row on its side; row_rank compares
@@ -106,6 +107,9 @@ const LEAVES: Record<string, LeafFn> = {
     const kind = u.kind === "squad" ? "soldier" : "hero";
     return l.is !== undefined ? l.is === kind : l.ignore !== kind;
   },
+  // Squad-only: a hero is false. soldiers.length is the starting size (dead soldiers stay in the array).
+  soldiers_alive: (u, l) => u.kind === "squad" && compare(combatantCount(u), l.op, l.value),
+  soldiers_percent: (u, l) => u.kind === "squad" && u.soldiers.length > 0 && compare((combatantCount(u) / u.soldiers.length) * 100, l.op, l.value),
   is_leader: (u, _l, c) => isLeader(u, c),
   not_leader: (u, _l, c) => !isLeader(u, c),
   // front / back are hero rows; soldier_front / soldier_back are the soldier rows, which only a squad stands in.

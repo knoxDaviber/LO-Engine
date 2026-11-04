@@ -1097,6 +1097,7 @@
                         "passive_pp",
                         "max_active_pp",
                         "max_passive_pp",
+                        "soldiers_alive",
                         "HP",
                         "ATK",
                         "INT",

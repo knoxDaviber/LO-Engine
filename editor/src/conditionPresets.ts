@@ -109,6 +109,18 @@ export function buildPresets(statuses: StatusRef[]): Preset[] {
   for (const n of [1, 2, 3, 4]) add(Q, `enemies_le_${n}`, `${LT} ${n} or fewer enemies`, "Check", `${n} or fewer enemy combatants are alive (soldiers count).`, { type: "combatants", side: "enemy", op: "<=", value: n });
   for (const n of [2, 3, 4]) add(Q, `allies_ge_${n}`, `${GT} ${n}+ allies`, "Check", `${n} or more allied combatants are alive (soldiers count).`, { type: "combatants", side: "ally", op: ">=", value: n });
 
+  // Soldiers (a squad is one target with several soldiers)
+  const D = "Soldiers";
+  add(D, "kind_squad", "Squads", "Filter", "are soldier squads; skipped if none.", { type: "unit_kind", is: "soldier" });
+  add(D, "kind_hero", "Heroes", "Filter", "are heroes; skipped if none.", { type: "unit_kind", is: "hero" });
+  prefer(D, "prefer_squads", "Prioritise Squads", { type: "unit_kind", is: "soldier" }, "Soldier squads");
+  prefer(D, "prefer_heroes", "Prioritise Heroes", { type: "unit_kind", is: "hero" }, "Heroes");
+  for (const n of [3, 5]) add(D, `squad_le_${n}`, `${LT} Squad ${n} or fewer soldiers`, "Filter", `are squads with ${n} or fewer living soldiers; skipped if none.`, { type: "soldiers_alive", side: T, op: "<=", value: n });
+  for (const n of [5, 8]) add(D, `squad_ge_${n}`, `${GT} Squad ${n}+ soldiers`, "Filter", `are squads with ${n} or more living soldiers; skipped if none.`, { type: "soldiers_alive", side: T, op: ">=", value: n });
+  add(D, "squad_pct_lt_50", `${LT} Squad soldiers < 50%`, "Filter", "are squads with under 50% of their starting soldiers alive; skipped if none.", { type: "soldiers_percent", side: T, op: "<", value: 50 });
+  sel(D, "squad_fewest", "Squad with fewest soldiers", "lowest", "soldiers_alive", "Squads with the fewest living soldiers");
+  sel(D, "squad_most", "Squad with most soldiers", "highest", "soldiers_alive", "Squads with the most living soldiers");
+
   // Own condition
   const O = "Own condition";
   add(O, "is_self", "User", "Filter", "are the acting hero itself; skipped if none.", { type: "is_self" });

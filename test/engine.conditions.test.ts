@@ -131,3 +131,20 @@ test("row_size, row_rank, column_full, combatants, average_hp_percent, buffs", (
   assert.equal(at({ type: "lacks_any_buff", side: "target" }, emp), true);
   assert.equal(at({ type: "lacks_any_debuff", side: "target" }, emp), true);
 });
+
+test("soldiers_alive / soldiers_percent: true and false on a squad, false on a hero", () => {
+  const s = sampleState(1, { squads: true });
+  const leon = unit(s, LEON), sq = unit(s, `squad_${EMPEROR}`), emp = unit(s, EMPEROR);
+  const n = sq.soldiers.length;
+  for (const x of sq.soldiers.slice(0, 3)) x.alive = false; // 3 dead
+  const t = (type: string, op: string, value: number, target: any) => ev({ type, side: "target", op, value }, { state: s, self: leon, target }).value;
+  assert.equal(t("soldiers_alive", "=", n - 3, sq), true);
+  assert.equal(t("soldiers_alive", ">", n - 3, sq), false);
+  const pct = ((n - 3) / n) * 100;
+  assert.equal(t("soldiers_percent", "<=", pct, sq), true);
+  assert.equal(t("soldiers_percent", ">", pct, sq), false);
+  for (const type of ["soldiers_alive", "soldiers_percent"]) assert.equal(t(type, ">=", 0, emp), false); // hero: false even for a trivial compare
+  // existing leaves already read a squad: class follows the soldier type, hp_percent is the summed HP
+  assert.equal(ev({ type: "class_is", side: "target", value: sq.class }, { state: s, self: leon, target: sq }).value, true);
+  assert.equal(ev({ type: "unit_kind", is: "soldier" }, { state: s, self: leon, target: sq }).value, true);
+});

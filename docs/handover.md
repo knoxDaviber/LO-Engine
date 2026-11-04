@@ -1,4 +1,4 @@
-# Session handover (updated 2026-11-04)
+# Session handover (updated 2026-11-04, late)
 
 Read this first, then `CLAUDE.md` (working rules, commands, architecture). Design intent is in `docs/design_doc_v2.md`,
 progress in `docs/roadmap.md`.
@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 390/390 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 398/398 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -97,7 +97,7 @@ progress in `docs/roadmap.md`.
 7. **Batch sim nits (low):** two files with the same basename share seeds and header; a draft the validator missed throws a
    stack trace.
 
-**Designer requests 2026-11-04 (in this order; none started).** Items 9-11 change combat, so do them before the item 5 balance pass, then rerun `tools/balance-series.ts`.
+**Designer requests 2026-11-04 (in this order).** Next: item 15. Waiting on the designer: items 14 and 18 (proposals), and the meta loop design for item 16. Item 5 balance pass can start now that items 9-12 are in.
 
 8. **Done 2026-11-04:** PP 3/3 recorded as locked for now in Decision 140 and the design doc.
 9. **Done 2026-11-04:** every `draft_city` hero has sigils, 24 a side (4-piece or 2+2, same pattern as `city4v4`). Draft picks unchanged; 100 runs: 64% challenger, 6% timeouts. Picks and `sigil_side` are placeholders.
@@ -109,7 +109,7 @@ progress in `docs/roadmap.md`.
 14. **Drafted 2026-11-04, waiting on designer:** `docs/pp_gear_proposal.md` has 5 items and 3 questions. Nothing is built until it is approved.
 15. **Creation system:** a proper system where users create heroes, skills and gear. Overlaps item 6 (skill / equipment / character editors), so fold those in. **Answered 2026-11-04:** editor first, with community tier rules and computed cost as the limits.
 16. **Start the actual game (answered 2026-11-04):** Vite + React for now, to be ported to Godot later, so keep game logic out of React components. First playable slice: a tower run. **Blocked on design:** the tower needs the meta loop (Step 6), so that design comes first. Design doc Section 18 has the open questions.
-17. **Soldier targeting conditions (designer 2026-11-04):** add conditions that target soldiers, based on the current conditions (leaves in `src/registry/conditions.ts`, presets in `editor/src/conditionPresets.ts`). Scope to confirm when reached.
+17. **Done 2026-11-04 (Decision 146):** leaves `soldiers_alive` and `soldiers_percent` (false on a hero), selector metric `soldiers_alive` (heroes sort after every squad, lowest and highest), a "Soldiers" preset category. `hp_percent`, `class_is` and `unit_kind` already worked on squads. A player slot holds one leaf, so "cavalry squads only" can't be written; class presets match heroes too.
 18. **Hero skills, heroes and races proposal (designer 2026-11-04):** draft in `docs/skills_heroes_races_proposal.md`, using the Langrisser skill list as a reference only. Classes keep generic skills; each hero gets at most 4 unique skills, which heroes can sometimes share. Nothing is built until the designer approves.
 19. **Done 2026-11-04:** `docs/reference_skills.md`: 21 mechanic families with fit ratings, plus indexes for Etrian Odyssey X, Unicorn Overlord actives, Langrisser Mobile (9 pages) and EON weapon skills. Indexes are keyword-tagged, so some tags are wrong. Unicorn passive, brave and leader skills not collected. DeepSeek use was approved for this item only.
 
