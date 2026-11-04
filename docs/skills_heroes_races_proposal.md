@@ -81,8 +81,20 @@ Humans stay exactly as they are, so all 14 current heroes and the balance baseli
 
 ### Sub-races (designer 2026-11-04)
 
-The schema's 7 races stay; a sub-race is an optional layer under one. Decision 109's names fit here: High-Elf and Dark-Elf under Elf, Werebeast and Rabbit-folk under Beastfolk.
-Draft: optional `sub_race` on characters, and a sub-race shifts its parent's lean without changing the score. The list, stat shifts and which new heroes get one are still to be drafted.
+The schema's 7 races stay; a sub-race is an optional layer under one. The four below come from Decision 109's list. Other races have none for now. Sizes are set when built, and no number here has been simmed.
+
+| Sub-race | Parent | Lean added to parent's | Time trait (replaces parent's) | Disadvantage |
+|---|---|---|---|---|
+| **High-Elf** | Elf | INT, MDEF up; ATK, CRIT down | Day: SKL +5 | Weak physical hits; gives up Elf's night EVA |
+| **Dark-Elf** | Elf | ATK, CRIT up; INT, MDEF down | Night: EVA +5, CRIT +5 | Day: EVA -5 |
+| **Werebeast** | Beastfolk | HP, ATK up; SPD, EVA down | Night: ATK +10% | Day: ATK -5%; loses Beastfolk's speed edge |
+| **Rabbit-folk** | Beastfolk | SPD, EVA up; ATK, HP down | Night: EVA +5 | Fragile, with weak hits |
+
+- **Same rules as races:** a sub-race keeps the equal score (Decision 112). As with Demon and Angel, only the ones with the largest bonuses swing both ways.
+- **Plain parents stay valid:** an Elf with no sub-race plays as Elf. `race_is` and other race checks match the parent, so "race is Elf" hits High-Elves and Dark-Elves.
+- **New heroes:** Sylwen becomes a Dark-Elf (an archer needs ATK, and High-Elf cuts it). Rikka becomes Rabbit-folk (speed suits an opener). High-Elf and Werebeast have no hero yet.
+
+**Sub-race build:** `sub_race` on characters, a parent check in the validator (an error when it does not belong to the hero's race), and a `sub_races` block next to `races` in `rules.yaml`. Applied in `state.ts` with the race lean.
 
 **Build:** a `races` block in `rules.yaml` for stat leans and time effects, applied in `state.ts`. `race` on characters and `time_is` already exist. Racial soldier types and classes (Decision 112) are left out here.
 
@@ -93,3 +105,7 @@ Draft: optional `sub_race` on characters, and a sub-race shifts its parent's lea
 3. **Hero count:** 6 new heroes.
 4. **Names:** Hegemony is based on the reference skill and stays.
 5. **Cover:** accepted, the bodyguard does not evade a covered hit.
+
+## Open question
+
+Should tactics be able to target a sub-race? This draft leaves it out: `race_is` matches only the parent, and a `sub_race_is` leaf can be added later if players want it.
