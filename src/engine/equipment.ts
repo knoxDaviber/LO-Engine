@@ -26,9 +26,9 @@
 // Devotion blessings (design Section 9A, roadmap 3c; which tiers a hero unlocks: src/devotion.ts) reuse this machinery, per blessing effect:
 //   modify_stat (always)        a `prayer`-category inline instance (statusId `prayer:<god>:<tier>:<n>`), on while its condition holds, re-checked
 //                               like item modifiers (logged `blessing_applied` / `blessing_removed`). [DEFAULT] Not shared with the wearer's squad.
-//                               Same category, but one god's 2-piece and 4-piece lines on one stat add (stats.ts, Decision 125: Full Moon ATK
+//                               Same category, but one god's 2-piece and 4-piece lines on one stat add (stats.ts, Decision 125: Full Moon DEF
 //                               +30% while on); two gods' identical lines follow 9.1 (strongest wins).
-//                               action_is_single_target (Meteor, Rush): damage.ts executeSkill sets `bus.singleAttack` and re-checks right after
+//                               action_is_single_target: damage.ts executeSkill sets `bus.singleAttack` and re-checks right after
 //                               spending PP, so these lines are on for every roll of that attack; it clears the flag before the status ticks and
 //                               the recheck in finishAction takes them off.
 //   ignore_guard                judged when the wearer rolls a hit (`ignoresGuard`, condition from the wearer): its attacks ignore GUARD, like a
@@ -40,16 +40,26 @@
 //                               count only the HP it had), summed over the whole action: a multi-hit action counts every hit) to the actor:
 //                               no rolls, no DEF, not a hit (no events), can kill (Fairy's Grace still intercepts); on a squad it lands on the
 //                               lowest-HP living soldier and overflows to the next ones like a single hit. It still fires when that action killed the wearer (`evenIfOwnerDead`).
-//                               Any other on_event effect (Gift's heal) runs once on the wearer if any such hit event (a before_hit counts:
+//                               Any other on_event effect (Gift DEF's heal) runs once on the wearer if any such hit event (a before_hit counts:
 //                               targeted, landed or not) exists. [DEFAULT] A dead wearer heals no more; reflected damage below 1 is dropped.
-//   reduce_damage phase/battle  a standing reduction, set in the equipment pre-battle step every phase (Plate: damage taken -10%).
-//   Anything else is a build note `not implemented: blessing ...`.
+//                               on_event damage (Rush DEF): one rolled counter per matching event (self_dodged) at the actor, a single-target
+//                               reaction hit: a dead actor or wearer gets none, and its own events are not dispatched, so counters never chain.
+//                               on_event damage_bonus (Retaliate): sets the wearer's `attackCharge` to percent (one charge, no stacking; a dodged
+//                               attack counts), which damage.ts adds to its next attacking action's hits and spends after it, landed or not.
+//                               An effect whose top-level condition is an on_death leaf (self_killed_enemy, Gift ATK) subscribes to on_death instead:
+//                               once per dead unit, right at the kill. [DEFAULT] Kills by reactions fire nothing (reactions never trigger reactions).
+//   ignore_defense, damage_bonus,  judged at each hit (`hitMods`, condition from the wearer; damage.ts hitCtx). crit_damage on: dealt reads the
+//   crit_damage (always)        attacker's, on: taken the defender's.
+//   reduce_damage phase/battle/ a standing reduction, set in the equipment pre-battle step every phase (Plate: damage taken -10%; Sidestep:
+//   first_single_hit            first_single_hit, so one fresh charge per phase).
+//   Anything else is a build note `not implemented: blessing ...`, as is a 4-piece with no side (the validator rejects it, E_SIGIL_SIDE_MISSING).
 import type { Effect, Equipment, SourceCategory } from "../schema";
 import { blessingKind } from "../devotion";
 import { evaluateCondition } from "./conditions";
 import type { DamageBreakdown, EffectSkill, ExecCtx } from "./damage";
 import { applyDamage, applySoldierDamage, lowestHpSoldier, runEffect } from "./damage";
 import type { BusPayloads, EventCtx } from "./events";
+import { EVENT_SPECS } from "./events";
 import { at } from "./log";
 import type { BattleState, StatusInstance, Unit } from "./state";
 import { isDebuffStatus } from "./stats";
@@ -90,9 +100,11 @@ export interface EquipmentState {
   preBattle: EquipEffect[];
   /** Blessing ignore_guard effects, judged when their owner attacks (`ignoresGuard`). */
   ignoreGuard: EquipEffect[];
+  /** Blessing ignore_defense / damage_bonus / crit_damage effects, judged at each hit (`hitMods`). */
+  hitMods: EquipEffect[];
 }
 
-export const emptyEquipment = (): EquipmentState => ({ mods: [], onHit: [], preBattle: [], ignoreGuard: [] });
+export const emptyEquipment = (): EquipmentState => ({ mods: [], onHit: [], preBattle: [], ignoreGuard: [], hitMods: [] });
 
 /** Sorts every worn item effect and unlocked blessing effect of every hero into the state's lists; unsupported ones become build notes. */
 export function registerEquipment(state: BattleState): void {
@@ -111,13 +123,15 @@ export function registerEquipment(state: BattleState): void {
       });
     });
     for (const b of u.blessings ?? []) {
-      const src = { id: b.god.id, name: `${b.god.blessing.name} (${b.god.name} ${b.tier}-piece)` };
+      const src = { id: b.god.id, name: `${b.name} (${b.god.name} ${b.tier}-piece)` };
+      if (b.tier === 4 && !b.side) state.buildNotes.push({ unit: u.id, what: `not implemented: blessing ${src.name} without a sigil_side` });
       b.effects.forEach((effect, index) => {
         const ee: EquipEffect = { owner: u, item: src, slot: b.tier, index, effect, prefix: PRAYER_PREFIX, category: "prayer" };
         const trig = effect.trigger ?? "always";
         const kind = blessingKind(effect); // the validator rejects null (E_EFFECT_TRIGGER)
         if (kind === "mod" && effect.type === "modify_stat") state.equipment.mods.push({ ...ee, effect, inst: null, blocked: false });
         else if (kind === "ignore_guard") state.equipment.ignoreGuard.push(ee);
+        else if (kind === "hit") state.equipment.hitMods.push(ee);
         else if (kind === "reaction") subscribeBlessing(state, ee);
         else if (kind === "standing") state.equipment.preBattle.push(ee);
         else state.buildNotes.push({ unit: u.id, what: `not implemented: blessing ${src.name} effect ${effect.type}${trig === "always" ? "" : ` with trigger ${trig}`}` });
@@ -188,10 +202,15 @@ export function ignoresGuard(state: BattleState, attacker: Unit): boolean {
   return state.equipment.ignoreGuard.some((ee) => ee.owner === attacker && attacker.alive && evaluateCondition(ee.effect.condition, { state, self: attacker }).value);
 }
 
+/** The blessing hit modifiers of `type` on `unit` active right now (each condition judged from the unit). */
+export function hitMods<T extends "ignore_defense" | "damage_bonus" | "crit_damage">(state: BattleState, unit: Unit, type: T): Extract<Effect, { type: T }>[] {
+  return state.equipment.hitMods.flatMap((ee) => (ee.owner === unit && ee.effect.type === type && evaluateCondition(ee.effect.condition, { state, self: unit }).value ? [ee.effect as Extract<Effect, { type: T }>] : []));
+}
+
 /** The current action's hit events by `actor` on the blessing's wearer for which the effect's condition holds (each in its own event context). */
 function actionHits(state: BattleState, ee: EquipEffect, actor: Unit): EventCtx[] {
   return state.bus.history.slice(state.bus.actionStart).filter((e) => {
-    if (e.bus !== "before_hit" && e.bus !== "after_hit") return false;
+    if (e.bus !== "before_hit" && e.bus !== "after_hit" && e.bus !== "dodge") return false;
     const h = e.payload as BusPayloads["before_hit"];
     return h.attacker === actor && h.defender === ee.owner && evaluateCondition(ee.effect.condition, { state, self: ee.owner, event: e }).value;
   });
@@ -207,13 +226,29 @@ function reflected(state: BattleState, ee: EquipEffect, actor: Unit): number {
 /** A blessing reaction (see the header): after each non-idle action of another unit that hit (or, for on_event effects, targeted) the wearer. */
 function subscribeBlessing(state: BattleState, ee: EquipEffect): void {
   const { owner, item, effect } = ee;
-  const skill: EffectSkill = { id: item.id, name: item.name, shape: "self", interactions: { guard: "standard", soldiers: "standard" }, trigger: effect.trigger ?? "on_event" };
+  const skill: EffectSkill = { id: item.id, name: item.name, shape: effect.type === "damage" ? "attacker" : "self", interactions: { guard: "standard", soldiers: "standard" }, trigger: effect.trigger ?? "on_event" };
+  const plain = { ...effect, condition: null };
+  const run = { applier: ee.category, inAction: false };
+  // shortcut: only a top-level on_death leaf is seen here (nested in all / any it never fires); fine while Gift ATK is the only one.
+  const leaf = EVENT_SPECS[(effect.condition as { type?: string } | null | undefined)?.type ?? ""];
+  if (leaf?.bus === "on_death") {
+    return void state.bus.subscribe({
+      event: "on_death", id: item.name, owner, order: DEVOTION_ORDER, effect: effect.type,
+      match: (p) => leaf.match(owner, { bus: "on_death", payload: p }),
+      run: (_p, x) => runEffect(x, owner, skill, plain, [owner], new Set([owner]), false, run),
+    });
+  }
   state.bus.subscribe({
     event: "after_action", id: item.name, owner, order: DEVOTION_ORDER, effect: effect.type, evenIfOwnerDead: effect.type === "reflect_damage",
     match: (p) =>
-      !p.idle && p.actor !== owner && (effect.type === "reflect_damage" ? p.actor.alive && reflected(state, ee, p.actor) > 0 : actionHits(state, ee, p.actor).length > 0),
+      !p.idle && p.actor !== owner && (effect.type === "reflect_damage" ? p.actor.alive && reflected(state, ee, p.actor) > 0 : (effect.type !== "damage" || p.actor.alive) && actionHits(state, ee, p.actor).length > 0),
     run: (p, x) => {
-      if (effect.type !== "reflect_damage") return void runEffect(x, owner, skill, { ...effect, condition: null }, [owner], new Set([owner]), false, { applier: ee.category, inAction: false });
+      if (effect.type === "damage_bonus") return void (owner.attackCharge = effect.percent);
+      if (effect.type === "damage") {
+        for (const _ of actionHits(state, ee, p.actor)) if (p.actor.alive && owner.alive) runEffect(x, owner, skill, plain, [p.actor], new Set([owner]), false, run);
+        return;
+      }
+      if (effect.type !== "reflect_damage") return void runEffect(x, owner, skill, plain, [owner], new Set([owner]), false, run);
       const amount = reflected(state, ee, p.actor);
       const d: DamageBreakdown = { landed: true, scaled: 0, matchup: 1, power: amount, defense: 0, base: amount, crit: false, guard: false, guardFactor: 1, amount };
       const meta = { single: true, noEvent: true };

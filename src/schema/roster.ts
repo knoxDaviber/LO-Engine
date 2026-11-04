@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { conditionNode } from "./condition";
-import { BAN_SELECTS, ID_PATTERN, ROWS, SELECTOR_METRICS, SELECTORS, STATS } from "./enums";
+import { BAN_SELECTS, ID_PATTERN, ROWS, SELECTOR_METRICS, SELECTORS, SIGIL_SIDES, STATS } from "./enums";
 
 const id = z.string().regex(ID_PATTERN);
 
@@ -61,6 +61,8 @@ export const rosterHeroSchema = z.strictObject({
   sigils: z
     .strictObject({ weapon: id.nullable().optional(), armor: id.nullable().optional(), accessory_1: id.nullable().optional(), accessory_2: id.nullable().optional() })
     .optional(),
+  // Which 4-piece enchantment 4 same-god sigils unlock (Decision 141). Required then (E_SIGIL_SIDE_MISSING); otherwise it does nothing (W_SIGIL_SIDE_UNUSED).
+  sigil_side: z.enum(SIGIL_SIDES).optional(),
   tactic_sheet: z.array(tacticSchema),
   preferred_row: z.enum(ROWS).optional(), // optional: falls back to the character's preferred_row
   // Slot inside the hero row, 1..rules.board.columns (range checked by the validator, E_BATTLE_SLOT). Omitted = auto: fills the lowest free

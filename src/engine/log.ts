@@ -56,7 +56,7 @@ export interface SoldierRef {
   by?: number;
 }
 
-export type RollKind = "hit" | "crit" | "guard" | "status";
+export type RollKind = "hit" | "crit" | "guard" | "status" | "heal";
 
 export type BattleEvent =
   | { type: "battle_setup"; battle_id: string; seeds: number[]; units: SetupUnit[]; squads: SetupSquad[]; skills: { id: string; name: string }[]; statuses: { id: string; name: string }[] }

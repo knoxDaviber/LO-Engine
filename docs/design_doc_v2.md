@@ -317,27 +317,36 @@ Every percentage modifier carries a **source category**: **Passive** (includes l
 ## 9A. Devotion (prayer) [DECIDED]
 
 - **Lore:** the world is governed by **7 base gods**, each embodying a virtue (with a shadow vice for story), and everyone prays to them [DECIDED concept, Decision 113]. More gods (ascended heroes, man-made or false gods) may be added later as new sigil sets, so the schema never assumes exactly 7 gods. God-race links are lore only: any hero may choose any patron, and gods give no racial bonus.
-- **Placeholder pantheon** (Decision 125): the Japanese Seven Lucky Gods, content type `content/gods.yaml` (id, name, virtue, vice, description, `blessing: { name, two_piece, four_piece }`, effects reuse the effect schema).
+- **Placeholder pantheon** (Decision 125): the Japanese Seven Lucky Gods, content type `content/gods.yaml` (id, name, virtue, vice, description, `blessing: { name, two_piece, four_piece_def, four_piece_atk }`, each 4-piece `{ name?, effects }`, effects reuse the effect schema).
 - **Sigils are chosen by the player per slot** (Decision 125, revises Decision 74's fixed sigil): a roster hero entry carries `sigils: { weapon, armor, accessory_1, accessory_2 }` (a god id or null each). A sigil counts only while its slot holds an item (an empty slot: warning `W_SIGIL_EMPTY_SLOT`). Sigils are locked between phases like equipment.
-- **2 sigils of one god** unlock its 2-piece, **4** unlock the 2-piece and the 4-piece; two gods at 2 + 2 each give their 2-piece.
-- Blessings use the stacking category **`prayer`** (Section 9.1): they multiply with every other category; within prayer the strongest wins between different gods (Benzaiten and Bishamonten HP +20% each give +20%), but one god's 2-piece and 4-piece lines on one stat add [DECIDED] (Full Moon active: ATK +30%; Meteor on a single-target attack: CRIT +40). Max HP follows the same rule. Not shared with the wearer's squad [DEFAULT].
+- **Two-sided enchantments** (Decision 141, built): each god has a DEF and an ATK 4-piece. A hero has 4 slots, so at most one 4-piece; the entry's `sigil_side` (`def` or `atk`, locked between phases like `sigils`) picks it. 4 counted same-god sigils with no side: error `E_SIGIL_SIDE_MISSING`; a side with no 4-piece unlocked: warning `W_SIGIL_SIDE_UNUSED`.
+- **2 sigils of one god** unlock its 2-piece, **4** unlock the 2-piece and the 4-piece of the chosen side; two gods at 2 + 2 each give their 2-piece.
+- Blessings use the stacking category **`prayer`** (Section 9.1): they multiply with every other category; within prayer the strongest wins between different gods (Benzaiten and Daikokuten HP +20% each give +20%), but one god's 2-piece and 4-piece lines on one stat add [DECIDED] (Full Moon DEF active: DEF/MDEF +30%; Rush DEF: EVA +25). Max HP follows the same rule. Not shared with the wearer's squad [DEFAULT].
 - Blessing effects must take a form the engine runs (`E_EFFECT_TRIGGER` otherwise). Blessings are priced by the cost algorithm (Section 2A): an unconditional stat line like a stat (flat: value x weight; percent: value% of the base stat x weight), any other blessing effect a flat `rules.cost.effect_price` [DEFAULT].
 
-| God | Virtue / vice | Blessing | 2-piece | 4-piece |
-|---|---|---|---|---|
-| Benzaiten | Amiability / Lust | Mirror | HP +20% | when hit by a single-target attack, 30% of the damage taken is reflected to the attacker |
-| Jurojin | Longevity / Sloth | Full Moon | ATK +10% | while own HP > 80%: ATK, INT, DEF, MDEF +20% |
-| Bishamonten | Dignity / Wrath | Plate | HP +20% | damage taken -10% (whole battle) |
-| Daikokuten | Fortune / Greed | Gift | DEF +10% | after being attacked by a single-target attack, heal 30% max HP |
-| Hotei | Magnanimity / Gluttony | Breeze | ATK +10% | SPD +20% |
-| Fukurokuju | Wisdom / Pride | Meteor | CRIT +10 | CRIT +30 while using a single-target attack |
-| Ebisu | Candor / Envy | Rush | DEF +10% | while using a single-target attack: ATK and INT +30%, and the attack ignores GUARD |
+| God | Virtue / vice | Blessing | 2-piece | DEF 4-piece | ATK 4-piece |
+|---|---|---|---|---|---|
+| Benzaiten | Amiability / Lust | Mirror | HP +20% | reflect 30% of single-target damage taken | **Retaliate:** after being attacked, next attack +30% (one charge, does not stack) |
+| Jurojin | Longevity / Sloth | Full Moon | DEF/MDEF +10% | HP > 80%: DEF/MDEF +20% | HP > 80%: ATK/INT +20% |
+| Bishamonten | Dignity / Wrath | Plate | GUARD +10 | damage taken -10% (whole battle) | **Sunder:** attacks ignore 20% of the target's DEF/MDEF |
+| Daikokuten | Fortune / Greed | Gift | HP +20% | when attacked, 50% chance to heal 20% max HP after the attack (once per enemy action) | on a hero kill or squad wipe, heal the lowest-HP ally 20% (self included) |
+| Hotei | Magnanimity / Gluttony | Breeze | ATK/INT +10% | **Sidestep:** the first single-target hit each phase deals 50% less | **Second Wind:** HP < 50%: SPD +30% |
+| Fukurokuju | Wisdom / Pride | Meteor | CRIT +10 | crit damage taken -50% | crit damage +30% |
+| Ebisu | Candor / Envy | Rush | EVA +10 | EVA +15; after a dodge, counter for 75% ATK | single-target attacks ignore GUARD and deal +15% damage |
 
 Rules [DEFAULT] (Decision 125):
 - A blessing HP +20% (unconditional) raises max HP; no other status HP modifier changes max HP.
 - **Single-target attack** = the hero's own active damage skill of shape single (the same `single` flag as `unit_hit_by_single_target_attack`); condition leaf `action_is_single_target` (authored only). Conditional lines on it are on for every roll of that attack and off after it.
 - **Reflect** (`reflect_damage`): floor(percent of the HP the wearer lost to the attacking unit's hits in that action (overkill and a Fairy's Grace save count only the HP it had), summed over every hit of that action), dealt to the attacker after the action, once. No hit/crit/guard roll, ignores DEF, not a hit (fires no events), can kill (Fairy's Grace still intercepts); on a squad it lands on the lowest-HP living soldier. Only hits whose own event satisfies the condition count; the action that kills the wearer is still reflected; less than 1 damage is dropped.
-- **Gift**: once per attacking action of another unit that targeted the wearer with a single-target hit (landed or not), after the action.
+- **Gift DEF**: after an attacking action of another unit that targeted the wearer (any shape, landed or not), one roll of the phase rng (`heal.chance_percent`), then the heal. A dead wearer heals no more.
+- **Gift ATK** (`heal.target: lowest_hp_ally`, leaf `self_killed_enemy`) [DEFAULT]: fires at the kill, once per dead enemy hero or wiped squad (a kill by a hero's own hit only: a kill by a reaction fires nothing, its squad's kills do not count, a leader's squad removed with it is not a wipe). Lowest HP means lowest HP%, ties in unit order; it heals 20% of the recipient's max HP.
+- **Retaliate** (`damage_bonus` with `trigger: on_event`) [DEFAULT]: "+30%" is damage, a bonus in the formula's bonus sum. Any attack aimed at the wearer charges it, dodged or not. The charge covers every hit of the wearer's next damage skill and is spent by it even on a miss; a non-damage skill keeps it; it ends with the phase.
+- **Rush ATK** (`ignore_guard` + `damage_bonus`, leaf `action_is_single_target`) [DEFAULT]: the wearer's own active skills only. `damage_bonus` joins the bonus sum: additive under `pool`, in the matchup before defense under the older formulas.
+- **Sunder** (`ignore_defense`): scales the defense of every hit before any formula uses it, including a squad's summed DEF / MDEF and hybrid's average.
+- **Sidestep** (`reduce_damage` duration `first_single_hit`): one charge per phase, spent by the first landed single-target hit alone (a second hit of that action is not reduced); a miss or an area hit leaves it. It counts toward the reduction cap. [DEFAULT]
+- **Second Wind**: an ordinary conditional SPD line; the usual SPD-change rescheduling applies at the end of the action.
+- **Meteor** (`crit_damage`) [DEFAULT]: multiplies `crit_multiplier` on that hit, in every formula and outside the reduction cap, so a crit on Meteor DEF deals less than a normal hit while `crit_multiplier` is below 2.
+- **Rush DEF counter** (`damage` with `trigger: on_event`, leaf `self_dodged`) [DEFAULT]: a dodge is any missed hit roll. After the attacking action, one counter per dodge at the attacker (a squad too), physical melee, rolled like any hit, with `hero_hits`; none if the attacker or the wearer is dead. Reactions never trigger reactions, so a counter cannot be countered, reflected or healed from.
 - **Ignore GUARD** (`ignore_guard`): while active, the wearer's hits skip the guard roll, also over a skill's guaranteed guard.
 
 ---
@@ -595,7 +604,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 138 | Soldier skill points | DECIDED, later | 20 points per soldier type, spent in skill trees with prerequisites, up to 5 levels per category; reallocated at season end; slight cost increase. Differentiates players' soldiers (class triangle damage dealt/taken, vs buffed or debuffed units, back-row damage, damage taken by battlefield). Separate from hero progression (Decision 114). Tree contents open (Section 18) |
 | 139 | Timeout result | DECIDED (built) | Replaces "survivors after phase 3 = challenger loss" (Decisions 68, 115): a phase-3 timeout goes to the side with the higher remaining HP%, counted over the whole side (heroes and soldiers together); an exact tie goes to the defender [DEFAULT] |
 | 140 | Default PP 3/3 | DEFAULT, not locked | Active 3, Passive 3 for now, max still 4; still being decided after the PP sweep |
-| 141 | Two-sided enchantments | DECIDED for now (not built) | Each god gets a DEF and an ATK 4-piece, list in `docs/enchantments_proposal.md`; the player's sigil choice records the side. Values untested until simmed. Replaces the 4-pieces in Section 9A once built |
+| 141 | Two-sided enchantments | DECIDED for now (built) | Each god has a DEF and an ATK 4-piece (Section 9A, `four_piece_def` / `four_piece_atk`); the hero entry's `sigil_side` records the choice. The 2-pieces changed with them. Values untested until simmed |
 
 ---
 

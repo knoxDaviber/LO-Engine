@@ -1,6 +1,6 @@
 import { rosterSchema, type Roster, type RosterHero } from "../schema";
 import type { Collector, Location, Tier } from "../types";
-import { SIGIL_SLOTS, unlockedBlessings } from "../devotion";
+import { SIGIL_SLOTS, sigilCounts, unlockedBlessings } from "../devotion";
 import { heroCost } from "./cost";
 import { canEquip, squadEligible } from "./eligibility";
 import type { Pack } from "./pack";
@@ -101,6 +101,11 @@ export function checkRosterHero(h: RosterHero, loc: Location, pack: Pack, c: Col
     if (!pack.byId.gods.has(god)) c.error("E_REF_MISSING", `unknown god '${god}'`, p);
     else if (!h.equipment[key]) c.warn("W_SIGIL_EMPTY_SLOT", `the ${key} slot is empty, so its '${god}' sigil does not count`, p);
   }
+  // Decision 141: a 4-piece must name its side; only counted sigils unlock one.
+  const fourPiece = [...sigilCounts(pack, h).values()].some((n) => n >= 4);
+  const sideAt = { ...loc, path: `${loc.path}.sigil_side` };
+  if (fourPiece && !h.sigil_side) c.error("E_SIGIL_SIDE_MISSING", "4 same-god sigils need a sigil_side (def or atk)", sideAt);
+  else if (!fourPiece && h.sigil_side) c.warn("W_SIGIL_SIDE_UNUSED", "sigil_side does nothing without 4 counted sigils of one god", sideAt);
 
   checkTacticSheet(h.tactic_sheet, hero.skills, { ...loc, path: `${loc.path}.tactic_sheet` }, c, pack, tier);
 

@@ -169,6 +169,13 @@
                     },
                     "additionalProperties": false
                   },
+                  "sigil_side": {
+                    "type": "string",
+                    "enum": [
+                      "def",
+                      "atk"
+                    ]
+                  },
                   "tactic_sheet": {
                     "type": "array",
                     "items": {
@@ -693,6 +700,13 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "sigil_side": {
+                    "type": "string",
+                    "enum": [
+                      "def",
+                      "atk"
+                    ]
                   },
                   "tactic_sheet": {
                     "type": "array",
@@ -1267,6 +1281,13 @@
                           }
                         },
                         "additionalProperties": false
+                      },
+                      "sigil_side": {
+                        "type": "string",
+                        "enum": [
+                          "def",
+                          "atk"
+                        ]
                       },
                       "tactic_sheet": {
                         "type": "array",
@@ -1909,6 +1930,13 @@
                           }
                         },
                         "additionalProperties": false
+                      },
+                      "sigil_side": {
+                        "type": "string",
+                        "enum": [
+                          "def",
+                          "atk"
+                        ]
                       },
                       "tactic_sheet": {
                         "type": "array",

@@ -44,7 +44,12 @@ test("describe: every skill, equipment, status, god, soldier, terrain and aura h
   for (const s of cat.skills) good(describeSkill(s, cat), s.id);
   for (const q of cat.equipment) good(describeEquipment(q, cat), q.id);
   for (const s of cat.statuses) good(describeStatus(s, cat), s.id);
-  for (const g of cat.gods) { good(describeBlessing(g, 2, cat), `${g.id}/2`); good(describeBlessing(g, 4, cat), `${g.id}/4`); }
+  for (const g of cat.gods) {
+    good(describeBlessing(g, 2, cat), `${g.id}/2`);
+    good(describeBlessing(g, 4, cat), `${g.id}/4`);
+    for (const side of ["def", "atk"] as const) good(describeBlessing(g, 4, cat, side), `${g.id}/4/${side}`);
+    assert.equal(describeBlessing(g, 4, cat).lines.length, 2); // no side: both enchantments
+  }
   for (const s of cat.soldiers) { good(describeSoldier(s, cat), s.id); s.passive_effects.forEach((p, i) => good(describeSoldierSkill(p, cat), `${s.id}[${i}]`)); }
   for (const t of cat.terrains) good(describeTerrain(t, cat), t.id);
   for (const c of cat.characters) good(describeAura(c.leader_aura, cat), c.id);

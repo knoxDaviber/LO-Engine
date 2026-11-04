@@ -1,6 +1,6 @@
 # City 4v4 with the generic kit: one generic hero per class. Battlefield City (terrain_005): cavalry SPD -10%, assassin CRIT +10, infantry GUARD +10.
 # Devotion sigils (Section 9A): the Infantry wears 2 Fukurokuju + 2 Bishamonten (Meteor and Plate 2-piece each), the Monster 4 Benzaiten (Mirror 4-piece), the Assassin
-# 4 Ebisu (Rush 4-piece: ATK and INT +30% and GUARD ignored on its single-target attacks).
+# 4 Ebisu (Rush ATK 4-piece: its single-target attacks ignore GUARD and deal +15% damage).
 # Every hero brings its class's natural soldier type; only each leader's squad is deployed. Tactic sheets: big skill first, basic attack second, then the hero's passives (a passive runs only from the sheet, design Section 4).
 battle_id: city_4v4
 version: "1"
@@ -49,6 +49,7 @@ defender:
       squad_id: soldier_012
       equipment: { weapon: equip_015, armor: equip_018, accessory_1: equip_021, accessory_2: equip_021 }
       sigils: { weapon: god_001, armor: god_001, accessory_1: god_001, accessory_2: god_001 }   # Mirror 4-piece
+      sigil_side: def
       tactic_sheet:
         - { priority: 1, skill_id: skl_016, enabled: true, main: null, sub: null }   # Rend
         - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -57,6 +58,7 @@ defender:
       squad_id: soldier_010
       equipment: { weapon: equip_013, armor: equip_017, accessory_1: equip_022, accessory_2: equip_022 }
       sigils: { weapon: god_007, armor: god_007, accessory_1: god_007, accessory_2: god_007 }   # Rush 4-piece
+      sigil_side: atk
       tactic_sheet:
         - { priority: 1, skill_id: skl_009, enabled: true, main: null, sub: null }   # Backstab
         - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike

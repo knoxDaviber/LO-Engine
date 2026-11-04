@@ -1,8 +1,9 @@
 // Devotion (design Section 9A, roadmap 3c): the blessings a hero entry unlocks. Shared by the validator (cost) and the engine (equipment.ts).
 // A hero entry names a god per equipment slot (`sigils`). A sigil counts only while its slot holds an item; an unknown god counts for nothing
-// (E_REF_MISSING in the validator). 2 counted sigils of one god unlock its two_piece, 4 unlock two_piece AND four_piece; two gods at 2 + 2 each
-// give their two_piece. The god list is open-ended (Decision 113): nothing here assumes a number of gods.
-import type { Effect, God, RosterHero } from "./schema";
+// (E_REF_MISSING in the validator). 2 counted sigils of one god unlock its two_piece, 4 unlock two_piece AND the 4-piece of the entry's `sigil_side`
+// (four_piece_def / four_piece_atk, Decision 141); two gods at 2 + 2 each give their two_piece. The god list is open-ended (Decision 113): nothing
+// here assumes a number of gods.
+import type { Effect, God, RosterHero, SigilSide } from "./schema";
 import type { Pack } from "./validate/pack";
 
 export const SIGIL_SLOTS = ["weapon", "armor", "accessory_1", "accessory_2"] as const;
@@ -10,6 +11,10 @@ export const SIGIL_SLOTS = ["weapon", "armor", "accessory_1", "accessory_2"] as 
 export interface Blessing {
   god: God;
   tier: 2 | 4;
+  /** The enchantment's own name, else the blessing's. */
+  name: string;
+  /** Tier 4: the side picked. Absent on a tier 4 means no side was chosen (E_SIGIL_SIDE_MISSING): no effects. */
+  side?: SigilSide;
   effects: Effect[];
 }
 
@@ -25,12 +30,15 @@ export function sigilCounts(pack: Pick<Pack, "byId">, entry: Pick<RosterHero, "e
 }
 
 /** The blessing tiers the entry unlocks, per god in sigil order, 2-piece before 4-piece. */
-export function unlockedBlessings(pack: Pick<Pack, "byId">, entry: Pick<RosterHero, "equipment" | "sigils">): Blessing[] {
+export function unlockedBlessings(pack: Pick<Pack, "byId">, entry: Pick<RosterHero, "equipment" | "sigils" | "sigil_side">): Blessing[] {
   const out: Blessing[] = [];
   for (const [id, n] of sigilCounts(pack, entry)) {
     const god = pack.byId.gods.get(id)!;
-    if (n >= 2) out.push({ god, tier: 2, effects: god.blessing.two_piece });
-    if (n >= 4) out.push({ god, tier: 4, effects: god.blessing.four_piece });
+    if (n >= 2) out.push({ god, tier: 2, name: god.blessing.name, effects: god.blessing.two_piece });
+    if (n < 4) continue;
+    const side = entry.sigil_side;
+    const four = side && god.blessing[`four_piece_${side}`];
+    out.push({ god, tier: 4, name: four?.name ?? god.blessing.name, ...(side ? { side } : {}), effects: four?.effects ?? [] });
   }
   return out;
 }
@@ -39,14 +47,16 @@ export function unlockedBlessings(pack: Pick<Pack, "byId">, entry: Pick<RosterHe
  * How the engine runs a blessing effect (engine/equipment.ts), or null when it cannot (the validator rejects it, E_EFFECT_TRIGGER):
  *   mod          modify_stat, no trigger / always (optionally with a condition)
  *   ignore_guard ignore_guard, no trigger / always
+ *   hit          ignore_defense, damage_bonus or crit_damage, no trigger / always: judged at each hit
  *   reaction     reflect_damage (no trigger / always / on_event), or any other non-modify_stat effect with trigger on_event
- *   standing     reduce_damage with duration phase / battle, no trigger, no condition
+ *   standing     reduce_damage with duration phase / battle / first_single_hit, no trigger, no condition
  */
-export function blessingKind(e: Effect): "mod" | "ignore_guard" | "reaction" | "standing" | null {
+export function blessingKind(e: Effect): "mod" | "ignore_guard" | "hit" | "reaction" | "standing" | null {
   const trig = e.trigger ?? "always";
   if (trig === "always" && e.type === "modify_stat") return "mod";
   if (trig === "always" && e.type === "ignore_guard") return "ignore_guard";
+  if (trig === "always" && (e.type === "ignore_defense" || e.type === "damage_bonus" || e.type === "crit_damage")) return "hit";
   if ((e.type === "reflect_damage" && trig === "always") || (trig === "on_event" && e.type !== "modify_stat")) return "reaction";
-  if (trig === "always" && e.type === "reduce_damage" && !e.condition && (e.duration === "phase" || e.duration === "battle")) return "standing";
+  if (trig === "always" && e.type === "reduce_damage" && !e.condition && (e.duration === "phase" || e.duration === "battle" || e.duration === "first_single_hit")) return "standing";
   return null;
 }

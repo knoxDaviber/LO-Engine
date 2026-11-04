@@ -64,6 +64,7 @@ challenger:
         armor: god_002
         accessory_1: god_002
         accessory_2: god_002
+      sigil_side: atk
     - char_id: char_008
       squad_id: soldier_006
       equipment:
@@ -97,6 +98,7 @@ challenger:
         armor: god_002
         accessory_1: god_002
         accessory_2: god_002
+      sigil_side: atk
     - char_id: char_012
       squad_id: soldier_009
       equipment:
@@ -142,6 +144,7 @@ challenger:
         armor: god_005
         accessory_1: god_005
         accessory_2: god_005
+      sigil_side: atk
 defender:
   leader: char_014
   heroes:
@@ -157,6 +160,7 @@ defender:
         armor: god_001
         accessory_1: god_001
         accessory_2: god_001
+      sigil_side: def
       tactic_sheet:
         - priority: 1
           skill_id: skl_016
@@ -185,6 +189,7 @@ defender:
         armor: god_007
         accessory_1: god_007
         accessory_2: god_007
+      sigil_side: atk
       tactic_sheet:
         - priority: 1
           skill_id: skl_009

@@ -4,6 +4,7 @@
 // Events (the design doc names the system but not the list; this is the roadmap's list, [DEFAULT] payloads):
 //   before_hit    before each hit's rolls            {attacker, defender, skillId, damageType, range, single, by?, soldier?, redirect?}
 //   after_hit     after each LANDED hit is applied   {...the same, amount, killed, lost}   (a miss emits nothing; amount = raw damage, lost = HP removed)
+//   dodge         a hit's roll missed, recorded in history only (Rush DEF reads it)   {...the before_hit fields}
 //   after_heal    a living unit regained HP (> 0)    {caster, target, skillId, amount}
 //   after_action  after an action's effects and status ticks, before rescheduling   {actor, skillId (null for idle and squad attacks), idle, hit}
 //   on_death      a hero died or a squad was wiped out (single soldier deaths are not events)   {unit, killer}
@@ -28,7 +29,7 @@ import type { ExecCtx } from "./damage";
 import { at } from "./log";
 import type { Unit } from "./state";
 
-export const EVENT_NAMES_BUS = ["before_hit", "after_hit", "after_heal", "after_action", "on_death", "phase_start"] as const;
+export const EVENT_NAMES_BUS = ["before_hit", "after_hit", "dodge", "after_heal", "after_action", "on_death", "phase_start"] as const;
 export type BusEvent = (typeof EVENT_NAMES_BUS)[number];
 
 /** What an event predicate needs to know about a hit. Always set by the engine; optional for hand-built payloads. */
@@ -54,6 +55,7 @@ export interface BusPayloads {
    * defender actually lost (a hero: min of its HP before and amount; a squad: summed over the soldiers hit, each counting at most the HP it had;
    * set by the engine, absent in hand-built payloads = amount). Reflect reads `lost`. */
   after_hit: HitRef & { amount: number; killed: boolean; lost?: number };
+  dodge: HitRef;
   after_heal: { caster: Unit; target: Unit; skillId: string; amount: number };
   after_action: { actor: Unit; skillId: string | null; idle: boolean; hit: Unit[] };
   on_death: { unit: Unit; killer: Unit | null };
@@ -94,13 +96,14 @@ function subjectOf<E extends BusEvent>(event: E, p: BusPayloads[E]): Unit | null
 
 /**
  * A reduce_damage effect in force. until: action = the current attacking action (this_attack); hit = until the unit takes a landed hit (every hit
- * of that attacking action is reduced, like until_next_hit statuses); own_action = until the unit's next own action ends; phase = the whole phase.
+ * of that attacking action is reduced, like until_next_hit statuses); own_action = until the unit's next own action ends; phase = the whole phase;
+ * first_single = only the first landed single-target hit, then it is gone (Sidestep).
  */
 export interface Reduction {
   unit: Unit;
   percent: number;
   appliesTo: "physical" | "magical" | "all";
-  until: "action" | "hit" | "own_action" | "phase";
+  until: "action" | "hit" | "own_action" | "phase" | "first_single";
   /** Bus action id when it was applied (an own_action reduction set during the unit's own action outlasts that action). */
   actionId: number;
   /** next_hit: it reduced a landed hit; it ends when the next action begins. */
@@ -209,7 +212,7 @@ export interface EventCtx {
  * [DEFAULT] "ally" excludes the unit itself and includes its own squad; "attacked" counts a hit aimed at the unit, landed or not (before_hit) or a
  * landed hit (after_hit); self_action_completed ignores idle actions (an aura opts in with trigger_includes_idle_action).
  */
-export const EVENT_SPECS: Record<string, { bus: HitEvent | "hit" | "after_heal" | "after_action"; match: (self: Unit, e: EventCtx) => boolean }> = {
+export const EVENT_SPECS: Record<string, { bus: HitEvent | "hit" | "dodge" | "after_heal" | "after_action" | "on_death"; match: (self: Unit, e: EventCtx) => boolean }> = {
   self_targeted_by_physical_attack: { bus: "hit", match: (s, e) => isHit(e) && hit(e).defender === s && hit(e).damageType === "physical" },
   self_attacked: { bus: "hit", match: (s, e) => isHit(e) && hit(e).defender === s },
   unit_attacked: { bus: "hit", match: (_s, e) => isHit(e) },
@@ -223,6 +226,12 @@ export const EVENT_SPECS: Record<string, { bus: HitEvent | "hit" | "after_heal" 
     match: (s, e) => e.bus === "after_hit" && hit(e).attacker !== s && hit(e).attacker.side === s.side && hit(e).single === true,
   },
   self_hit_by_melee: { bus: "hit", match: (s, e) => isHit(e) && hit(e).defender === s && hit(e).range === "melee" },
+  // Condition leaves only (not EVENT_NAMES): blessings read them.
+  self_dodged: { bus: "dodge", match: (s, e) => e.bus === "dodge" && hit(e).defender === s },
+  self_killed_enemy: {
+    bus: "on_death",
+    match: (s, e) => { if (e.bus !== "on_death") return false; const p = e.payload as BusPayloads["on_death"]; return p.killer === s && p.unit.side !== s.side; },
+  },
 };
 
 const isHit = (e: EventCtx): boolean => e.bus === "before_hit" || e.bus === "after_hit";

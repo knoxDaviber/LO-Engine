@@ -1,4 +1,4 @@
-// Devotion (roadmap 3c; design Section 9A, Decision 125): sigils, blessing tiers, the prayer category, Full Moon, Mirror, Gift, Meteor / Rush,
+// Devotion (roadmap 3c; design Section 9A, Decisions 125 and 141): sigils, blessing tiers and sides, the prayer category, every enchantment,
 // blessing pricing and tiers.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -6,7 +6,8 @@ import {
   EventLog, beginPhase, checkEquipment, effectiveStat, evaluateCondition, executeSkill, executeSquadAction, statBreakdown,
   type BattleEvent, type ExecCtx, type Unit,
 } from "../src/engine";
-import type { RosterHero } from "../src/schema";
+import { defenseFor } from "../src/engine/damage";
+import type { Effect, RosterHero, SigilSide } from "../src/schema";
 import { unlockedBlessings } from "../src/devotion";
 import { heroCost } from "../src/validate/cost";
 import { validateRaw } from "../src/validate";
@@ -19,12 +20,13 @@ const GEAR = { weapon: "equip_009", armor: "equip_017", accessory_1: "equip_021"
 const all4 = (god: string): Sigils => ({ weapon: god, armor: god, accessory_1: god, accessory_2: god });
 
 /** The real sample (squads off unless asked, auras off), every hero in full generic gear, the given sigils, after the pre-battle steps. */
-function setup(sigils: Record<string, Sigils>, opts: { squads?: boolean; gear?: Partial<RosterHero["equipment"]> } = {}) {
-  const { pack, battle } = loadReal({ squads: opts.squads ?? false });
+function setup(sigils: Record<string, Sigils>, opts: { squads?: boolean; gear?: Partial<RosterHero["equipment"]>; side?: SigilSide; damage?: boolean } = {}) {
+  const { pack, battle } = loadReal({ squads: opts.squads ?? false, damage: opts.damage ?? false });
   for (const side of [battle.challenger, battle.defender]) {
     for (const h of side.heroes) {
       Object.assign(h.equipment, GEAR, opts.gear ?? {});
       if (sigils[h.char_id]) h.sigils = sigils[h.char_id];
+      if (Object.keys(h.sigils ?? {}).length === 4 && new Set(Object.values(h.sigils!)).size === 1) h.sigil_side = opts.side ?? "def";
     }
   }
   const log = new EventLog();
@@ -34,19 +36,29 @@ function setup(sigils: Record<string, Sigils>, opts: { squads?: boolean; gear?: 
   const x: ExecCtx = { state: p.state, rng: p.rng, log };
   return { pack, battle, state: p.state, log, u, ev, x };
 }
+type Setup = ReturnType<typeof setup>;
+/** The first effect of `type` in a god's enchantment: tests read their numbers from it. */
+const ench = <T extends Effect["type"]>(s: Pick<Setup, "pack">, god: string, side: SigilSide, type: T) =>
+  s.pack.byId.gods.get(god)!.blessing[`four_piece_${side}`].effects.find((e) => e.type === type) as Extract<Effect, { type: T }>;
+const LANDS = [0.5, 0.99, 0.99]; // the hit lands, no crit, no guard
+const SINGLE = "skl_lancer_active_002", AREA = "skl_lancer_active_001"; // Lief's
+const attack = (s: Setup, by: string, skillId: string, targets: string[], rolls: number[]) => {
+  s.x.rng = scripted(rolls);
+  executeSkill(s.x, s.u(by), { tactic: null, skillId, targets: targets.map(s.u), evaluations: [] });
+};
 const prayer = (u: Unit) => u.statuses.filter((s) => s.statusId.startsWith("prayer:")).map((s) => s.statusId).sort();
 
 test("2 same-god sigils unlock the 2-piece, 4 unlock both tiers, 2 + 2 gives each god's 2-piece; one or three sigils of a god add nothing more", () => {
   const { u } = setup({
     [LEON]: { weapon: "god_005" }, // 1 Hotei: nothing
     [LIEF]: { weapon: "god_005", armor: "god_005", accessory_1: "god_005" }, // 3 Hotei: 2-piece only
-    [EMPEROR]: all4("god_005"), // 4 Hotei: both tiers
+    [EMPEROR]: all4("god_007"), // 4 Ebisu: both tiers
     [JASMINE]: { weapon: "god_005", armor: "god_005", accessory_1: "god_007", accessory_2: "god_007" }, // 2 Hotei + 2 Ebisu
   });
   assert.deepEqual(prayer(u(LEON)), []);
-  assert.deepEqual(prayer(u(LIEF)), ["prayer:god_005:2:0"]);
-  assert.deepEqual(prayer(u(EMPEROR)), ["prayer:god_005:2:0", "prayer:god_005:4:0"]);
-  assert.deepEqual(prayer(u(JASMINE)), ["prayer:god_005:2:0", "prayer:god_007:2:0"]);
+  assert.deepEqual(prayer(u(LIEF)), ["prayer:god_005:2:0", "prayer:god_005:2:1"]);
+  assert.deepEqual(prayer(u(EMPEROR)), ["prayer:god_007:2:0", "prayer:god_007:4:0"]);
+  assert.deepEqual(prayer(u(JASMINE)), ["prayer:god_005:2:0", "prayer:god_005:2:1", "prayer:god_007:2:0"]);
   assert.ok(u(EMPEROR).statuses.filter((s) => s.statusId.startsWith("prayer:")).every((s) => s.category === "prayer"));
 });
 
@@ -75,28 +87,40 @@ test("prayer is its own category: it multiplies with another category (9.1)", ()
 
 test("a blessing's HP +20% raises max HP", () => {
   const plain = setup({});
-  const { u } = setup({ [LIEF]: { weapon: "god_003", armor: "god_003" } }); // Plate 2-piece
+  const { u } = setup({ [LIEF]: { weapon: "god_001", armor: "god_001" } }); // Mirror 2-piece
   assert.equal(u(LIEF).maxHp, Math.floor(plain.u(LIEF).maxHp * 1.2));
   assert.equal(u(LIEF).hp, u(LIEF).maxHp);
 });
 
-test("Full Moon: the 4-piece is on exactly while HP > 80%; its ATK +20% adds to the 2-piece's +10% (one god's tiers add)", () => {
-  const { u, x, pack, ev } = setup({ [JASMINE]: all4("god_002") });
+test("Full Moon DEF and ATK: the 4-piece is on exactly while HP > the gate; its lines add to the 2-piece's where they share a stat (one god's tiers add)", () => {
+  const s = setup({ [JASMINE]: all4("god_002") });
+  const { u, x, pack, ev } = s;
   const jas = u(JASMINE);
-  const atk = () => statBreakdown(jas, "ATK", pack).effects.filter((e) => e.category === "prayer").map((e) => [e.value, e.outcome]);
-  assert.deepEqual(atk(), [[30, "winner"]]);
-  const b = statBreakdown(jas, "ATK", pack);
+  const god = pack.byId.gods.get("god_002")!.blessing;
+  const pct = (es: Effect[], stat: string) => es.reduce((n, e) => n + (e.type === "modify_stat" && e.stat === stat ? e.value : 0), 0);
+  const two = pct(god.two_piece, "DEF"), four = pct(god.four_piece_def.effects, "DEF");
+  const def = () => statBreakdown(jas, "DEF", pack).effects.filter((e) => e.category === "prayer").map((e) => [e.value, e.outcome]);
+  assert.deepEqual(def(), [[two + four, "winner"]]);
+  const b = statBreakdown(jas, "DEF", pack);
   assert.deepEqual(b.effects.find((e) => e.category === "prayer")!.parts, ["prayer:god_002:2:0", "prayer:god_002:4:0"]); // both tiers attributed
-  close(b.result, (b.base + b.flat) * 1.3);
-  assert.equal(prayer(jas).length, 5);
-  jas.hp = Math.floor(jas.maxHp * 0.8); // not above 80%
+  close(b.result, (b.base + b.flat) * (1 + (two + four) / 100));
+  assert.equal(prayer(jas).length, 4);
+  assert.equal(statBreakdown(jas, "ATK", pack).effects.filter((e) => e.category === "prayer").length, 0); // the DEF side gives no ATK
+  const gate = (god.four_piece_def.effects[0]!.condition as unknown as { value: number }).value;
+  jas.hp = Math.floor((jas.maxHp * gate) / 100); // not above the gate
   checkEquipment(x);
-  assert.deepEqual(atk(), [[10, "winner"]]);
-  assert.deepEqual(prayer(jas), ["prayer:god_002:2:0"]);
-  assert.equal(ev("blessing_removed").length, 4);
+  assert.deepEqual(def(), [[two, "winner"]]);
+  assert.deepEqual(prayer(jas), ["prayer:god_002:2:0", "prayer:god_002:2:1"]);
+  assert.equal(ev("blessing_removed").length, 2);
   jas.hp = jas.maxHp;
   checkEquipment(x);
-  assert.equal(prayer(jas).length, 5);
+  assert.equal(prayer(jas).length, 4);
+
+  const a = setup({ [JASMINE]: all4("god_002") }, { side: "atk" });
+  const atk = statBreakdown(a.u(JASMINE), "ATK", a.pack);
+  close(atk.result, (atk.base + atk.flat) * (1 + pct(god.four_piece_atk.effects, "ATK") / 100));
+  assert.ok(statBreakdown(a.u(JASMINE), "INT", a.pack).effects.some((e) => e.category === "prayer"));
+  assert.deepEqual(statBreakdown(a.u(JASMINE), "DEF", a.pack).effects.filter((e) => e.category === "prayer").map((e) => e.value), [two]);
 });
 
 test("Mirror: a squad attack (one combined hit) reflects 30% of its damage once, onto the attacking squad's lowest-HP soldier, as a non-hit", () => {
@@ -134,41 +158,239 @@ test("Mirror reflects onto a hero attacker after a single-target attack, and not
   assert.equal(area.ev("damage").filter((e) => e.unit === EMPEROR).length, 0);
 });
 
-test("Gift: heals 30% max HP once per attacking action that targeted the wearer with single-target hits (a squad attack too)", () => {
-  const { state, u, log, ev } = setup({ [EMPEROR]: all4("god_004") }, { squads: true });
-  state.units = state.units.filter((v) => v.id !== `squad_${EMPEROR}`);
-  const emp = u(EMPEROR);
+test("Gift DEF: when attacked, a phase-rng roll per enemy action heals after the attack; a miss counts, a failed roll heals nothing", () => {
+  const s = setup({ [EMPEROR]: all4("god_004") }, { squads: true });
+  const heal = ench(s, "god_004", "def", "heal");
+  s.state.units = s.state.units.filter((v) => v.id !== `squad_${EMPEROR}`);
+  const emp = s.u(EMPEROR);
   emp.hp = 500;
-  const x: ExecCtx = { state, rng: scripted([0.5, 0.99, 0.99]), log };
-  executeSquadAction(x, u(`squad_${LEON}`));
-  const heals = ev("heal").filter((e) => e.target === EMPEROR);
-  assert.equal(heals.length, 1);
-  assert.equal(heals[0]!.amount, Math.floor(emp.maxHp * 0.3));
+  const below = (heal.chance_percent! - 1) / 100, above = (heal.chance_percent! + 1) / 100;
+  executeSquadAction({ ...s.x, rng: scripted([...LANDS, below]) }, s.u(`squad_${LEON}`));
+  const heals = s.ev("heal").filter((e) => e.target === EMPEROR);
+  assert.deepEqual(heals.map((e) => e.amount), [Math.floor((emp.maxHp * heal.percent_max_hp!) / 100)]);
+  assert.equal(s.ev("roll").filter((e) => e.kind === "heal").length, 1);
+  const order = s.log.events.map((e) => e.type);
+  assert.ok(order.lastIndexOf("damage") < order.indexOf("heal")); // after the attack
+
+  const f = setup({ [EMPEROR]: all4("god_004") });
+  f.u(EMPEROR).hp = 500;
+  attack(f, LIEF, SINGLE, [EMPEROR], [...LANDS, above]);
+  assert.equal(f.ev("heal").length, 0);
+  assert.deepEqual(f.ev("roll").filter((e) => e.kind === "heal").map((e) => e.result), [false]);
+
+  const m = setup({ [EMPEROR]: all4("god_004") });
+  m.u(EMPEROR).hp = 500;
+  m.u(EMPEROR).baseStats.EVA = 1000; // down to hit_min
+  attack(m, LIEF, SINGLE, [EMPEROR], [0.99, below]);
+  assert.equal(m.ev("damage").length, 0);
+  assert.equal(m.ev("heal").length, 1);
 });
 
-test("Rush and Meteor 4-piece are on only while their wearer resolves a single-target attack; Rush skips the guard roll then", () => {
-  const s = setup({ [LIEF]: all4("god_007") }); // Rush
-  const lief = s.u(LIEF), emp = s.u(EMPEROR);
-  s.x.rng = scripted([0.5, 0.99]);
-  executeSkill(s.x, lief, { tactic: null, skillId: "skl_lancer_active_002", targets: [emp], evaluations: [] });
-  assert.deepEqual(s.ev("blessing_applied").filter((e) => e.status.startsWith("prayer:god_007:4:")).map((e) => e.effect), ["ATK +30%", "INT +30%"]);
+test("Gift ATK: a hero kill or a full squad wipe heals the lowest-HP% living ally hero, self included; a single soldier's death does not", () => {
+  const s = setup({ [LIEF]: all4("god_004") }, { side: "atk" });
+  const pct = ench(s, "god_004", "atk", "heal").percent_max_hp!;
+  s.u(EMPEROR).hp = 1;
+  s.u(LEON).hp = Math.floor(s.u(LEON).maxHp / 2);
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  assert.equal(s.u(EMPEROR).alive, false);
+  assert.deepEqual(s.ev("heal").map((e) => [e.target, e.amount]), [[LEON, Math.floor((s.u(LEON).maxHp * pct) / 100)]]);
+
+  const self = setup({ [LIEF]: all4("god_004") }, { side: "atk" });
+  self.u(EMPEROR).hp = 1;
+  self.u(LIEF).hp = 10;
+  attack(self, LIEF, SINGLE, [EMPEROR], LANDS);
+  assert.deepEqual(self.ev("heal").map((e) => e.target), [LIEF]);
+
+  const q = setup({ [LIEF]: all4("god_004") }, { side: "atk", squads: true });
+  const squad = q.u(`squad_${EMPEROR}`);
+  q.u(LIEF).hp = 10;
+  squad.soldiers.forEach((v, i) => { v.hp = v.maxHp = i === 0 ? 1 : 1e6; });
+  attack(q, LIEF, SINGLE, [squad.id], LANDS);
+  assert.ok(!squad.soldiers[0]!.alive && squad.alive);
+  assert.equal(q.ev("heal").length, 0); // one soldier down: no heal
+  squad.soldiers.slice(2).forEach((v) => { v.hp = 0; v.alive = false; });
+  squad.soldiers[1]!.hp = 1;
+  attack(q, LIEF, SINGLE, [squad.id], LANDS);
+  assert.equal(squad.alive, false);
+  assert.deepEqual(q.ev("heal").map((e) => e.target), [LIEF]);
+});
+
+test("Rush ATK: single-target attacks skip the guard roll and deal the bonus; area attacks do neither", () => {
+  const s = setup({ [LIEF]: all4("god_007") }, { side: "atk", damage: true });
+  const bonus = ench(s, "god_007", "atk", "damage_bonus").percent;
+  const plain = setup({}, { damage: true });
+  attack(s, LIEF, SINGLE, [EMPEROR], [0.5, 0.99]);
+  attack(plain, LIEF, SINGLE, [EMPEROR], LANDS);
   assert.deepEqual(s.ev("roll").filter((e) => e.unit === LIEF).map((e) => e.kind), ["hit", "crit"]); // no guard draw
-  assert.deepEqual(prayer(lief), ["prayer:god_007:2:0"]); // off again after the attack
-  assert.equal(s.ev("blessing_removed").length, 2);
-  const area = setup({ [LIEF]: all4("god_007") });
-  area.x.rng = scripted([0.5, 0.99, 0.99, 0.5, 0.99, 0.99]);
-  executeSkill(area.x, area.u(LIEF), { tactic: null, skillId: "skl_lancer_active_001", targets: [area.u(EMPEROR), area.u(JASMINE)], evaluations: [] });
-  assert.equal(area.ev("blessing_applied").filter((e) => e.status.startsWith("prayer:god_007:4:")).length, 0);
+  close(s.ev("damage")[0]!.bonus! - plain.ev("damage")[0]!.bonus!, bonus);
+  const area = setup({ [LIEF]: all4("god_007") }, { side: "atk", damage: true });
+  const areaPlain = setup({}, { damage: true });
+  attack(area, LIEF, AREA, [EMPEROR, JASMINE], [...LANDS, ...LANDS]);
+  attack(areaPlain, LIEF, AREA, [EMPEROR, JASMINE], [...LANDS, ...LANDS]);
   assert.ok(area.ev("roll").some((e) => e.unit === LIEF && e.kind === "guard"));
-  // Meteor: CRIT +30 adds to the 2-piece's +10 during the single-target attack (CRIT +40: crit chance +30 over the 2-piece alone).
-  const crit = (sig: Record<string, Sigils>) => {
-    const m = setup(sig);
-    m.u(EMPEROR).baseStats.GUARD = 0; // keep the crit chance off its 0 floor
-    m.x.rng = scripted([0.5, 0.99, 0.99]);
-    executeSkill(m.x, m.u(LIEF), { tactic: null, skillId: "skl_lancer_active_002", targets: [m.u(EMPEROR)], evaluations: [] });
-    return m.ev("roll").find((e) => e.unit === LIEF && e.kind === "crit")!.chance;
+  assert.equal(area.ev("damage")[0]!.bonus, areaPlain.ev("damage")[0]!.bonus);
+});
+
+test("Rush DEF: EVA adds to the 2-piece; each dodge gets one rolled counter at the ATK share; a landed hit none; a counter never triggers a counter", () => {
+  const s = setup({ [EMPEROR]: all4("god_007"), [LIEF]: all4("god_007") }, { damage: true }); // pool: power leaves the matchup out
+  const emp = s.u(EMPEROR), lief = s.u(LIEF);
+  const counter = ench(s, "god_007", "def", "damage");
+  const eva = (es: Effect[]) => es.reduce((n, e) => n + (e.type === "modify_stat" && e.stat === "EVA" ? e.value : 0), 0);
+  const god = s.pack.byId.gods.get("god_007")!.blessing;
+  assert.equal(effectiveStat(emp, "EVA", s.pack), emp.baseStats.EVA + emp.equipFlat.EVA + eva(god.two_piece) + eva(god.four_piece_def.effects));
+  emp.baseStats.EVA = lief.baseStats.EVA = 1000; // down to hit_min
+  attack(s, LIEF, SINGLE, [EMPEROR], [0.99, ...LANDS]);
+  const back = s.ev("damage").filter((e) => e.unit === EMPEROR);
+  assert.equal(back.length, 1);
+  assert.equal(back[0]!.target, LIEF);
+  close(back[0]!.power, effectiveStat(emp, "ATK", s.pack) * counter.multiplier);
+  // Both sides dodge: Lief's dodge of the counter brings nothing back.
+  const rolls = s.ev("roll").length;
+  attack(s, LIEF, SINGLE, [EMPEROR], [0.99, 0.99]);
+  assert.deepEqual(s.ev("roll").slice(rolls).map((e) => [e.unit, e.kind, e.result]), [[LIEF, "hit", false], [EMPEROR, "hit", false]]);
+  // Two dodges in one action: two counters.
+  const twice = setup({ [EMPEROR]: all4("god_007") });
+  const skill = twice.pack.byId.skills.get(SINGLE)!;
+  twice.pack.byId.skills.set(SINGLE, { ...skill, effects: [...skill.effects, ...skill.effects] });
+  twice.u(EMPEROR).baseStats.EVA = 1000;
+  attack(twice, LIEF, SINGLE, [EMPEROR], [0.99, 0.99, ...LANDS, ...LANDS]);
+  assert.equal(twice.ev("damage").filter((e) => e.unit === EMPEROR).length, 2);
+  const hit = setup({ [EMPEROR]: all4("god_007") });
+  attack(hit, LIEF, SINGLE, [EMPEROR], LANDS);
+  assert.equal(hit.ev("damage").filter((e) => e.unit === EMPEROR).length, 0);
+});
+
+test("Mirror ATK Retaliate: being attacked charges the next attack once, no stacking; the attack spends it, a dodged attack charges too", () => {
+  const s = setup({ [LIEF]: all4("god_001") }, { side: "atk", damage: true });
+  const bonus = ench(s, "god_001", "atk", "damage_bonus").percent;
+  const plain = setup({}, { damage: true });
+  attack(plain, LIEF, SINGLE, [EMPEROR], LANDS);
+  const base = plain.ev("damage")[0]!.bonus!;
+  const lief = s.u(LIEF), emp = s.u(EMPEROR);
+  lief.hp = lief.maxHp = emp.hp = emp.maxHp = 1e6; // survive every hit below
+  attack(s, EMPEROR, SINGLE, [LIEF], LANDS);
+  attack(s, EMPEROR, SINGLE, [LIEF], LANDS);
+  assert.equal(lief.attackCharge, bonus); // two attacks, one charge
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  assert.equal(lief.attackCharge, undefined);
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  const mine = s.ev("damage").filter((e) => e.unit === LIEF).map((e) => e.bonus!);
+  close(mine[0]! - base, bonus);
+  close(mine[1]!, base);
+  lief.baseStats.EVA = 1000;
+  attack(s, EMPEROR, SINGLE, [LIEF], [0.99]);
+  assert.equal(lief.attackCharge, bonus);
+});
+
+test("Plate DEF: damage taken is reduced for the battle; the 2-piece is flat GUARD", () => {
+  const s = setup({ [EMPEROR]: all4("god_003") });
+  const plain = setup({});
+  const flat = s.pack.byId.gods.get("god_003")!.blessing.two_piece[0] as Extract<Effect, { type: "modify_stat" }>;
+  assert.equal(effectiveStat(s.u(EMPEROR), "GUARD", s.pack), effectiveStat(plain.u(EMPEROR), "GUARD", s.pack) + flat.value);
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  assert.deepEqual(s.ev("damage").map((e) => e.reductions), [[ench(s, "god_003", "def", "reduce_damage").percent], [ench(s, "god_003", "def", "reduce_damage").percent]]);
+});
+
+test("Plate ATK Sunder: hits ignore the percent of DEF / MDEF in every formula, a squad's summed defense included", () => {
+  const dmg = (s: Setup) => s.pack.byId.skills.get(SINGLE)!.effects.find((e) => e.type === "damage") as Extract<Effect, { type: "damage" }>;
+  for (const formula of ["pool", "subtract", "ratio", "scaled_subtract"] as const) {
+    const run = (sig: Record<string, Sigils>) => {
+      const s = setup(sig, { side: "atk" });
+      s.pack.rules.damage.formula = formula;
+      attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+      return { s, d: s.ev("damage")[0]! };
+    };
+    const a = run({ [LIEF]: all4("god_003") }), b = run({});
+    close(a.d.defense, b.d.defense * (1 - ench(a.s, "god_003", "atk", "ignore_defense").percent / 100));
+    assert.ok(a.d.amount > b.d.amount, `${formula}: ${a.d.amount} vs ${b.d.amount}`);
+  }
+  const q = setup({ [LIEF]: all4("god_003") }, { side: "atk", squads: true });
+  const squad = q.u(`squad_${EMPEROR}`);
+  const summed = defenseFor(squad, dmg(q).damage_type, q.pack);
+  attack(q, LIEF, SINGLE, [squad.id], LANDS);
+  close(q.ev("damage").find((e) => e.target === squad.id)!.defense, summed * (1 - ench(q, "god_003", "atk", "ignore_defense").percent / 100));
+});
+
+test("Breeze DEF Sidestep: only the first landed single-target hit each phase is reduced; a miss or an area hit does not use it", () => {
+  const s = setup({ [EMPEROR]: all4("god_005") });
+  const pct = ench(s, "god_005", "def", "reduce_damage").percent;
+  const emp = s.u(EMPEROR);
+  const eva = emp.baseStats.EVA;
+  attack(s, LIEF, AREA, [EMPEROR, JASMINE], [...LANDS, ...LANDS]);
+  emp.baseStats.EVA = 1000;
+  attack(s, LIEF, SINGLE, [EMPEROR], [0.99]);
+  emp.baseStats.EVA = eva;
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  attack(s, LIEF, SINGLE, [EMPEROR], LANDS);
+  assert.deepEqual(s.ev("damage").filter((e) => e.target === EMPEROR).map((e) => e.reductions), [undefined, [pct], undefined]);
+  // Two hits in one action: only the first.
+  const two = setup({ [EMPEROR]: all4("god_005") });
+  const skill = two.pack.byId.skills.get(SINGLE)!;
+  two.pack.byId.skills.set(SINGLE, { ...skill, effects: [...skill.effects, ...skill.effects] });
+  attack(two, LIEF, SINGLE, [EMPEROR], [...LANDS, ...LANDS]);
+  assert.deepEqual(two.ev("damage").map((e) => e.reductions), [[pct], undefined]);
+  // A new phase brings a fresh one.
+  const next = beginPhase(s.pack, s.battle, 2, null, new EventLog());
+  assert.equal(next.state.bus.reductions.filter((r) => r.unit.id === EMPEROR && r.until === "first_single").length, 1);
+});
+
+test("Breeze ATK Second Wind: below the gate SPD rises and the pending action is rescheduled", () => {
+  const s = setup({ [LIEF]: all4("god_005") }, { side: "atk" });
+  const line = ench(s, "god_005", "atk", "modify_stat");
+  const lief = s.u(LIEF);
+  const spd = effectiveStat(lief, "SPD", s.pack);
+  const interval = s.state.timeline.pending.get(LIEF)!.interval;
+  lief.hp = Math.floor((lief.maxHp * (line.condition as unknown as { value: number }).value) / 100) - 1;
+  attack(s, EMPEROR, SINGLE, [LEON], LANDS);
+  close(effectiveStat(lief, "SPD", s.pack), spd * (1 + line.value / 100));
+  assert.ok(s.state.timeline.pending.get(LIEF)!.interval < interval);
+  assert.ok(s.ev("schedule").some((e) => e.unit === LIEF && e.reason === "spd_change"));
+});
+
+test("Meteor: crit damage taken (DEF) and dealt (ATK) change the crit multiplier in every formula; other hits are untouched", () => {
+  const crit = (sig: Record<string, Sigils>, side: SigilSide, formula: "pool" | "subtract" | "ratio" | "scaled_subtract", rolls?: number[]) => {
+    const s = setup(sig, { side });
+    s.pack.rules.damage.formula = formula;
+    if (rolls === undefined) s.u(LIEF).baseStats.CRIT = 1000;
+    attack(s, LIEF, SINGLE, [EMPEROR], rolls ?? [0.5, 0, 0.99]);
+    return { s, d: s.ev("damage")[0]! };
   };
-  close(crit({ [LIEF]: all4("god_006") }) - crit({ [LIEF]: { weapon: "god_006", armor: "god_006" } }), 30);
+  for (const formula of ["pool", "subtract", "ratio", "scaled_subtract"] as const) {
+    const plain = crit({}, "def", formula);
+    assert.equal(plain.d.crit, true);
+    const taken = crit({ [EMPEROR]: all4("god_006") }, "def", formula);
+    const dealt = crit({ [LIEF]: all4("god_006") }, "atk", formula);
+    const near = (a: number, b: number) => assert.ok(Math.abs(a - b) <= 2, `${formula}: ${a} vs ${b}`); // two floors apart
+    near(taken.d.amount, plain.d.amount * (1 + ench(taken.s, "god_006", "def", "crit_damage").percent / 100));
+    near(dealt.d.amount, plain.d.amount * (1 + ench(dealt.s, "god_006", "atk", "crit_damage").percent / 100));
+    assert.equal(crit({ [EMPEROR]: all4("god_006") }, "def", formula, LANDS).d.amount, crit({}, "def", formula, LANDS).d.amount); // no crit
+  }
+});
+
+test("4 same-god sigils need a side (E_SIGIL_SIDE_MISSING, engine: 2-piece only plus a note); a side without a 4-piece is W_SIGIL_SIDE_UNUSED; the side picks the cost", () => {
+  const issues = (over: Partial<RosterHero>) => {
+    const raw = fresh();
+    const r = roster(raw);
+    r.heroes[3] = { ...r.heroes[3]!, equipment: { ...GEAR }, ...over } as any;
+    raw.rosters.push({ name: "challenger.yaml", data: r });
+    return validateRaw(raw, { tier: "official" }).report.issues.filter((i) => i.code.includes("SIGIL_SIDE"));
+  };
+  assert.deepEqual(issues({ sigils: all4("god_001") }).map((i) => [i.code, i.path]), [["E_SIGIL_SIDE_MISSING", "heroes[3].sigil_side"]]);
+  assert.deepEqual(issues({ sigils: all4("god_001"), sigil_side: "atk" }), []);
+  assert.deepEqual(issues({ sigil_side: "def" }).map((i) => [i.code, i.severity]), [["W_SIGIL_SIDE_UNUSED", "warning"]]);
+  assert.deepEqual(issues({ sigils: { ...all4("god_001"), armor: "god_002" }, sigil_side: "def" }).map((i) => i.code), ["W_SIGIL_SIDE_UNUSED"]);
+  const { pack, battle } = loadReal();
+  const h = battle.challenger.heroes[0]!;
+  Object.assign(h.equipment, GEAR);
+  h.sigils = all4("god_001");
+  const log = new EventLog();
+  const p = beginPhase(pack, battle, 1, null, log);
+  assert.deepEqual(p.state.units.find((v) => v.id === h.char_id)!.blessings!.map((b) => [b.tier, b.side, b.effects.length > 0]), [[2, undefined, true], [4, undefined, false]]);
+  assert.ok(log.events.some((e) => e.type === "not_implemented" && /without a sigil_side/.test(e.what)));
+  const names = (side: SigilSide) => unlockedBlessings(pack, { equipment: GEAR, sigils: all4("god_005"), sigil_side: side }).map((b) => b.name);
+  assert.deepEqual(names("def"), ["Breeze", "Sidestep"]);
+  assert.deepEqual(names("atk"), ["Breeze", "Second Wind"]);
 });
 
 test("action_is_single_target is true only for the current actor while bus.singleAttack is set", () => {
@@ -185,8 +407,8 @@ test("action_is_single_target is true only for the current actor while bus.singl
 test("cost rises with the unlocked tiers", () => {
   const { pack } = loadReal();
   const hero = pack.byId.characters.get(LIEF)!;
-  const cost = (sigils: Sigils) => heroCost(hero, pack.rules, { blessings: unlockedBlessings(pack, { equipment: GEAR, sigils }).flatMap((b) => b.effects) });
-  const none = cost({}), two = cost({ weapon: "god_001", armor: "god_001" }), four = cost(all4("god_001"));
+  const cost = (sigils: Sigils, sigil_side?: SigilSide) => heroCost(hero, pack.rules, { blessings: unlockedBlessings(pack, { equipment: GEAR, sigils, ...(sigil_side ? { sigil_side } : {}) }).flatMap((b) => b.effects) });
+  const none = cost({}), two = cost({ weapon: "god_001", armor: "god_001" }), four = cost(all4("god_001"), "def");
   assert.ok(none < two && two < four, `${none} ${two} ${four}`);
   close(two - none, 0.2 * hero.base_stats.HP * pack.rules.cost.stat_weights.HP); // HP +20% priced like a stat line
   close(four - two, pack.rules.cost.effect_price); // reflect: the flat effect price
@@ -228,15 +450,15 @@ test("Mirror with Fairy's Grace: a saved wearer reflects only the HP it had", ()
 
 test("a blessing effect the engine cannot run is rejected (E_EFFECT_TRIGGER)", () => {
   const raw = fresh();
-  find(raw.gods!, "god_005").blessing.four_piece = [{ type: "modify_stat", stat: "SPD", mode: "percent", value: 20, trigger: "on_hit" }];
+  find(raw.gods!, "god_005").blessing.four_piece_def.effects = [{ type: "modify_stat", stat: "SPD", mode: "percent", value: 20, trigger: "on_hit" }];
   find(raw.gods!, "god_004").blessing.two_piece = [{ type: "apply_status", status_id: "debuff_002", chance_percent: 100, target: "self" }];
   const errs = validateRaw(raw, { tier: "official" }).report.issues.filter((i) => i.code === "E_EFFECT_TRIGGER" && i.file === "gods.yaml");
-  assert.deepEqual(errs.map((i) => `${i.id} ${i.path}`).sort(), ["god_004 blessing.two_piece[0].trigger", "god_005 blessing.four_piece[0].trigger"]);
+  assert.deepEqual(errs.map((i) => `${i.id} ${i.path}`).sort(), ["god_004 blessing.two_piece[0].trigger", "god_005 blessing.four_piece_def.effects[0].trigger"]);
 });
 
 test("two different gods' identical lines do not stack (9.1 within prayer); max HP takes the strongest god", () => {
   const plain = setup({});
-  const { u, pack } = setup({ [LIEF]: { weapon: "god_001", armor: "god_001", accessory_1: "god_003", accessory_2: "god_003" } }); // Mirror + Plate 2-piece, HP +20% each
+  const { u, pack } = setup({ [LIEF]: { weapon: "god_001", armor: "god_001", accessory_1: "god_004", accessory_2: "god_004" } }); // Mirror + Gift 2-piece, HP +20% each
   const lief = u(LIEF);
   assert.deepEqual(statBreakdown(lief, "HP", pack).effects.map((e) => [e.value, e.outcome]), [[20, "winner"], [20, "suppressed"]]);
   assert.equal(lief.maxHp, Math.floor(plain.u(LIEF).maxHp * 1.2));

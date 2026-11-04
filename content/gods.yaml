@@ -1,6 +1,7 @@
 # gods.yaml: the pantheon (devotion, design Section 9A). Placeholder pantheon: the Japanese Seven Lucky Gods, each embodying a virtue (vice: lore only).
 # The list is open-ended (Decision 113): more gods may be added as new sigil sets. A hero's sigils (roster entry `sigils`, one god per filled equipment
-# slot) unlock a god's blessing: 2 sigils -> two_piece, 4 sigils -> two_piece and four_piece. Blessing effects use the `prayer` stacking category.
+# slot) unlock a god's blessing: 2 sigils -> two_piece, 4 sigils -> two_piece and the 4-piece of the entry's `sigil_side` (four_piece_def / four_piece_atk,
+# Decision 141). Blessing effects use the `prayer` stacking category.
 # Event-style blessings carry trigger: on_event; their condition is judged per hit of the attacking action (engine equipment.ts).
 
 - id: god_001
@@ -12,8 +13,13 @@
     name: Mirror
     two_piece:
       - { type: modify_stat, stat: HP, mode: percent, value: 20 }
-    four_piece:   # when hit by a single-target attack, 30% of the damage taken goes back to the attacker
-      - { type: reflect_damage, percent: 30, trigger: on_event, condition: { type: unit_hit_by_single_target_attack } }
+    four_piece_def:   # when hit by a single-target attack, 30% of the damage taken goes back to the attacker
+      effects:
+        - { type: reflect_damage, percent: 30, trigger: on_event, condition: { type: unit_hit_by_single_target_attack } }
+    four_piece_atk:   # after being attacked, the next attack deals +30% (one charge, does not stack)
+      name: Retaliate
+      effects:
+        - { type: damage_bonus, percent: 30, trigger: on_event, condition: { type: self_attacked } }
 
 - id: god_002
   name: Jurojin
@@ -23,12 +29,16 @@
   blessing:
     name: Full Moon
     two_piece:
-      - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
-    four_piece:   # while own HP > 80%
-      - { type: modify_stat, stat: ATK, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
-      - { type: modify_stat, stat: INT, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
-      - { type: modify_stat, stat: DEF, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
-      - { type: modify_stat, stat: MDEF, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
+      - { type: modify_stat, stat: MDEF, mode: percent, value: 10 }
+    four_piece_def:   # while own HP > 80%
+      effects:
+        - { type: modify_stat, stat: DEF, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+        - { type: modify_stat, stat: MDEF, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+    four_piece_atk:   # while own HP > 80%
+      effects:
+        - { type: modify_stat, stat: ATK, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
+        - { type: modify_stat, stat: INT, mode: percent, value: 20, condition: { type: hp_percent, side: self, op: ">", value: 80 } }
 
 - id: god_003
   name: Bishamonten
@@ -37,10 +47,15 @@
   description: "The armoured warrior god, guardian of the north."
   blessing:
     name: Plate
-    two_piece:
-      - { type: modify_stat, stat: HP, mode: percent, value: 20 }
-    four_piece:   # damage taken -10% for the whole battle
-      - { type: reduce_damage, percent: 10, applies_to: all, duration: battle }
+    two_piece:   # GUARD is a rate stat: flat
+      - { type: modify_stat, stat: GUARD, mode: flat, value: 10 }
+    four_piece_def:   # damage taken -10% for the whole battle
+      effects:
+        - { type: reduce_damage, percent: 10, applies_to: all, duration: battle }
+    four_piece_atk:   # attacks ignore 20% of the target's DEF / MDEF
+      name: Sunder
+      effects:
+        - { type: ignore_defense, percent: 20 }
 
 - id: god_004
   name: Daikokuten
@@ -50,9 +65,13 @@
   blessing:
     name: Gift
     two_piece:
-      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
-    four_piece:   # after being attacked by a single-target attack, heal 30% max HP (once per attacking action)
-      - { type: heal, percent_max_hp: 30, trigger: on_event, condition: { all: [{ type: self_attacked }, { type: unit_hit_by_single_target_attack }] } }
+      - { type: modify_stat, stat: HP, mode: percent, value: 20 }
+    four_piece_def:   # when attacked, 50% chance to heal 20% max HP after the attack (once per enemy action)
+      effects:
+        - { type: heal, percent_max_hp: 20, chance_percent: 50, trigger: on_event, condition: { type: self_attacked } }
+    four_piece_atk:   # on a hero kill or a full squad wipe, heal the lowest-HP living ally hero 20%
+      effects:
+        - { type: heal, percent_max_hp: 20, target: lowest_hp_ally, trigger: on_event, condition: { type: self_killed_enemy } }
 
 - id: god_005
   name: Hotei
@@ -63,8 +82,15 @@
     name: Breeze
     two_piece:
       - { type: modify_stat, stat: ATK, mode: percent, value: 10 }
-    four_piece:
-      - { type: modify_stat, stat: SPD, mode: percent, value: 20 }
+      - { type: modify_stat, stat: INT, mode: percent, value: 10 }
+    four_piece_def:   # the first single-target hit each phase deals 50% less
+      name: Sidestep
+      effects:
+        - { type: reduce_damage, percent: 50, applies_to: all, duration: first_single_hit }
+    four_piece_atk:   # while own HP < 50%
+      name: Second Wind
+      effects:
+        - { type: modify_stat, stat: SPD, mode: percent, value: 30, condition: { type: hp_percent, side: self, op: "<", value: 50 } }
 
 - id: god_006
   name: Fukurokuju
@@ -75,8 +101,12 @@
     name: Meteor
     two_piece:   # CRIT is a rate stat: flat
       - { type: modify_stat, stat: CRIT, mode: flat, value: 10 }
-    four_piece:   # while using a single-target attack
-      - { type: modify_stat, stat: CRIT, mode: flat, value: 30, condition: { type: action_is_single_target } }
+    four_piece_def:   # crit damage taken -50%
+      effects:
+        - { type: crit_damage, on: taken, percent: -50 }
+    four_piece_atk:   # crit damage +30%
+      effects:
+        - { type: crit_damage, on: dealt, percent: 30 }
 
 - id: god_007
   name: Ebisu
@@ -85,9 +115,13 @@
   description: "The fisherman god, patron of honest trade, who strikes straight and true."
   blessing:
     name: Rush
-    two_piece:
-      - { type: modify_stat, stat: DEF, mode: percent, value: 10 }
-    four_piece:   # while using a single-target attack: ATK and INT +30%, and the attack ignores GUARD
-      - { type: modify_stat, stat: ATK, mode: percent, value: 30, condition: { type: action_is_single_target } }
-      - { type: modify_stat, stat: INT, mode: percent, value: 30, condition: { type: action_is_single_target } }
-      - { type: ignore_guard, condition: { type: action_is_single_target } }
+    two_piece:   # EVA is a rate stat: flat
+      - { type: modify_stat, stat: EVA, mode: flat, value: 10 }
+    four_piece_def:   # EVA +15; after a dodge, counter for 75% ATK
+      effects:
+        - { type: modify_stat, stat: EVA, mode: flat, value: 15 }
+        - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1 }], multiplier: 0.75, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0, trigger: on_event, condition: { type: self_dodged } }
+    four_piece_atk:   # while using a single-target attack: GUARD ignored, damage +15%
+      effects:
+        - { type: ignore_guard, condition: { type: action_is_single_target } }
+        - { type: damage_bonus, percent: 15, condition: { type: action_is_single_target } }

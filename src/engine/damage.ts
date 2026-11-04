@@ -7,7 +7,7 @@
 //   core    = max(min_damage, power - defense)
 //   bonus % (added up) = class advantage percent (rules.matchup.advantage_damage_percent, or the class_advantage pair's own damage_percent)
 //                        or the disadvantage percent (negative), + every bonus_vs_class modifier_percent for the defender's class,
-//                        + every bonus_on_terrain modifier_percent for the battle's battlefield. (No effect type grants a damage bonus yet.)
+//                        + every bonus_on_terrain modifier_percent for the battle's battlefield, + the attacker's damage_bonus percents (DamageCtx.damageBonus).
 //   reduction % (added up) = rules.guard.damage_reduction_percent when the guard activates, + every reduce_damage percent of the defender in
 //                        force for this hit (Plate, Quick Guard, any duration; reductionsOn)
 //   pool    = max(1 - total_reduction_cap_percent/100, 1 + bonus/100 - reduction/100)
@@ -62,10 +62,14 @@
 //                        most once per attacking action per unit (Longinus). Logged `pp_change`.
 //   reduce_damage        duration this_attack = the current attacking action; next_hit = until the unit takes a landed hit (that whole attacking
 //                        action's hits); until_next_action = until the unit's next own action ends; phase / battle = the rest of the phase; null =
-//                        this_attack inside a hit event, else until_next_action. Other strings: not implemented.
+//                        this_attack inside a hit event, else until_next_action. first_single_hit = only the first landed
+//                        single-target hit, the rest of the phase (Sidestep). Other strings: not implemented.
 //   delay_action / advance_action  move each target's pending action later / earlier by `counts` (never before now), logged `action_moved`.
 // Class traits (roadmap 3d, Decision 126): a flyer defender (hero, or squad of flyer soldiers) of a melee hit multiplies its EVA for that hit chance
 // by 1 + rules.class_traits.flyer_melee_eva_bonus/100, [DEFAULT] one more multiplier after the 9.1 stacking (ranged hits: no bonus; null: off).
+// Devotion hit modifiers (Decision 141; hitCtx collects them): damage_bonus percents join the bonuses above in every formula (older formulas: the
+// matchup product, so before defense, like bonus_vs_class); ignore_defense scales `defense`, summed squad defense included; crit_damage multiplies
+// crit_multiplier in every formula, outside the guard / reduction cap.
 // Devotion (roadmap 3c): an active blessing ignore_guard of the attacker makes its hits ignore GUARD (equipment.ts ignoresGuard). executeSkill
 // sets `bus.singleAttack` for a single-target damage skill (action_is_single_target) and re-checks the conditional item/blessing modifiers
 // right away, so they count for that attack's rolls.
@@ -86,7 +90,7 @@ import type { BattleState, Soldier, Unit } from "./state";
 import { alliesOf, otherSide, squadOf, syncSquad, targetsOf } from "./state";
 import { endSquadSkills, onLeaderDeath } from "./leader";
 import { checkStatePassives } from "./passives";
-import { checkEquipment, ignoresGuard } from "./equipment";
+import { checkEquipment, hitMods, ignoresGuard } from "./equipment";
 
 export type DamageEffect = Extract<Effect, { type: "damage" }>;
 export type HealEffect = Extract<Effect, { type: "heal" }>;
@@ -105,6 +109,9 @@ export interface DamageCtx {
   guardMode?: GuardMode;
   battlefield?: string | null; // terrain id, for bonus_on_terrain
   reductions?: number[]; // the defender's reduce_damage percents for this attack
+  damageBonus?: number[]; // the attacker's damage_bonus percents for this hit
+  ignoreDefense?: number; // percent of the defense the attacker ignores
+  critFactor?: number; // crit_damage multiplier on rules.damage.crit_multiplier
 }
 
 export interface DamageBreakdown {
@@ -213,11 +220,12 @@ export function computeDamage(attacker: Unit, defender: Unit, effect: DamageEffe
   const { rules } = ctx.pack;
   const isPool = rules.damage.formula === "pool";
   const scaled = effect.scaling.reduce((n, t) => n + t.coef * summedStat(attacker, t.stat, ctx.pack), 0); // a squad attacks as one
-  const bonuses = bonusPercents(attacker, defender, effect, ctx);
+  const bonuses = [...bonusPercents(attacker, defender, effect, ctx), ...(ctx.damageBonus ?? [])];
   // pool: the bonuses are additive and live in the pool, so `matchup` reports 1 + their sum and power leaves them out
   const matchup = isPool ? 1 + sum(bonuses) / 100 : bonuses.reduce((f, p) => f * (1 + p / 100), 1);
   const power = scaled * effect.multiplier * (isPool ? 1 : matchup);
-  const defense = defenseFor(defender, effect.damage_type, ctx.pack);
+  const defense = defenseFor(defender, effect.damage_type, ctx.pack) * (1 - Math.min(100, ctx.ignoreDefense ?? 0) / 100);
+  const critMult = rules.damage.crit_multiplier * (ctx.critFactor ?? 1);
   const mode: GuardMode = effect.ignores_guard ? "ignores" : (ctx.guardMode ?? "standard");
   const guard = mode === "ignores" ? false : mode === "guaranteed" ? true : outcome.guard;
   const miss: DamageBreakdown = { landed: false, scaled, matchup, power, defense, base: 0, crit: false, guard: false, guardFactor: 1, amount: 0 };
@@ -234,10 +242,10 @@ export function computeDamage(attacker: Unit, defender: Unit, effect: DamageEffe
     base = fl(core);
     guardFactor = factor;
     pool = { bonus, reduction, factor };
-    amount = Math.max(min, fl(core * factor * (outcome.crit ? rules.damage.crit_multiplier : 1)));
+    amount = Math.max(min, fl(core * factor * (outcome.crit ? critMult : 1)));
   } else {
     base = baseDamage(power, defense, rules.damage);
-    amount = outcome.crit ? fl(base * rules.damage.crit_multiplier) : base;
+    amount = outcome.crit ? fl(base * critMult) : base;
     guardFactor = percents.length > 0 ? reductionFactor(percents, cap) : 1;
     if (percents.length > 0) amount = fl(amount * guardFactor);
     amount = Math.max(min, amount);
@@ -266,6 +274,15 @@ export interface ExecCtx {
 
 const roll100 = (rng: Rng): number => rng.next() * 100;
 
+/** A percent chance rolled from the phase rng and logged; 100 and up always succeeds without a draw. */
+function rollChance(x: ExecCtx, actor: Unit, t: Unit, skill: Pick<Skill, "id">, chance: number, kind: "status" | "heal"): boolean {
+  if (chance >= 100) return true;
+  const r = roll100(x.rng);
+  const ok = r < chance;
+  x.log.emit({ type: "roll", ...at(x.state), unit: actor.id, target: t.id, skill: skill.id, kind, chance, roll: r4(r), result: ok });
+  return ok;
+}
+
 /** What the roll and damage code needs of a skill. Soldier basic attacks are not skills, so they pass a stand-in. No shape = single. */
 export type SkillRef = Pick<Skill, "id" | "interactions"> & { shape?: string };
 
@@ -274,23 +291,34 @@ export const isSingleShape = (shape: string | undefined): boolean => shape === u
 
 export const hitMeta = (skill: SkillRef, effect: DamageEffect): HitMeta => ({ damageType: effect.damage_type, range: effect.range, single: isSingleShape(skill.shape), shape: skill.shape });
 
-/** The defender's reduce_damage effects in force that cover the damage type (hybrid: any). */
-const reductionsOn = (state: BattleState, defender: Unit, effect: DamageEffect): Reduction[] =>
-  state.bus.reductions.filter((r) => r.unit === defender && (r.appliesTo === "all" || r.appliesTo === effect.damage_type || effect.damage_type === "hybrid"));
+/** The defender's reduce_damage effects in force that cover the damage type (hybrid: any) and, for a first_single one, the hit's shape. */
+const reductionsOn = (state: BattleState, defender: Unit, skill: SkillRef, effect: DamageEffect): Reduction[] =>
+  state.bus.reductions.filter((r) => r.unit === defender && (r.until !== "first_single" || isSingleShape(skill.shape))
+    && (r.appliesTo === "all" || r.appliesTo === effect.damage_type || effect.damage_type === "hybrid"));
 
-/** A landed hit used up the defender's next_hit reductions (they still cover the rest of this attacking action). */
-const markReductionsHit = (state: BattleState, defender: Unit, effect: DamageEffect): void => {
-  for (const r of reductionsOn(state, defender, effect)) if (r.until === "hit") r.hit = true;
+/** A landed hit used up the defender's next_hit reductions (they still cover the rest of this attacking action) and its first_single ones (gone at once). */
+const markReductionsHit = (state: BattleState, defender: Unit, skill: SkillRef, effect: DamageEffect): void => {
+  const on = reductionsOn(state, defender, skill, effect);
+  for (const r of on) if (r.until === "hit") r.hit = true;
+  state.bus.reductions = state.bus.reductions.filter((r) => r.until !== "first_single" || !on.includes(r));
 };
 
 /** The guard mode of `attacker`'s hit: the skill's, or "ignores" while a blessing ignore_guard of the attacker is active. */
 const guardModeOf = (state: BattleState, attacker: Unit | undefined, skill: SkillRef): GuardMode =>
   attacker && ignoresGuard(state, attacker) ? "ignores" : skill.interactions.guard;
 
-/** DamageCtx for one hit on `defender`, with its reduce_damage effects that cover the damage type. */
+/** DamageCtx for one hit on `defender`, with its reduce_damage effects that cover the damage type and both sides' blessing hit modifiers. */
 export function hitCtx(state: BattleState, skill: SkillRef, defender: Unit, effect: DamageEffect, attacker?: Unit): DamageCtx {
-  const reductions = reductionsOn(state, defender, effect).map((r) => r.percent);
-  return { pack: state.pack, guardMode: guardModeOf(state, attacker, skill), battlefield: state.battlefield, ...(reductions.length ? { reductions } : {}) };
+  const reductions = reductionsOn(state, defender, skill, effect).map((r) => r.percent);
+  const damageBonus = attacker ? hitMods(state, attacker, "damage_bonus").map((e) => e.percent) : [];
+  if (attacker?.attackCharge && state.bus.actor === attacker) damageBonus.push(attacker.attackCharge);
+  const ignoreDefense = attacker ? sum(hitMods(state, attacker, "ignore_defense").map((e) => e.percent)) : 0;
+  const crits = [...(attacker ? hitMods(state, attacker, "crit_damage").filter((e) => e.on === "dealt") : []), ...hitMods(state, defender, "crit_damage").filter((e) => e.on === "taken")];
+  return {
+    pack: state.pack, guardMode: guardModeOf(state, attacker, skill), battlefield: state.battlefield, ...(reductions.length ? { reductions } : {}),
+    ...(damageBonus.length ? { damageBonus } : {}), ...(ignoreDefense ? { ignoreDefense } : {}),
+    ...(crits.length ? { critFactor: crits.reduce((f, e) => f * (1 + e.percent / 100), 1) } : {}),
+  };
 }
 
 const refs = (who: SoldierRef): SoldierRef => ({ ...(who.soldier !== undefined ? { soldier: who.soldier } : {}), ...(who.by !== undefined ? { by: who.by } : {}) });
@@ -325,7 +353,10 @@ export function rollOutcome(x: ExecCtx, attacker: Unit, defender: Unit, skill: S
     hit = r < chance;
     emit("hit", chance, r, hit);
   }
-  if (!hit) return { hit: false, crit: false, guard: false, ...cov };
+  if (!hit) {
+    state.bus.emit(x, "dodge", { attacker, defender, skillId: skill.id, ...hitMeta(skill, effect), ...refs(who) });
+    return { hit: false, crit: false, guard: false, ...cov };
+  }
 
   const cc = critChance(attacker, defender, ctx);
   const cr = roll100(rng);
@@ -477,7 +508,7 @@ export function hitSquad(x: ExecCtx, attacker: Unit, squad: Unit, skill: SkillRe
   if (!d.landed) return;
   const first = lowestHpSoldier(squad);
   if (!first) return;
-  markReductionsHit(x.state, squad, effect);
+  markReductionsHit(x.state, squad, skill, effect);
   applySoldierDamage(x, attacker, squad, first, skill, d, undefined, { ...hitMeta(skill, effect), single: !area });
 }
 
@@ -487,7 +518,7 @@ export function hitHero(x: ExecCtx, attacker: Unit, target: Unit, skill: SkillRe
   const def = outcome.defender ?? target;
   const d = computeDamage(attacker, def, effect, hitCtx(x.state, skill, def, effect, attacker), outcome);
   if (!d.landed) return;
-  markReductionsHit(x.state, def, effect);
+  markReductionsHit(x.state, def, skill, effect);
   applyDamage(x, attacker, def, skill, d, by, hitMeta(skill, effect));
 }
 
@@ -542,7 +573,8 @@ export function executeSkill(x: ExecCtx, actor: Unit, decision: TacticDecision):
   log.emit({ type: "pp_spend", ...at(state), unit: actor.id, skill: skill.id, pool: "active", cost: skill.pp_cost, before, after: actor.pp.active.cur });
   recordSkillUse(actor, skill, true);
   // action_is_single_target (3c): on for this whole attack; conditional item / blessing modifiers are re-checked now so they count for its rolls.
-  state.bus.singleAttack = isSingleShape(skill.targeting.shape ?? "single") && skill.effects.some((e) => e.type === "damage");
+  const attacks = skill.effects.some((e) => e.type === "damage");
+  state.bus.singleAttack = isSingleShape(skill.targeting.shape ?? "single") && attacks;
   if (state.bus.singleAttack) checkEquipment(x);
 
   const activation = tacticCondition(decision.tactic, skill);
@@ -574,6 +606,7 @@ export function executeSkill(x: ExecCtx, actor: Unit, decision: TacticDecision):
   }
 
   state.bus.singleAttack = false; // the attack is over: finishAction's re-check takes its single-target modifiers off
+  if (attacks) delete actor.attackCharge; // Retaliate: this attack spent the charge, landed or not
   for (const id of completeAction(state, actor, true)) {
     log.emit({ type: "status_expired", ...at(state), unit: actor.id, status: id, reason: "duration" });
   }
@@ -636,9 +669,14 @@ function reductionSpan(duration: string | null, ev?: EventCtx): { until: Reducti
     case "until_next_action": return { until: "own_action", label: "until_next_action" };
     case "phase":
     case "battle": return { until: "phase", label: duration };
+    case "first_single_hit": return { until: "first_single", label: duration };
     default: return null;
   }
 }
+
+/** The living ally hero with the lowest HP%, `actor` included (first in unit order on a tie), as a recipient list. */
+const lowestHpAlly = (state: BattleState, actor: Unit): Unit[] =>
+  alliesOf(state, actor).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp).slice(0, 1);
 
 /** Stun pushback on `t` (design Section 6), logged `action_delayed`. */
 function stun(x: ExecCtx, t: Unit, name: string): void {
@@ -658,7 +696,7 @@ function stun(x: ExecCtx, t: Unit, name: string): void {
  * use the passive category, and reduce_damage / cover act on the current attack.
  */
 export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: Effect, targets: Unit[], touched: Set<Unit>, reaction: boolean, passive?: PassiveRun): void {
-  const { state, rng, log } = x;
+  const { state, log } = x;
   const ni = (what: string) => log.emit({ type: "not_implemented", ...at(state), unit: actor.id, what });
   const trig = effect.trigger;
   const onHit = reaction || passive?.hitTargets === true;
@@ -683,7 +721,9 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
       }
       break;
     case "heal":
-      for (const t of reaction ? [actor] : targets) applyHeal(x, actor, t, skill, computeHeal(t, actor, effect, state.pack));
+      for (const t of effect.target === "lowest_hp_ally" ? lowestHpAlly(state, actor) : reaction ? [actor] : targets) {
+        if (effect.chance_percent === undefined || rollChance(x, actor, t, skill, effect.chance_percent, "heal")) applyHeal(x, actor, t, skill, computeHeal(t, actor, effect, state.pack));
+      }
       break;
     case "apply_status": {
       const recipients = effectRecipients(x, actor, skill, effect.target, targets, effect.include_soldiers, onHit, ev);
@@ -692,12 +732,7 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
       const st = state.pack.byId.statuses.get(effect.status_id);
       for (const t of recipients) {
         if (!t.alive) continue;
-        if (effect.chance_percent < 100) {
-          const r = roll100(rng);
-          const ok = r < effect.chance_percent;
-          log.emit({ type: "roll", ...at(state), unit: actor.id, target: t.id, skill: skill.id, kind: "status", chance: effect.chance_percent, roll: r4(r), result: ok });
-          if (!ok) continue;
-        }
+        if (!rollChance(x, actor, t, skill, effect.chance_percent, "status")) continue;
         const res = applyStatus(state, t, effect.status_id, applier, actor.id, passive?.inAction ?? true);
         for (const n of res.notes) if (n.startsWith("not implemented")) ni(n);
         const notes = res.notes.filter((n) => !n.startsWith("not implemented"));

@@ -430,6 +430,7 @@ heroes:                # exactly 6
     squad_row: null         # OPTIONAL. Omit to use the soldier type's default_soldier_row; must be one of its allowed_soldier_rows
     equipment: { weapon: null, armor: null, accessory_1: null, accessory_2: null }
     sigils: { weapon: null, armor: null, accessory_1: null, accessory_2: null }   # OPTIONAL. A god id per slot (Section 17); counts only on a filled slot (W_SIGIL_EMPTY_SLOT)
+    sigil_side: def       # OPTIONAL, def | atk. Which 4-piece 4 same-god sigils unlock: required then (E_SIGIL_SIDE_MISSING), else W_SIGIL_SIDE_UNUSED
     tactic_sheet: []   # up to 10 tactics (Section 8)
     preferred_row: front
 leader_line: []        # ordered char_ids; highest-ranked fielded hero leads
@@ -538,11 +539,13 @@ rules:
   blessing:
     name: ""
     two_piece: []         # effects (Section 7), unlocked by 2 sigils of this god on one hero
-    four_piece: []        # unlocked by 4 sigils, on top of the two_piece
+    four_piece_def: { name: "", effects: [] }   # unlocked by 4 sigils with sigil_side: def, on top of the two_piece; name OPTIONAL
+    four_piece_atk: { name: "", effects: [] }   # the same with sigil_side: atk
 # Sigils: the roster entry's `sigils` (Section 11), one god per filled equipment slot.
 # Blessing effects use the `prayer` stacking category. Engine forms: modify_stat (optionally with a condition, e.g. action_is_single_target),
-# ignore_guard (with a condition), reflect_damage / heal with `trigger: on_event` and an event-leaf condition judged per hit of the attacking
-# action (e.g. unit_hit_by_single_target_attack), reduce_damage with duration battle. Priced by the cost algorithm (Section 14).
+# ignore_guard / ignore_defense / damage_bonus / crit_damage (with a condition), reflect_damage / heal / damage / damage_bonus with `trigger: on_event`
+# and an event-leaf condition judged per hit of the attacking action (e.g. unit_hit_by_single_target_attack, self_dodged; self_killed_enemy fires at the
+# kill), reduce_damage with duration phase, battle or first_single_hit. Priced by the cost algorithm (Section 14).
 ```
 
 ## 18. Battlefield stub

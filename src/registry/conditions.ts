@@ -134,6 +134,8 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   hero_is: { fields: z.strictObject({ side, value: idStr }), contexts: AUTHORED, communitySafe: false, description: "Is a specific hero (hero id)" },
   party_has_hero: { fields: z.strictObject({ side, value: idStr }), contexts: AUTHORED, communitySafe: false, description: "A specific hero is fielded (hero id)" },
   action_is_single_target: { fields: none, contexts: AUTHORED, communitySafe: true, description: "This unit is resolving a single-target attack (its own active skill)" },
+  self_dodged: { fields: none, contexts: AUTHORED, communitySafe: true, description: "This unit dodged an attack" },
+  self_killed_enemy: { fields: none, contexts: AUTHORED, communitySafe: true, description: "This unit killed an enemy hero or wiped out a squad" },
   soldier_mounted: { fields: z.strictObject({ value: z.boolean() }), contexts: AUTHORED, communitySafe: true, description: "The paired soldier type is mounted" },
   // Ban-sheet leaves (matched against candidate heroes)
   hero_class: { fields: z.strictObject({ value: z.enum(CLASSES) }), contexts: BAN, communitySafe: true, description: "Candidate's class" },

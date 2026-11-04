@@ -75,11 +75,12 @@ test("editor api: breakdown shows the summed Full Moon entry with both contribut
   const bd = api.breakdown(battle("draft_city.yaml"));
   const inf = bd.units.find((u) => u.id === "char_005")!;
   assert.equal(inf.kind, "hero");
-  const atk = inf.stats.ATK!;
-  const moon = atk.effects.find((e) => e.status.startsWith("prayer:god_002"))!;
-  assert.ok(moon, "Full Moon prayer entry on ATK");
+  const moon = inf.stats.DEF!.effects.find((e) => e.status.startsWith("prayer:god_002"))!; // sigil_side def
+  assert.ok(moon, "Full Moon prayer entry on DEF");
   assert.equal(moon.parts!.length, 2);
-  assert.equal(moon.value, 30);
+  const god = loadReal().pack.byId.gods.get("god_002")!.blessing;
+  const line = (es: typeof god.two_piece) => es.reduce((n, e) => n + (e.type === "modify_stat" && e.stat === "DEF" ? e.value : 0), 0);
+  assert.equal(moon.value, line(god.two_piece) + line(god.four_piece_def.effects));
   assert.ok(moon.parts!.some((x) => x.startsWith("prayer:god_002:2")) && moon.parts!.some((x) => x.startsWith("prayer:god_002:4")), moon.parts!.join(","));
   assert.ok(bd.units.some((u) => u.kind === "squad"));
 });

@@ -126,5 +126,6 @@ test("battle hero entries get the sigil checks: unknown god E_REF_MISSING, sigil
   raw.battles = [{ name: "warn.yaml", data: b }];
   const issues = validateRaw(raw).report.issues;
   assert.deepEqual(issues.filter((i) => i.code === "W_SIGIL_EMPTY_SLOT").map((i) => i.path), ["challenger.heroes[0].sigils.armor"]);
+  assert.ok(run((x) => { x.challenger.edits = [{ phase: 2, heroes: [{ char_id: x.challenger.heroes[0].char_id, sigil_side: "atk" }] }]; }).includes("E_EDIT_LOCKED"));
   assert.ok(run((x) => { x.challenger.edits = [{ phase: 2, heroes: [{ char_id: x.challenger.heroes[0].char_id, sigils: { weapon: "god_001" } }] }]; }).includes("E_EDIT_LOCKED"));
 });

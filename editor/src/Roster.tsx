@@ -23,6 +23,7 @@ function HeroPanel({ c, battle, side, index, edit, selected, select }: SideProps
   const squad = c.soldiers.find((s) => s.id === hero.squad_id);
   const set = (fn: (h: Json) => void) => edit((b) => fn(heroesOf(b, side)[index]));
   const optional = (key: string) => (e: { target: { value: string } }) => set((h) => { if (e.target.value) h[key] = e.target.value; else delete h[key]; });
+  const fourOfOne = SLOTS.every(([key]) => hero.sigils?.[key] && hero.sigils[key] === hero.sigils.weapon);
   return (
     <div className={`hero ${selected === hero.char_id ? "selected" : ""}`} data-path={base}>
       <div className="hero-head" onClick={() => select(hero.char_id)}>
@@ -80,6 +81,16 @@ function HeroPanel({ c, battle, side, index, edit, selected, select }: SideProps
             </label>
           </span>
         ))}
+        {(fourOfOne || hero.sigil_side) && (
+          <label data-path={`${base}.sigil_side`}>4-piece side
+            <select value={hero.sigil_side ?? ""} onChange={optional("sigil_side")}>
+              <option value="">(choose)</option>
+              <option value="def">DEF</option>
+              <option value="atk">ATK</option>
+            </select>
+            <Info tip={tips.god(hero.sigils?.weapon)} />
+          </label>
+        )}
       </div>
       <TacticsBoard c={c} hero={ch} sheet={hero.tactic_sheet ?? []} path={`${base}.tactic_sheet`}
         edit={(fn) => set((h) => { h.tactic_sheet ??= []; fn(h.tactic_sheet); })} />

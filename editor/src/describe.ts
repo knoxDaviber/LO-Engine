@@ -153,6 +153,7 @@ export function describeCondition(node: ConditionNode | null | undefined, cat: C
 const TRIGGER_WORD: Record<string, string> = { pre_battle: "before battle", on_event: "on its event", on_hit: "on hit", on_attack: "after attacking" };
 const DURATION_WORD: Record<string, string> = {
   this_attack: "for this attack", next_hit: "for the next hit", until_next_action: "until its next action", phase: "for the phase", battle: "for the whole battle",
+  first_single_hit: "on the first single-target hit each phase",
 };
 
 function scaling(terms: { stat: string; coef: number }[], mult: number): string {
@@ -172,7 +173,8 @@ function effectBody(e: Effect, cat: Cat, at?: string, named?: readonly string[])
     }
     case "heal": {
       const amount = e.percent_max_hp !== undefined ? `${fmt(e.percent_max_hp)}% of max HP` : e.scaling && e.multiplier !== undefined ? `${scaling(e.scaling, e.multiplier)} HP` : "HP";
-      return `Heals ${at ?? "the target"} for ${amount}`;
+      const heal = `Heals ${e.target === "lowest_hp_ally" ? "the lowest-HP ally hero" : at ?? "the target"} for ${amount}`;
+      return e.chance_percent === undefined ? heal : `${fmt(e.chance_percent)}% chance: ${heal}`;
     }
     case "apply_status": {
       const name = nameOf(cat, "statuses", e.status_id);
@@ -194,6 +196,9 @@ function effectBody(e: Effect, cat: Cat, at?: string, named?: readonly string[])
     case "cover": return "Takes single-target hits aimed at an ally instead of them";
     case "reflect_damage": return `Reflects ${fmt(e.percent)}% of the damage taken from an attacking action back at the attacker`;
     case "ignore_guard": return "Its attacks ignore GUARD";
+    case "ignore_defense": return `Its attacks ignore ${fmt(e.percent)}% of the target's DEF and MDEF`;
+    case "damage_bonus": return e.trigger === "on_event" ? `Its next attack deals ${signed(e.percent)}% damage (one charge, does not stack)` : `Deals ${signed(e.percent)}% damage`;
+    case "crit_damage": return `${signed(e.percent)}% crit damage ${e.on}`;
     default: return generic(words((e as { type?: unknown }).type ?? "effect"), e as object);
   }
 }
@@ -313,10 +318,12 @@ export function describeStatus(s: Status, cat: Cat): Described {
 }
 
 // ------------------------------------------------------------------ gods
-/** `tier` 2 = the two_piece blessing (2 sigils), 4 = the four_piece blessing (4 sigils; the 2-sigil tier stays unlocked as well). */
-export function describeBlessing(g: God, tier: 2 | 4, cat: Cat): Described {
-  const es = tier === 2 ? g.blessing.two_piece : g.blessing.four_piece;
-  const lines = effectLines(es, cat);
+/** `tier` 2 = the two_piece blessing (2 sigils), 4 = a 4-piece enchantment (4 sigils; the 2-sigil tier stays unlocked as well): `side`'s, or both, one line each. */
+export function describeBlessing(g: God, tier: 2 | 4, cat: Cat, side?: "def" | "atk"): Described {
+  const lines = tier === 2 ? effectLines(g.blessing.two_piece, cat) : (side ? [side] : (["def", "atk"] as const)).map((s) => {
+    const f = g.blessing[`four_piece_${s}`];
+    return `${s.toUpperCase()}${f.name ? ` ${f.name}` : ""}: ${effectLines(f.effects, cat).join("; ")}`;
+  });
   return { summary: `${g.blessing.name} (${tier} ${g.name} sigils): ${lines.join("; ")}`, lines };
 }
 

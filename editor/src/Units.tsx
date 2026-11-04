@@ -55,9 +55,9 @@ function rowMap(c: ContentInfo, battle: Json): Record<string, string> {
 }
 
 /** Blessing tiers a hero entry unlocks: the engine's rule (src/devotion.ts, type-only imports so it is browser-safe) over the catalog's gods. */
-function activeBlessings(cat: Catalog, entry: Json): { god: Catalog["gods"][number]; tier: 2 | 4 }[] {
+function activeBlessings(cat: Catalog, entry: Json): { god: Catalog["gods"][number]; tier: 2 | 4; name: string; side?: "def" | "atk" }[] {
   const pack: any = { byId: { gods: new Map(cat.gods.map((g) => [g.id, g])) } };
-  return unlockedBlessings(pack, { equipment: entry.equipment ?? {}, sigils: entry.sigils });
+  return unlockedBlessings(pack, { equipment: entry.equipment ?? {}, sigils: entry.sigils, sigil_side: entry.sigil_side });
 }
 
 const Section = ({ title, children, open = true }: { title: string; children: ReactNode; open?: boolean }) => (
@@ -167,7 +167,7 @@ export function UnitCard({ d, v, rows, children }: { d: UnitData; v: UnitView; r
               {(() => {
                 const act = activeBlessings(cat, entry);
                 return act.length === 0 ? <p className="sub">No blessing active.</p> : (
-                  <ul>{act.map((a) => <li key={`${a.god.id}${a.tier}`}><Hint tip={describeBlessing(a.god, a.tier, cat)}>{a.god.blessing.name}</Hint> <span className="sub">{a.tier} {a.god.name} sigils: {describeBlessing(a.god, a.tier, cat).lines.join("; ")}</span></li>)}</ul>
+                  <ul>{act.map((a) => <li key={`${a.god.id}${a.tier}`}><Hint tip={describeBlessing(a.god, a.tier, cat, a.side)}>{a.name}</Hint> <span className="sub">{a.tier} {a.god.name} sigils{a.tier === 4 && !a.side ? " (no side chosen)" : ""}: {describeBlessing(a.god, a.tier, cat, a.side).lines.join("; ")}</span></li>)}</ul>
                 );
               })()}
             </>

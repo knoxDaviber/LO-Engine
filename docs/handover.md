@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 380/380 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 389/389 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -61,8 +61,14 @@ progress in `docs/roadmap.md`.
    geared battles): active 2 leaves 20-57% timeouts on the three city battles, active 3+ drops them to 0-8%, so 2 is too low. Passive above 3
    changes nothing much (sample/full4v4 have no passives on sheets, so they are flat by construction). Challenger win is not monotonic in active PP
    (city4v4-edit 95% at 3, 60% at 4, 85% at 5), so active PP swings matchups. No reason found to move off 3/3. **Designer call:** lock 3/3?
-3. **Two-sided blessings: approved for now (Decision 141), not built.** Build the list in `docs/enchantments_proposal.md`, then
-   sim it. The sigil choice must record the side (schema change).
+3. **Done 2026-11-04 (Decision 141):** two-sided enchantments built per `docs/enchantments_proposal.md`: `sigil_side: def | atk` on the hero entry
+   (`E_SIGIL_SIDE_MISSING`, `W_SIGIL_SIDE_UNUSED`), `four_piece_def` / `four_piece_atk` in `gods.yaml`, effects `ignore_defense`, `damage_bonus`, `crit_damage`.
+   2-pieces follow the proposal table, not the old `gods.yaml` (Full Moon, Plate, Gift, Breeze changed). Editor side picker clicked through.
+   First sim (city4v4, all 4 heroes of one side on one god, gear slots filled, 300 runs; baseline 75.3% challenger win). Challenger win with it on the defender:
+   Full Moon ATK 6, Full Moon DEF 8, Gift DEF 9, Breeze ATK 9, Breeze DEF 11, Plate ATK 20, Rush ATK 24, Mirror ATK 29, Rush DEF 33, Mirror DEF 45, Plate DEF 46,
+   Gift ATK 54, Meteor ATK 63, Meteor DEF 71. One matchup only, so a ranking hint, not a verdict: Full Moon looks strongest, Meteor weakest.
+   **Open calls:** Meteor DEF makes a crit weaker than a normal hit (1.5 x 0.5 = 0.75): clamp at 1x, or cut only the crit bonus (1.25x)? Battle `sigil_side` picks are placeholders.
+   `self_killed_enemy` works only as a top-level condition.
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft

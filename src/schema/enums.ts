@@ -48,6 +48,8 @@ export const GUARD_MODES = ["standard", "ignores", "guaranteed"] as const;
 export const SOLDIER_MODES = ["standard", "skip_soldiers", "soldiers_only"] as const;
 
 export const MODIFIER_MODES = ["flat", "percent"] as const;
+export const SIGIL_SIDES = ["def", "atk"] as const; // the two 4-piece enchantments of a god (Decision 141)
+export type SigilSide = (typeof SIGIL_SIDES)[number];
 export const SOURCE_CATEGORIES = ["passive", "active", "equipment", "soldier", "prayer", "terrain"] as const; // stacking categories
 export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
 export const STATUS_SOURCE = ["inherit", ...SOURCE_CATEGORIES] as const;

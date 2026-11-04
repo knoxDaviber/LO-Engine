@@ -26,7 +26,7 @@ export function forEachEffect(pack: Pack, fn: (effect: Effect, where: Where) => 
   pack.factions.forEach((f) => f.effects.forEach((e, i) => fn(e, { file: FILES.factions, id: f.id, path: `effects[${i}]` })));
   pack.gods.forEach((g) => {
     g.blessing.two_piece.forEach((e, i) => fn(e, { file: FILES.gods, id: g.id, path: `blessing.two_piece[${i}]` }));
-    g.blessing.four_piece.forEach((e, i) => fn(e, { file: FILES.gods, id: g.id, path: `blessing.four_piece[${i}]` }));
+    for (const side of ["four_piece_def", "four_piece_atk"] as const) g.blessing[side].effects.forEach((e, i) => fn(e, { file: FILES.gods, id: g.id, path: `blessing.${side}.effects[${i}]` }));
   });
 }
 

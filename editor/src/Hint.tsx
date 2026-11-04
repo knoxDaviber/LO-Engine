@@ -35,7 +35,7 @@ export function useTips() {
       status: (id: string | null | undefined) => { const s = by(cat?.statuses, id); return cat && s ? describeStatus(s, cat) : undefined; },
       soldier: (id: string | null | undefined) => { const s = by(cat?.soldiers, id); return cat && s ? describeSoldier(s, cat) : undefined; },
       terrain: (id: string | null | undefined) => { const s = by(cat?.terrains, id); return cat && s ? describeTerrain(s, cat) : undefined; },
-      /** A god's sigil: both blessing tiers (2 sigils, 4 sigils). */
+      /** A god's sigil: both blessing tiers (2 sigils, 4 sigils with both sides). */
       god: (id: string | null | undefined): Described | undefined => {
         const g = by(cat?.gods, id);
         if (!cat || !g) return undefined;

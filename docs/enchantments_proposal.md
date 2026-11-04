@@ -1,7 +1,7 @@
-# Enchantments (approved for now by the designer 2026-11-04, Decision 141; not built)
+# Enchantments (approved for now by the designer 2026-11-04, Decision 141; built, see design doc Section 9A)
 
-Critique pass over all 14 two-sided blessings (handover queue item 3). Nothing here is built or simmed; values are starting
-points for the batch sim. 2-pieces stay as the designer gave them. A hero has 4 sigil slots, so one 4-piece enchantment per hero.
+Critique pass over all 14 two-sided blessings (handover queue item 3). Built as listed in the table below, 2-pieces included; not simmed yet, values are
+starting points for the batch sim. A hero has 4 sigil slots, so one 4-piece enchantment per hero.
 
 ## Problems found
 
@@ -41,4 +41,4 @@ Sunder against full squads; Sidestep plus Mirror on back-row heroes; Gift DEF on
 snowballing with lifesteal or heals.
 
 Later, as before: soldier effects, AP/PP refunds, extra gods (Clock, Crystal, Ice, Tree of Life). The sigil choice must record the
-side (schema change).
+side (`sigil_side`, built).

@@ -177,10 +177,11 @@ function checkEquipment(c: Collector, pack: Pack, tier: Tier): void {
 /** A blessing effect must be one of the forms the engine runs (devotion.ts blessingKind). */
 function checkGods(c: Collector, pack: Pack): void {
   for (const g of pack.gods) {
-    for (const tier of ["two_piece", "four_piece"] as const) {
-      g.blessing[tier].forEach((e, i) => {
+    const tiers = [["two_piece", g.blessing.two_piece], ["four_piece_def.effects", g.blessing.four_piece_def.effects], ["four_piece_atk.effects", g.blessing.four_piece_atk.effects]] as const;
+    for (const [tier, effects] of tiers) {
+      effects.forEach((e, i) => {
         if (blessingKind(e) !== null) return;
-        c.error("E_EFFECT_TRIGGER", `a blessing ${e.type} effect with trigger '${e.trigger ?? "always"}' is not supported (modify_stat / ignore_guard always, reflect_damage, on_event reactions, reduce_damage for the battle)`, { file: FILES.gods, id: g.id, path: `blessing.${tier}[${i}].trigger` });
+        c.error("E_EFFECT_TRIGGER", `a blessing ${e.type} effect with trigger '${e.trigger ?? "always"}' is not supported (modify_stat / ignore_guard / ignore_defense / damage_bonus / crit_damage always, reflect_damage, on_event reactions, a standing reduce_damage)`, { file: FILES.gods, id: g.id, path: `blessing.${tier}[${i}].trigger` });
       });
     }
   }

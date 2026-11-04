@@ -6,7 +6,7 @@
 // suppressed (kept on the unit, they resume when the winner goes away). Unique statuses are exempt: each adds / multiplies on its own.
 // INT/MDEF pairing (Decision 132): skill statuses, auras and soldier skills that modify ATK / DEF also modify INT / MDEF (withPairedStats).
 // Exception (Decision 125): one god's blessing lines (`prayer:<god>:<tier>:<n>`) on the same stat, mode and sign add up into one prayer
-// contribution (Full Moon 2- + 4-piece: ATK +30%) before the strongest-wins; different gods still compete.
+// contribution (Full Moon 2- + DEF 4-piece: DEF +30%) before the strongest-wins; different gods still compete.
 import type { SourceCategory, Stat, Status } from "../schema";
 import { STATS } from "../schema";
 import type { Pack } from "../validate/pack";

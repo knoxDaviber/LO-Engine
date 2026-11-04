@@ -100,6 +100,8 @@ export interface Unit {
   alive: boolean;
   tactics: Tactic[]; // sorted by priority, lowest first
   skills: string[];
+  /** Retaliate: the damage bonus % charged for this unit's next attacking action (one charge, this phase only). */
+  attackCharge?: number;
   /** Stun pushback (counts) waiting for the unit's next schedule, when it was stunned with no pending action (pre-battle, or mid-own-action). */
   pushback?: number;
   /** Own actions completed this phase (skills, idles, prevented actions, squad attacks): action_count, cooldowns. */

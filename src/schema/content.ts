@@ -192,14 +192,17 @@ export const terrainSchema = z.strictObject({
 export type Terrain = z.infer<typeof terrainSchema>;
 
 // ---------------------------------------------------------------- god (devotion, Section 9A)
-/** A god of the pantheon (open-ended list, Decision 113). A hero's sigils of one god unlock its blessing: 2 -> two_piece, 4 -> both tiers. */
+/** One 4-piece enchantment (Decision 141); `name` only where it has its own. */
+const enchantment = z.strictObject({ name: name.optional(), effects: z.array(effectSchema).min(1) });
+
+/** A god of the pantheon (open-ended list, Decision 113). A hero's sigils of one god unlock its blessing: 2 -> two_piece, 4 -> two_piece and the side it picked (`sigil_side`). */
 export const godSchema = z.strictObject({
   id,
   name,
   virtue: text,
   vice: text, // lore only
   description: text,
-  blessing: z.strictObject({ name, two_piece: z.array(effectSchema).min(1), four_piece: z.array(effectSchema).min(1) }),
+  blessing: z.strictObject({ name, two_piece: z.array(effectSchema).min(1), four_piece_def: enchantment, four_piece_atk: enchantment }),
   meta,
 });
 export type God = z.infer<typeof godSchema>;

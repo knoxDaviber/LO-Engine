@@ -37,6 +37,7 @@ challenger:
         squad_id: soldier_003
         equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_020, accessory_2: equip_021 }
         sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }   # Full Moon 4-piece
+        sigil_side: def
         tactic_sheet:
           - { priority: 1, skill_id: skl_004, enabled: true, main: null, sub: null }   # Cleave
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -104,6 +105,7 @@ defender:
         squad_id: soldier_012
         equipment: { weapon: equip_015, armor: equip_018, accessory_1: equip_021, accessory_2: equip_021 }
         sigils: { weapon: god_004, armor: god_004, accessory_1: god_004, accessory_2: god_004 }   # Gift 4-piece
+        sigil_side: def
         tactic_sheet:
           - { priority: 1, skill_id: skl_016, enabled: true, main: null, sub: null }   # Rend
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike

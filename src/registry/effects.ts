@@ -13,6 +13,9 @@ export const EFFECT_REGISTRY: Record<string, { communitySafe: boolean; descripti
   cover: { communitySafe: true, description: "Takes a single-target hit aimed at an ally (before_hit passive)" },
   reflect_damage: { communitySafe: true, description: "Deals part of the damage taken from an attacking action back to the attacker (devotion)" },
   ignore_guard: { communitySafe: true, description: "The wearer's attacks ignore GUARD while active (devotion)" },
+  ignore_defense: { communitySafe: true, description: "The wearer's attacks ignore part of the target's DEF / MDEF while active (devotion)" },
+  damage_bonus: { communitySafe: true, description: "The wearer deals more damage while active, or on its next attack after the event (devotion)" },
+  crit_damage: { communitySafe: true, description: "Changes the damage of crits the wearer deals or takes (devotion)" },
 };
 
 /** Status flags that deny actions or bypass death are official-only. Each predicate reports whether the flag is in use. */
