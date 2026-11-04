@@ -1,4 +1,4 @@
-/* Vanguard Tactics UI. Tokens first; every screen fits the viewport, long content scrolls inside its own panel. */
+/* Lightbearer's Oath UI. Tokens first; every screen fits the viewport, long content scrolls inside its own panel. */
 :root {
   --ink: #f6ecd8; --ink-soft: #c9bda6; --ink-dim: #8f8672;
   --night: #0c0d1a; --panel: #15162b; --panel-2: #1e1f3a; --panel-3: #2a2a4c;

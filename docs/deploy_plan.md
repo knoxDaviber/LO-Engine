@@ -25,11 +25,11 @@ The game needs no code change for this: `game/vite.config.ts` has `base: "./"`, 
 
 Rollback: revert the workflow commit and push. The editor deploy is unaffected.
 
-## Decisions for the designer
+## Decisions
 
-- **Public release:** Pages sites are public, so anyone with the link can play, and the art and music can be downloaded. Is that fine now? The repo's visibility and the Pages plan decide whether this can be restricted.
-- **Name:** the page would ship with the placeholder title "Vanguard Tactics" (`GAME_TITLE`).
-- **URL:** game at `/game/` as above, or game at the root now?
+- **Public release:** approved by the designer 2026-11-04. Anyone with the link can play, and the art and music can be downloaded.
+- **Name:** placeholder title "Lightbearer's Oath" (`GAME_TITLE`, `game/index.html`).
+- **URL:** not answered yet; this plan assumes the game at `/game/`.
 
 ## Not in this plan
 
