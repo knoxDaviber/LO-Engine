@@ -57,7 +57,10 @@ progress in `docs/roadmap.md`.
    Both matchups are lopsided (the defender side's Jasmine only heals), so they say nothing about skill multipliers yet.
 1b. **Done 2026-11-04 (Decision 139):** a phase-3 timeout goes to the higher pooled HP% (heroes and squads, `timeoutWinner` in
    `src/engine/phase.ts`), exact tie to the defender. The batch report needed no change (it counts `battle_end` winners).
-2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Done in content; tests read PP from content and pass at PP 2, 3 and 4. Sweep PP 2-5 after 1a and 1b, then the designer decides.
+2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Tests read PP from content. **Swept 2026-11-04** (active/passive 2-5, 100 runs,
+   geared battles): active 2 leaves 20-57% timeouts on the three city battles, active 3+ drops them to 0-8%, so 2 is too low. Passive above 3
+   changes nothing much (sample/full4v4 have no passives on sheets, so they are flat by construction). Challenger win is not monotonic in active PP
+   (city4v4-edit 95% at 3, 60% at 4, 85% at 5), so active PP swings matchups. No reason found to move off 3/3. **Designer call:** lock 3/3?
 3. **Two-sided blessings: approved for now (Decision 141), not built.** Build the list in `docs/enchantments_proposal.md`, then
    sim it. The sigil choice must record the side (schema change).
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
