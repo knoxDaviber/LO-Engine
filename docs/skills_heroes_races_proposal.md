@@ -40,7 +40,7 @@ Purify and Mercy Bolt are deliberately support-heavy: the healer team fell in th
 
 ## Proposed heroes
 
-Existing heroes first. Seven skills on them are gated by class today, though they read as hero skills; see question 2.
+Existing heroes first. Six skills on them are gated by class today, though they read as hero skills; see question 2.
 
 | Hero | Class / race | Unique skills (max 4) | Added here |
 |---|---|---|---|
