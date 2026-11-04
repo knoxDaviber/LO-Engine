@@ -218,8 +218,8 @@ A battle is up to **3 phases**.
 - No free action: a hero with no PP does nothing [DECIDED].
 
 ### 5.4 Result
-Survivors after phase 3 with no side wiped: **the side with the higher remaining HP% (heroes and soldiers together) wins** [DECIDED, Decision 139, not built yet: the engine still gives it to the defender]. In PvE the player is always the challenger.
-- **Known risk: turtling** [DECIDED to keep the rule and rely on bans]. Defenders can build walls that run out the clock. The anchor is unbannable, so defenders will make their best wall the anchor. The batch simulator must report the timeout rate (Section 14). Candidate fix: a timeout tiebreak by remaining HP % or total damage dealt (Decision 115).
+Survivors after phase 3 with no side wiped: **the side with the higher remaining HP% (heroes and soldiers together) wins** [DECIDED, Decision 139, built]; an exact tie goes to the defender. In PvE the player is always the challenger.
+- **Known risk: turtling** [DECIDED to keep the rule and rely on bans]. Defenders can build walls that run out the clock. The anchor is unbannable, so defenders will make their best wall the anchor. The batch simulator must report the timeout rate (Section 14). The timeout tiebreak by remaining HP % is built (Decision 139).
 
 ### 5.5 Challenger edits between phases [DECIDED]
 The challenger may adjust between phases. [DEFAULT scope]:
@@ -442,7 +442,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
    - Input: a new battle YAML (two sides, each a list of roster-style hero entries, plus a seed) that the draft will later produce.
    - Log: typed JSON events plus a separate text renderer.
    - Out of scope: soldiers, auras, passives, draft, between-phase edits.
-   - Done = tests for the Section 17 subset (exhaustion phase end, idle safety, phase-3 challenger loss, HP persistence and PP refresh, phase condition, same-seed determinism, min damage, the bare Leon-vs-Emperor example: bare Leon vs bare Emperor (DEF 50), Charging Assault 70 x 1.2 x 1.25 = 105 - 50 = 55, Thousand Azure Hooves 157.5 - 50 = 107.5 -> 107) plus `npm run sim` on a sample battle.
+   - Done = tests for the Section 17 subset (exhaustion phase end, idle safety, phase-3 timeout by HP%, HP persistence and PP refresh, phase condition, same-seed determinism, min damage, the bare Leon-vs-Emperor example: bare Leon vs bare Emperor (DEF 50), Charging Assault 70 x 1.2 x 1.25 = 105 - 50 = 55, Thousand Azure Hooves 157.5 - 50 = 107.5 -> 107) plus `npm run sim` on a sample battle.
 2. Add soldiers, AoE distribution, leader rules, auras.
 3. Full condition library, statuses, equipment (test: the full Dragon-Scale / Empire's-Dominion worked example, Section 8), devotion (Section 9A), battlefield (Section 10A, [DEFAULT] placement), timeline rescheduling.
 4. Batch simulator and balance pass.
@@ -593,7 +593,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 136 | Tactic = skill + Main + Sub | DECIDED (DEFAULT details) | Player tactics drop `activation`, `targeting` and `fallback`: `{ priority, skill_id, enabled, main, sub }`, each slot one condition leaf or a selector (Section 4.1-4.3). Leaves filter the candidates (self / board leaves act as "only if"), selectors only order (Main first, Sub tie-break; new `prefer` with a `filter` leaf, metrics max_hp / max_active_pp / max_passive_pp; selector `side` dropped). Skill default_activation and default_main always apply; default_sub only without a selector. Races (`race` on characters: human, elf, beastfolk, dwarf, dragon, demon, angel; [DEFAULT] squads human), battle `time: day / night` (default day; no race day/night bonuses yet) and new leaves: time_is, race_is, has_any_buff / lacks_any_buff / lacks_any_debuff, row_size, row_rank (ties count as both, among occupied rows), column_full, average_hp_percent ([DEFAULT] every living hero and soldier counts once), combatants, side_has, is_self / not_self, attacked_since_last_action with damage_type / shape / by_class / by_race filters |
 | 137 | Editor and main game are separate | DECIDED | The editor is the simulation, testing and character creation tool, with import and export into the main game. The main game is a separate client with all default content built in and a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Same schema and engine; import/export uses the `content/` YAML files, validated on import [DEFAULT] (Section 12) |
 | 138 | Soldier skill points | DECIDED, later | 20 points per soldier type, spent in skill trees with prerequisites, up to 5 levels per category; reallocated at season end; slight cost increase. Differentiates players' soldiers (class triangle damage dealt/taken, vs buffed or debuffed units, back-row damage, damage taken by battlefield). Separate from hero progression (Decision 114). Tree contents open (Section 18) |
-| 139 | Timeout result | DECIDED (not built) | Replaces "survivors after phase 3 = challenger loss" (Decisions 68, 115): a phase-3 timeout goes to the side with the higher remaining HP%, counted over the whole side (heroes and soldiers together); an exact tie goes to the defender [DEFAULT] |
+| 139 | Timeout result | DECIDED (built) | Replaces "survivors after phase 3 = challenger loss" (Decisions 68, 115): a phase-3 timeout goes to the side with the higher remaining HP%, counted over the whole side (heroes and soldiers together); an exact tie goes to the defender [DEFAULT] |
 | 140 | Default PP 3/3 | DEFAULT, not locked | Active 3, Passive 3 for now, max still 4; still being decided after the PP sweep |
 | 141 | Two-sided enchantments | DECIDED for now (not built) | Each god gets a DEF and an ATK 4-piece, list in `docs/enchantments_proposal.md`; the player's sigil choice records the side. Values untested until simmed. Replaces the 4-pieces in Section 9A once built |
 
@@ -602,7 +602,7 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 ## 17. Test Requirements (additions to v1)
 - Phase ends exactly when all living heroes are exhausted; soldiers alone never extend a phase.
 - Idle-cycle safety ends a stalled phase.
-- Phase 3 ending with both sides alive resolves as a challenger loss.
+- Phase 3 ending with both sides alive resolves by remaining HP% (Decision 139).
 - HP/deaths persist across phases; soldiers do not respawn; PP fully refreshes.
 - Leader death removes the squad and aura, and the party continues.
 - A new leader can be named between phases and restores the aura only.

@@ -83,6 +83,13 @@ const coolingDown = (state: BattleState, unit: Unit): boolean => usableSkills(st
 const squadsOf = (s: BattleState) => s.units.filter((u) => u.kind === "squad");
 const survivors = (s: BattleState) => ({ challenger: livingOf(s, "challenger").length, defender: livingOf(s, "defender").length });
 
+/** Phase-3 timeout (Decision 139): higher remaining HP% over the whole side (heroes and squads pooled, dead count 0); an exact tie goes to the defender. */
+export function timeoutWinner(state: BattleState): Side {
+  const pool = (side: Side) => state.units.filter((u) => u.side === side).reduce((a, u) => ({ hp: a.hp + (u.alive ? u.hp : 0), maxHp: a.maxHp + u.maxHp }), { hp: 0, maxHp: 0 });
+  const c = pool("challenger"), d = pool("defender");
+  return c.hp * d.maxHp > d.hp * c.maxHp ? "challenger" : "defender";
+}
+
 /**
  * Builds the state for `phase`: fresh PP and statuses, timeline 0; HP and deaths come from the previous phase's state. Challenger edits
  * up to this phase (src/edits.ts) are applied to the hero entries the state is built from.
@@ -241,7 +248,7 @@ function logDraft(pack: Pack, d: DraftOutcome, log: EventSink): void {
 }
 
 /**
- * Runs up to 3 phases. Survivors on both sides after phase 3 means the defender wins (challenger loss). A roster-form input is drafted
+ * Runs up to 3 phases. Survivors on both sides after phase 3: the higher remaining HP% wins (`timeoutWinner`), a tie goes to the defender. A roster-form input is drafted
  * first (src/draft.ts; throws when the draft has issues, which the validator reports); the draft is logged before battle_setup.
  * `opts` holds what-if knobs (BattleOptions: a PP override, a damage formula override) that are not part of the battle file.
  */
@@ -272,7 +279,7 @@ export function runBattle(pack: Pack, input: BattleInput, opts: BattleOptions = 
       break;
     }
   }
-  winner ??= "defender";
+  winner ??= timeoutWinner(prev!);
   log.emit({ type: "battle_end", winner, reason, phases: phases.length });
   return {
     winner, reason, phases, events: log.events,

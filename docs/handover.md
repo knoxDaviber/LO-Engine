@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 379/379 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 380/380 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -55,9 +55,8 @@ progress in `docs/roadmap.md`.
    keeps engine tests on bare heroes). 100 runs: the wall is gone. sample 100% challenger by wipe, full4v4 94%, 0% timeouts
    (bare: sample 98% timeouts). No squad DEF change needed at `hero_hits` 4; at `hero_hits` 1 timeouts return (80-89%).
    Both matchups are lopsided (the defender side's Jasmine only heals), so they say nothing about skill multipliers yet.
-1b. **Timeout tiebreak (Decision 139, not built):** a phase-3 timeout goes to the higher remaining HP% over the whole side
-   (heroes and soldiers together), exact tie to the defender. Replaces the rule in `runBattle` (`src/engine/phase.ts`); update the batch
-   report, which assumes timeout = defender.
+1b. **Done 2026-11-04 (Decision 139):** a phase-3 timeout goes to the higher pooled HP% (heroes and squads, `timeoutWinner` in
+   `src/engine/phase.ts`), exact tie to the defender. The batch report needed no change (it counts `battle_end` winners).
 2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Done in content; tests read PP from content and pass at PP 2, 3 and 4. Sweep PP 2-5 after 1a and 1b, then the designer decides.
 3. **Two-sided blessings: approved for now (Decision 141), not built.** Build the list in `docs/enchantments_proposal.md`, then
    sim it. The sigil choice must record the side (schema change).

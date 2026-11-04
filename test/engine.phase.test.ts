@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { battleSchema, type Battle, type Tactic } from "../src/schema";
-import { beginPhase, EventLog, isExhausted, runBattle, runPhase, type BattleEvent } from "../src/engine";
+import { beginPhase, EventLog, isExhausted, runBattle, runPhase, timeoutWinner, type BattleEvent } from "../src/engine";
 import type { Pack } from "../src/validate/pack";
-import { EMPEROR, JASMINE, LEON, LIEF, loadReal, tactic } from "./engineHelpers";
+import { EMPEROR, JASMINE, LEON, LIEF, loadReal, sampleState, tactic } from "./engineHelpers";
 
 /** Real pack and sample battle; `tank` gives everyone huge HP so nobody dies. */
 function setup(tank = true): { pack: Pack; battle: Battle } {
@@ -108,14 +108,33 @@ test("squad actions have their own safety bound (10x the cap) so an endless squa
   assert.ok(res.squadActions >= 20 && res.actions <= 2);
 });
 
-test("phase 3 ending with both sides alive is a challenger loss; every phase runs", () => {
+test("phase 3 ending with both sides alive is a timeout decided by HP%; every phase runs", () => {
   const { pack, battle } = setup();
   const r = runBattle(pack, battle);
-  assert.equal(r.winner, "defender");
   assert.equal(r.reason, "phase3_timeout");
+  const pct = (side: string) => { const us = [...r.units, ...r.squads].filter((u) => u.side === side); return us.reduce((n, u) => n + u.hp, 0) / us.reduce((n, u) => n + u.max_hp, 0); };
+  assert.equal(r.winner, pct("challenger") > pct("defender") ? "challenger" : "defender");
   assert.equal(r.phases.length, 3);
   assert.ok(r.phases.every((p) => p.reason === "exhausted"));
   assert.ok(r.units.every((u) => u.alive));
+});
+
+test("timeoutWinner: higher pooled HP% wins, exact tie goes to the defender, soldier HP counts", () => {
+  const s = sampleState(3, { squads: true });
+  const side = (x: "challenger" | "defender") => s.units.filter((u) => u.side === x);
+  const setPct = (x: "challenger" | "defender", pct: number) => side(x).forEach((u) => (u.hp = (u.maxHp * pct) / 100));
+  setPct("challenger", 100); setPct("defender", 100);
+  assert.equal(timeoutWinner(s), "defender"); // exact tie
+  setPct("challenger", 60); setPct("defender", 50);
+  assert.equal(timeoutWinner(s), "challenger");
+  setPct("challenger", 50); setPct("defender", 60);
+  assert.equal(timeoutWinner(s), "defender");
+  setPct("challenger", 100); setPct("defender", 100);
+  side("challenger").filter((u) => u.kind === "squad").forEach((u) => (u.hp = 0)); // healthy heroes, wiped squad
+  assert.equal(timeoutWinner(s), "defender");
+  side("defender").filter((u) => u.kind === "squad").forEach((u) => (u.hp = 0));
+  side("defender").forEach((u) => u.kind === "hero" && (u.hp = u.maxHp / 2));
+  assert.equal(timeoutWinner(s), "challenger");
 });
 
 test("a wipe ends the battle at once and the other side wins", () => {
