@@ -9,10 +9,12 @@
     "sim": "tsx src/sim.ts",
     "batch": "tsx src/batch.ts",
     "test": "node --import tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p editor",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p editor && tsc --noEmit -p game",
     "schema:export": "tsx src/exportSchemas.ts",
     "editor": "vite --config editor/vite.config.ts",
     "editor:build": "vite build --config editor/vite.config.ts --mode static",
+    "game": "vite --config game/vite.config.ts",
+    "game:build": "vite build --config game/vite.config.ts",
     "sprites": "node tools/sprites.mjs"
   },
   "dependencies": {

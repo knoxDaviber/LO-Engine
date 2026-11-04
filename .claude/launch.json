@@ -18,6 +18,15 @@
         "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; cd '/home/knox/github/LO Engine' && EDITOR_PORT=5180 npm run editor"
       ],
       "port": 5180
+    },
+    {
+      "name": "game",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "game"
+      ],
+      "port": 5174
     }
   ]
 }

@@ -7,7 +7,7 @@ Detailed engine, battle-input and editor notes: docs/engine_notes.md. Running st
 
 Content schema, validator and a deterministic battle engine (Step 1 vertical slice) for a tactics auto-battler. Game content is YAML in `content/`; TypeScript (zod v4) defines the schema and a layered validator checks it. Design intent: `docs/design_doc_v2.md` (tags **[DECIDED]** / **[DEFAULT]** tunable / **[OPEN]**); authoring templates: `docs/templates_v2.md`. When docs and `src/schema/` disagree, **the schema wins**. `docs/conversion_report.md` tracks designer decisions applied and questions still open.
 
-`editor/` is a separate tool (simulation, testing, character creator, import/export), not the main game, which is a future client with default content and a visual-first UI (Decision 137).
+`editor/` is a separate tool (simulation, testing, character creator, import/export), not the main game (Decision 137). The main game is `game/`: all logic is pure TS in `game/logic/` (no React, no DOM, to port to Godot later), `game/src/` only renders.
 
 ## Commands
 
@@ -23,6 +23,7 @@ npm run sim -- content/battles/sample.yaml [--json] [--pp-active=N] [--pp-passiv
 npm run batch -- content/battles/*.yaml [--runs=100] [--seed=1] [--json] [--pp-active=..] [--pp-passive=..] [--formula=..]   # seeded balance report
 npm run editor                                     # local editor, http://127.0.0.1:5173 (EDITOR_PORT=N for another port)
 npm run editor:build                               # static editor into editor/dist (gitignored), deployed to GitHub Pages
+npm run game                                       # main game client, http://127.0.0.1:5174 (GAME_PORT=N); npm run game:build into game/dist (gitignored); balance: npx tsx tools/tutorial-balance.ts
 ```
 
 CLI exit codes: 0 ok, 1 errors (or warnings with `--strict`), 2 load failure. No engine build step (`noEmit`, runs through `tsx`); only the hosted editor is built.
