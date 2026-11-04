@@ -12,6 +12,7 @@ const listen = () => { addEventListener("pointerdown", arm, { once: true }); add
 const play = () => { if (audio.src) audio.play().catch((e) => { if (e.name === "NotAllowedError") { armed = false; listen(); } }); }; // AbortError (track switch) or a bad file: ignore
 const arm = () => { armed = true; removeEventListener("pointerdown", arm); removeEventListener("keydown", arm); play(); };
 listen();
+export const isMuted = () => muted;
 
 function setTrack(name: string, loop: boolean): void {
   const url = trackUrl(name);
@@ -32,5 +33,5 @@ export function MuteButton({ fixed }: { fixed?: boolean }) {
     setM(muted);
     try { localStorage.setItem("lo-muted", muted ? "1" : "0"); } catch { /* storage blocked */ }
   };
-  return <button className={`btn btn-small mute${fixed ? " mute-fixed" : ""}`} aria-pressed={m} aria-label="Mute music" onClick={toggle}>{m ? "Sound off" : "Sound on"}</button>;
+  return <button className={`btn btn-small mute${fixed ? " mute-fixed" : ""}`} aria-pressed={m} aria-label="Mute sound" onClick={toggle}>{m ? "Sound off" : "Sound on"}</button>;
 }

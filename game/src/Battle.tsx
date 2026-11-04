@@ -1,13 +1,14 @@
 // The animated replay: it plays game/logic/replay.ts beats on the same field the prep screen uses.
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Sprite } from "../../editor/src/Sprite";
-import { motionOf, type Beat, type Motion, type Pop, type UnitInfo, type UnitSnap } from "../logic/replay";
+import { beatCues, motionOf, type Beat, type Motion, type Pop, type UnitInfo, type UnitSnap } from "../logic/replay";
 import type { RunState } from "../logic/run";
 import { stagesOf } from "../logic/stages";
 import { captionsFor, CAPTIONS, fillText, tutorialContext } from "../logic/tutorial";
 import { pack } from "./pack";
 import { Narrator } from "./Tutorial";
 import { MuteButton } from "./music";
+import { playCue } from "./sfx";
 import { tileStyle } from "./scenes";
 import { Backdrop, cap, Crest, fieldPos, Pips, Screen, useEsc, useScale, type Lane } from "./ui";
 
@@ -104,15 +105,27 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
   const snapRow = beats[Math.max(applied, 0)]!.units;
   const snapOf = (id: string) => snapRow.find((u) => u.id === id)!;
 
+  const played = useRef({ start: -1, impact: -1 }); // last beat whose sounds were played, so effect re-runs never repeat them
   useEffect(() => {
     if (paused || caption) return;
-    const t1 = setTimeout(() => setApplied((a) => Math.max(a, i)), IMPACT / speed);
+    const cues = beatCues(beats[i]!, units, replay.winner);
+    const ts = [setTimeout(() => {
+      if (played.current.start >= i) return;
+      played.current.start = i;
+      cues.start.forEach((c) => playCue(c));
+    }, 0)];
+    const t1 = setTimeout(() => {
+      setApplied((a) => Math.max(a, i));
+      if (played.current.impact >= i) return;
+      played.current.impact = i;
+      cues.impact.forEach((c, n) => (n ? ts.push(setTimeout(() => playCue(c), (n * 170) / speed)) : playCue(c)));
+    }, IMPACT / speed);
     const t2 = setTimeout(() => {
       const c = caps.find((x) => x.beat === i);
       if (c) { setCaption({ id: c.id, text: fillText(CAPTIONS[c.id], pack, ctx, { spent: c.spent }) }); return; }
       if (i >= last) onDone(); else setI(i + 1);
     }, durationOf(beats[i]!) / speed);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => { ts.forEach(clearTimeout); clearTimeout(t1); clearTimeout(t2); };
   }, [i, speed, paused, caption]);
 
   const resume = () => {

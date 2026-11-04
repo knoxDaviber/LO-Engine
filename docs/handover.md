@@ -1,4 +1,4 @@
-# Session handover (updated 2026-11-04, late; items 23-29 done and deployed)
+# Session handover (updated 2026-11-04, late; items 23-29 deployed, 30 local)
 
 Read this first, then `CLAUDE.md` (working rules, commands, architecture). Design intent is in `docs/design_doc_v2.md`,
 progress in `docs/roadmap.md`.
@@ -134,6 +134,7 @@ progress in `docs/roadmap.md`.
 27. **Done 2026-11-04:** animated backdrops (slow pan, haze, per-scene particles in `.backdrop.scene-*`). Reduced motion not seen.
 28. **Done 2026-11-04:** rogue recruit is a choice of two (`offers`, `pickRecruit`); passed-over heroes can return. Bench-only survivors are auto-fielded.
 29. **Done 2026-11-04:** phase banner moved off the top tile row (it made the 2x3 grid look 2x2). No class duplicates on the player's side, already guaranteed: each named hero has a unique class and owned or fallen heroes are never offered. Enemies are unrestricted (designer). UI pass 6 in `docs/ui_rating.md`.
+30. **Done 2026-11-04:** placeholder battle sounds, synthesized in `game/src/sfx.ts` (no audio files); `beatCues` in `game/logic/replay.ts` maps each beat to cues. The mute button covers them. Checked in the browser by counting audio nodes: they fire, stop on pause and mute, Skip plays only the end sting. **Not checked:** how they sound by ear. A cue already playing runs out its tail (under 1s) after Mute. UI clicks have no sound.
    **Sigils:** not in the game client. The engine and `content/gods.yaml` (7 gods) support them, but no hero gets any and no screen shows them. **Open call:** add them, for example as rogue rewards. Deployed 2026-11-04 (commit 95e90ba), first 5 rogue waves checked on the live site.
 
 **Open from the 2026-11-04 critique (designer to decide):** project CLAUDE.md ("the supervisor never writes code") conflicts with the global "make small changes directly"; should the supervisor edit small code itself? This file is 27KB and loads every session: trim it (the finished editor brief at the end can go)? Suggested: a single playable battle, which needs no meta loop, to test the tactics board before more balance work.

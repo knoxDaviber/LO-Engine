@@ -11,7 +11,7 @@ import { validateBattle } from "../src/validate/battle";
 import { bootPack } from "../game/logic/content";
 import { buildBattle } from "../game/logic/battle";
 import { autoField, kitOf, matchupPct, moveHero, pickLeader, poolHero, isGeneric, rollOrder, type PoolHero } from "../game/logic/party";
-import { buildReplay, motionOf, type Beat, type Pop, type UnitInfo } from "../game/logic/replay";
+import { beatCues, buildReplay, motionOf, type Beat, type Pop, type UnitInfo } from "../game/logic/replay";
 import { afterResult, companyLeft, fight, pickRecruit, fightBlocker, moveTo, poolIds, rerollStart, ROGUE_START_POOL, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
 import { resolveEnemies, rogueEnemyCount, ROGUE_STAGES, STAGES } from "../game/logic/stages";
 import { captionsFor, CAPTIONS, fillText, PREP_STEPS, tutorialContext, tutorialEvent, tutorialHero, startTutorial } from "../game/logic/tutorial";
@@ -392,4 +392,15 @@ test("a reaction only splits when the damage carries the skill it paid for", () 
   const { r } = findBeat((b) => b.followup);
   const events = r.events.map((e) => (e.type === "pp_spend" && e.pool === "passive" ? { ...e, skill: "not_the_damage_skill" } : e));
   assert.ok(!buildReplay(events).beats.some((b) => b.followup));
+});
+
+test("beatCues maps pops to impact cues, caps them at 4, then adds cover and death", () => {
+  const { replay } = findBeat((b) => b.kind === "action");
+  const base = replay.beats.find((b) => b.kind === "action")!, u = base.units[0]!.id;
+  const mk = (pops: Pop[], extra: Partial<Beat> = {}): Beat => ({ ...base, pops, covers: [], deaths: [], ...extra });
+  const dmg = (crit: boolean, guard: boolean): Pop => ({ kind: "damage", unit: u, amount: 1, crit, guard });
+  const cues = (b: Beat) => beatCues(b, replay.units, replay.winner);
+  assert.deepEqual(cues(mk([dmg(true, true), dmg(false, true), dmg(false, false), { kind: "heal", unit: u, amount: 1 }, { kind: "miss", unit: u }, { kind: "text", unit: u, text: "x" }])).impact, ["crit", "guard", "hit", "heal"]);
+  assert.deepEqual(cues(mk([{ kind: "miss", unit: u }, { kind: "text", unit: u, text: "x" }], { covers: [{ unit: u, ally: u }], deaths: [u] })).impact, ["miss", "cover", "death"]);
+  assert.deepEqual(cues(replay.beats.at(-1)!).start, [replay.winner === "challenger" ? "win" : "lose"]);
 });

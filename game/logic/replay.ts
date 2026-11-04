@@ -63,6 +63,21 @@ export function motionOf(u: UnitInfo, beat: Beat | null, units: UnitInfo[]): Mot
   return "melee";
 }
 
+export type Cue = "swing" | "shot" | "cast" | "support" | "march" | "stunned" | "phase" | "phase_end" | "win" | "lose"
+  | "crit" | "guard" | "hit" | "heal" | "miss" | "cover" | "death";
+const START: Record<Motion, Cue> = { melee: "swing", shot: "shot", cast: "cast", support: "support", squad: "march", stun: "stunned" };
+
+/** Sounds for a beat: `start` when it begins, `impact` when the hit lands (one per pop, at most 4, then cover, death). */
+export function beatCues(beat: Beat, units: UnitInfo[], winner?: SideName): { start: Cue[]; impact: Cue[] } {
+  const u = units.find((x) => x.id === beat.actor);
+  const m = u && motionOf(u, beat, units);
+  const start: Cue[] = beat.kind === "phase" || beat.kind === "phase_end" ? [beat.kind] : beat.kind === "end" ? [winner === "challenger" ? "win" : "lose"] : m ? [START[m]] : [];
+  const impact: Cue[] = beat.pops.flatMap((p): Cue[] => p.kind === "damage" ? [p.crit ? "crit" : p.guard ? "guard" : "hit"] : p.kind === "heal" ? ["heal"] : p.kind === "miss" ? ["miss"] : []).slice(0, 4);
+  if (beat.covers.length) impact.push("cover");
+  if (beat.deaths.length) impact.push("death");
+  return { start, impact };
+}
+
 export interface Replay {
   units: UnitInfo[];
   beats: Beat[];
