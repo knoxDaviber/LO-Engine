@@ -5,9 +5,10 @@
 # 5. rule 1 already fired and rule 2 (mage) matches nobody, so the fallback bans the challenger's highest-cost eligible hero (Aquatic, with the even kit).
 # The challenger edits between phases (design 5.5): phase 2 reorders the Infantry's sheet and moves its squad back; phase 3 names the
 # Flyer as leader instead of the Archer (next in the leader line), which only applies if the Infantry died.
-# Devotion sigils (Section 9A): challenger Infantry 4 Jurojin (Full Moon 4-piece), Cavalry 2 Hotei (Breeze 2-piece); defender Monster 4 Daikokuten
-# (Gift 4-piece), Lancer 2 Bishamonten + 2 Hotei (Plate and Breeze 2-piece).
-# Gear: every hero has weapon, armor and two plain-shop accessories (one kit per class); only the sigils differ.
+# Devotion sigils (Section 9A): 24 per side, every hero a full 4-piece (sigil_side) or 2+2. Challenger Infantry 4 Jurojin (def), Holy 4 Hotei (atk),
+# Cavalry 2 Hotei + 2 Bishamonten, Archer and Flyer 4 Jurojin (atk), Aquatic 2 Bishamonten + 2 Hotei; defender Lief and Mage 4 Jurojin (atk),
+# Monster 4 Daikokuten (def), Lancer 2 Bishamonten + 2 Hotei, The Emperor 2 Fukurokuju + 2 Bishamonten, Assassin 4 Ebisu (atk).
+# Gear: every hero has weapon, armor and two plain-shop accessories (one kit per class).
 battle_id: draft_city
 version: "1"
 seeds: [5, 55, 555]
@@ -46,6 +47,8 @@ challenger:
       - char_id: char_012   # Holy
         squad_id: soldier_009
         equipment: { weapon: equip_011, armor: equip_019, accessory_1: equip_025, accessory_2: equip_021 }
+        sigils: { weapon: god_005, armor: god_005, accessory_1: god_005, accessory_2: god_005 }   # Breeze 4-piece
+        sigil_side: atk
         tactic_sheet:
           - { priority: 1, skill_id: skl_013, enabled: true, main: null, sub: null }   # Blessing
           - { priority: 2, skill_id: skl_012, enabled: true, main: null, sub: { select: lowest, metric: hp_percent } }   # Mend
@@ -54,7 +57,7 @@ challenger:
       - char_id: char_007   # Cavalry
         squad_id: soldier_005
         equipment: { weapon: equip_010, armor: equip_018, accessory_1: equip_024, accessory_2: equip_027 }
-        sigils: { weapon: god_005, armor: god_005 }   # Breeze 2-piece
+        sigils: { weapon: god_005, armor: god_005, accessory_1: god_003, accessory_2: god_003 }   # Breeze + Plate 2-piece
         tactic_sheet:
           - { priority: 1, skill_id: skl_006, enabled: true, main: null, sub: null }   # Charge
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -62,6 +65,8 @@ challenger:
       - char_id: char_008   # Archer
         squad_id: soldier_006
         equipment: { weapon: equip_012, armor: equip_017, accessory_1: equip_025, accessory_2: equip_022 }
+        sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }   # Full Moon 4-piece
+        sigil_side: atk
         tactic_sheet:
           - { priority: 1, skill_id: skl_007, enabled: true, main: null, sub: null }   # Volley
           - { priority: 2, skill_id: skl_002, enabled: true, main: null, sub: null }   # Shot
@@ -70,6 +75,8 @@ challenger:
       - char_id: char_009   # Flyer
         squad_id: soldier_007
         equipment: { weapon: equip_010, armor: equip_017, accessory_1: equip_025, accessory_2: equip_022 }
+        sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }   # Full Moon 4-piece
+        sigil_side: atk
         tactic_sheet:
           - { priority: 1, skill_id: skl_008, enabled: true, main: null, sub: null }   # Dive
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -78,6 +85,7 @@ challenger:
       - char_id: char_013   # Aquatic
         squad_id: soldier_011
         equipment: { weapon: equip_016, armor: equip_017, accessory_1: equip_024, accessory_2: equip_027 }
+        sigils: { weapon: god_003, armor: god_003, accessory_1: god_005, accessory_2: god_005 }   # Plate + Breeze 2-piece
         tactic_sheet:
           - { priority: 1, skill_id: skl_015, enabled: true, main: null, sub: null }   # Tidal Crash
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -98,6 +106,8 @@ defender:
       - char_id: char_004   # Lief
         squad_id: soldier_004
         equipment: { weapon: equip_010, armor: equip_017, accessory_1: equip_021, accessory_2: equip_021 }
+        sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }   # Full Moon 4-piece
+        sigil_side: atk
         tactic_sheet:
           - { priority: 1, skill_id: skl_lancer_active_002, enabled: true, main: null, sub: null }
           - { priority: 2, skill_id: skl_lancer_active_001, enabled: true, main: null, sub: null }
@@ -122,6 +132,7 @@ defender:
       - char_id: char_002   # The Emperor
         squad_id: soldier_001
         equipment: { weapon: equip_009, armor: equip_018, accessory_1: equip_024, accessory_2: equip_021 }
+        sigils: { weapon: god_006, armor: god_006, accessory_1: god_003, accessory_2: god_003 }   # Meteor + Plate 2-piece
         tactic_sheet:
           - { priority: 1, skill_id: skl_inf_active_002, enabled: true, main: null, sub: null }
           - { priority: 2, skill_id: skl_inf_active_001, enabled: true, main: null, sub: null }
@@ -129,6 +140,8 @@ defender:
       - char_id: char_011   # Assassin
         squad_id: soldier_010
         equipment: { weapon: equip_013, armor: equip_017, accessory_1: equip_022, accessory_2: equip_022 }
+        sigils: { weapon: god_007, armor: god_007, accessory_1: god_007, accessory_2: god_007 }   # Rush 4-piece
+        sigil_side: atk
         tactic_sheet:
           - { priority: 1, skill_id: skl_009, enabled: true, main: null, sub: null }   # Backstab
           - { priority: 2, skill_id: skl_001, enabled: true, main: null, sub: null }   # Strike
@@ -137,6 +150,8 @@ defender:
       - char_id: char_010   # Mage
         squad_id: soldier_008
         equipment: { weapon: equip_014, armor: equip_019, accessory_1: equip_025, accessory_2: equip_026 }
+        sigils: { weapon: god_002, armor: god_002, accessory_1: god_002, accessory_2: god_002 }   # Full Moon 4-piece
+        sigil_side: atk
         tactic_sheet:
           - { priority: 1, skill_id: skl_010, enabled: true, main: null, sub: null }   # Fireball
           - { priority: 2, skill_id: skl_003, enabled: true, main: null, sub: null }   # Bolt

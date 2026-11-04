@@ -100,7 +100,7 @@ progress in `docs/roadmap.md`.
 **Designer requests 2026-11-04 (in this order; none started).** Items 9-11 change combat, so do them before the item 5 balance pass, then rerun `tools/balance-series.ts`.
 
 8. **Done 2026-11-04:** PP 3/3 recorded as locked for now in Decision 140 and the design doc.
-9. **Sigils in drafts:** everyone in the draft battles should have sigils (`draft_city` rosters: today several heroes have none; both sides, even count).
+9. **Done 2026-11-04:** every `draft_city` hero has sigils, 24 a side (4-piece or 2+2, same pattern as `city4v4`). Draft picks unchanged; 100 runs: 64% challenger, 6% timeouts. Picks and `sigil_side` are placeholders.
 10. **Roll evade and hit before skills:** hit / evade is rolled before the skill resolves. If the attack is evaded the skill does not trigger, so it costs nothing (no PP spent). Today the order is `decideTactic` -> spend PP -> resolve effects, with rolls per hit. **Ask first:** multi-target skills (one target evades, others do not) and multi-hit skills, and whether an evaded skill still uses up the unit's action.
 11. **Quick Guard counts as GUARD:** ignoring guard bypasses Quick Guard, even if it shows up (it can still trigger and appear in the log, it just does nothing against `ignore_guard`).
 12. **Skills need a condition:** a skill alone does nothing; every skill is used only through a condition. Most skills come with a default condition, shown in their main condition slot. Without a valid condition a skill does not trigger. This changes Decision 136 (`main: null` is allowed today and skill defaults are ANDed in): content, tactic sheets, validator, editor picker and design doc all need updating. **Ask first:** which skills get no default, so the player must pick one.
