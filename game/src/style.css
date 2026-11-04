@@ -166,7 +166,7 @@ button:disabled { cursor: not-allowed; }
 .tile:focus-visible .tile-floor { box-shadow: 0 0 0 2px var(--gold-hi), 0 0 18px var(--gold); }
 .tile:hover .tile-floor { background: rgba(111, 183, 255, 0.26); border-color: var(--ally); box-shadow: 0 0 16px rgba(111, 183, 255, 0.55); }
 .tile.foe:hover .tile-floor { background: rgba(255, 107, 99, 0.28); border-color: var(--foe); box-shadow: 0 0 16px rgba(255, 107, 99, 0.55); }
-.tile.vacant { pointer-events: none; opacity: 0.45; }
+.tile.vacant { pointer-events: none; opacity: 0.7; }
 .tile.can-drop .tile-floor { animation: slot-pulse 1.3s ease-in-out infinite; }
 @keyframes slot-pulse { 50% { background: rgba(233, 196, 120, 0.3); border-color: var(--gold); } }
 .tile.picked .tile-floor { border-color: var(--gold-hi); background: rgba(233, 196, 120, 0.3); box-shadow: 0 0 20px var(--gold); }
@@ -381,7 +381,7 @@ button:disabled { cursor: not-allowed; }
 @keyframes pop-up { 0% { opacity: 0; transform: translateY(8px) scale(0.6); } 15% { opacity: 1; transform: translateY(-14px) scale(1.2); } 30% { transform: translateY(-20px) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-52px); } }
 .skill-tag { position: absolute; z-index: 3; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); padding: 3px 10px; font: 700 13px/1.2 var(--display); color: var(--gold-hi); background: rgba(8, 8, 24, 0.92); border: 1px solid var(--line-strong); border-radius: 3px; white-space: nowrap; pointer-events: none; animation: tag-in 0.2s var(--ease) both; }
 @keyframes tag-in { from { opacity: 0; transform: translateX(-50%) translateY(4px); } }
-.phase-banner { position: absolute; z-index: 6; left: 0; right: 0; top: 40%; padding: 18px; text-align: center; background: linear-gradient(90deg, transparent, rgba(8, 8, 24, 0.94) 22%, rgba(8, 8, 24, 0.94) 78%, transparent); border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); animation: band 0.4s var(--ease) both; pointer-events: none; }
+.phase-banner { position: absolute; z-index: 6; left: 0; right: 0; top: 12%; padding: 18px; text-align: center; background: linear-gradient(90deg, transparent, rgba(8, 8, 24, 0.94) 22%, rgba(8, 8, 24, 0.94) 78%, transparent); border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); animation: band 0.4s var(--ease) both; pointer-events: none; }
 @keyframes band { from { opacity: 0; transform: scaleY(0.2); } }
 .phase-banner b { display: block; font: 900 44px/1 var(--display); letter-spacing: 0.1em; color: var(--gold-hi); }
 .phase-banner small { color: var(--ink-soft); font-size: 17px; }
