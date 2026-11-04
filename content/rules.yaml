@@ -17,7 +17,7 @@ damage:   { min_damage: 1, crit_multiplier: 1.5, formula: pool, ratio_k: 100, fl
 guard:    { damage_reduction_percent: 50, total_reduction_cap_percent: 75 }
 matchup:  { advantage_damage_percent: 25, advantage_hit: 10, disadvantage_damage_percent: -15 }
 timeline: { interval_constant: 1000, min_spd: 5 }                                  # interval = round(constant / max(SPD, min_spd))
-pp:       { base_active: 2, base_passive: 2, max: 4 }
+pp:       { base_active: 3, base_passive: 3, max: 4 }
 board:    { rows: 4, columns: 3, hero_rows: 2 }
 stun_pushback_counts: 15            # [DEFAULT] timeline counts a stunned unit's pending action is pushed back (delays_pending_action); a typical interval is ~20-27 counts, so a stun costs a bit over half an action
 

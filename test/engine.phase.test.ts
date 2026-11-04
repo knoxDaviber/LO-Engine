@@ -15,16 +15,23 @@ const sheetOf = (b: Battle, id: string) => [...b.challenger.heroes, ...b.defende
 const evals = (events: BattleEvent[], unit: string, phase: number) =>
   events.filter((e): e is Extract<BattleEvent, { type: "tactic_evaluation" }> => e.type === "tactic_evaluation" && e.unit === unit && e.phase === phase);
 
+const spentSkills = (events: BattleEvent[]) => events.filter((e) => e.type === "pp_spend" && e.pool === "active").length;
+
 test("phase ends by exhaustion when every living hero is out of PP for its skills", () => {
   const { pack, battle } = setup();
   const log = new EventLog();
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
   const res = runPhase(state, rng, log);
   assert.equal(res.reason, "exhausted");
-  assert.equal(res.skills, 5); // Leon Hooves, Lief 2x Defensive Strike, Emperor Dirge, Jasmine Last Chance
+  assert.equal(res.skills, spentSkills(log.events)); // every skill cast paid Active PP
   assert.ok(state.units.every((u) => isExhausted(state, u)));
-  assert.equal(state.units.find((u) => u.id === LEON)!.pp.active.cur, 0);
-  assert.equal(state.units.find((u) => u.id === JASMINE)!.pp.active.cur, 0);
+  for (const id of [LEON, JASMINE]) { // left over PP buys none of the active skills on the hero's sheet
+    const left = state.units.find((u) => u.id === id)!.pp.active.cur;
+    const costs = sheetOf(battle, id).tactic_sheet.filter((t) => t.enabled).map((t) => pack.byId.skills.get(t.skill_id)!).filter((k) => k.pp_pool === "active").map((k) => k.pp_cost);
+    assert.ok(costs.length > 0, `${id} has no active skill on its sheet`);
+    const cheapest = Math.min(...costs);
+    assert.ok(left < cheapest, `${id} has ${left} PP left, cheapest skill costs ${cheapest}`);
+  }
 });
 
 test("a hero with no usable active skill is exhausted", () => {
@@ -51,11 +58,12 @@ test("idle safety ends a stalled phase after one full cycle without a skill", ()
 
 test("idle cycle restarts when a skill is executed", () => {
   const { pack, battle } = setup();
-  // Leon can act exactly once (PP 2, Hooves cost 2); everyone else stalls. Leon acts at 20, 37, 54...
+  // Leon can act exactly once (PP set to one Hooves below); everyone else stalls. Leon acts at 20, 37, 54...
   for (const h of [...battle.challenger.heroes, ...battle.defender.heroes]) if (h.char_id !== LEON) for (const t of h.tactic_sheet) t.main = never;
   sheetOf(battle, LEON).tactic_sheet = [tactic("skl_cav_active_002")];
   const log = new EventLog();
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
+  state.units.find((u) => u.id === LEON)!.pp.active.cur = pack.byId.skills.get("skl_cav_active_002")!.pp_cost;
   const res = runPhase(state, rng, log);
   assert.equal(res.skills, 1);
   assert.equal(res.reason, "idle_cycle"); // the skill at t=20 restarts the cycle; it completes when all four have idled since
@@ -77,14 +85,15 @@ test("only hero actions count toward the action cap: a very fast squad cannot en
   for (const id of [LEON, LIEF, EMPEROR, JASMINE]) (pack.byId.characters.get(id) as any).base_stats.HP = 1e7;
   pack.byId.soldiers.get("soldier_001")!.per_soldier_stats.SPD = 500; // interval 2: dozens of squad actions before a hero acts
   pack.byId.soldiers.get("soldier_001")!.per_soldier_stats.ATK = 0;
-  pack.rules.phase.max_actions_per_phase = 10;
+  const cap = 4 * pack.rules.pp.max; // room for all four heroes at full PP, so only squad actions could reach it
+  pack.rules.phase.max_actions_per_phase = cap;
   const log = new EventLog();
   const { state, rng } = beginPhase(pack, battle, 1, null, log);
   const res = runPhase(state, rng, log);
-  assert.ok(res.squadActions > 10, `squad acted ${res.squadActions} times, more than the cap`);
+  assert.ok(res.squadActions > cap, `squad acted ${res.squadActions} times, more than the cap`);
   assert.notEqual(res.reason, "action_cap");
   assert.equal(res.reason, "exhausted");
-  assert.equal(res.skills, 5); // every hero still got to spend its PP
+  assert.equal(res.skills, spentSkills(log.events)); // every hero still got to spend its PP
 });
 
 test("squad actions have their own safety bound (10x the cap) so an endless squad cannot loop forever", () => {

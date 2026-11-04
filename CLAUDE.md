@@ -56,6 +56,7 @@ Enums: `src/schema/enums.ts`. Tunable numbers (stun pushback, roll clamps, cost 
 ## Tests
 
 `test/validate.test.ts` mutates a fresh copy of the real content: `fresh()` (structured clone of `content/`), mutate, then `codes(raw, tier)` returns error codes via `validateRaw`. `roster()` in `test/helpers.ts` builds a valid 6-hero roster. The first test asserts the real content has zero errors, so content edits must keep it valid.
+Never hardcode to pass a test: read tunable values (PP, costs, caps) from content or rules, so a balance change doesn't break tests.
 
 ## Working guidelines
 

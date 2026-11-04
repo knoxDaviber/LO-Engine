@@ -55,7 +55,7 @@ progress in `docs/roadmap.md`.
 1b. **Timeout tiebreak (Decision 139, not built):** a phase-3 timeout goes to the higher remaining HP%, exact tie to the
    defender. Replaces the rule in `runBattle` (`src/engine/phase.ts`); decide whether HP% counts soldiers; update the batch
    report, which assumes timeout = defender.
-2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Sweep PP 2-5 after 1a and 1b, then the designer decides.
+2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Done in content; tests read PP from content and pass at PP 2, 3 and 4. Sweep PP 2-5 after 1a and 1b, then the designer decides.
 3. **Two-sided blessings: waiting on designer approval of `docs/enchantments_proposal.md`** (critique pass over all 14, not
    built or simmed). Build only after approval; the sigil choice must record the side (schema change).
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.

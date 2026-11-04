@@ -63,8 +63,10 @@ test("content formula (pool, hero_hits 4, Decision 135 bases): sworded Leon vs D
 
 test("Dragon Scale gives +1 Active PP; PP bonuses are capped at rules.pp.max", () => {
   const a = setup({ [EMPEROR]: { armor: "equip_002" } });
-  assert.deepEqual(a.u(EMPEROR).pp.active, { cur: 3, max: 3 });
-  assert.deepEqual(a.u(EMPEROR).pp.passive, { cur: 2, max: 2 });
+  const base = a.pack.byId.characters.get(EMPEROR)!.pp, mod = item(a.pack, "equip_002").pp_modifiers, cap = a.pack.rules.pp.max;
+  const act = Math.min(base.active + mod.active, cap), pas = Math.min(base.passive + mod.passive, cap);
+  assert.deepEqual(a.u(EMPEROR).pp.active, { cur: act, max: act });
+  assert.deepEqual(a.u(EMPEROR).pp.passive, { cur: pas, max: pas });
   const b = setup({ [EMPEROR]: { armor: "equip_002" } }, { over: (p) => { item(p, "equip_002").pp_modifiers.active = 5; } });
   assert.equal(b.u(EMPEROR).pp.active.max, b.pack.rules.pp.max);
 });
@@ -142,10 +144,11 @@ test("Longinus: -1 Passive PP to the unit hit, once per attacking action, in the
   const log = new EventLog();
   const rng = scripted([0.5, 0.9, 0.9]); // hit, no crit, no guard
   const x: ExecCtx = { state: s, rng, log };
+  const ppBefore = emp.pp.passive.cur;
   executeSkill(x, leon, decideTactic(s, leon, rng));
-  assert.equal(emp.pp.passive.cur, 1);
+  assert.equal(emp.pp.passive.cur, ppBefore - 1);
   const changes = log.events.filter((e) => e.type === "pp_change");
-  assert.deepEqual(changes.map((e: any) => [e.unit, e.skill, e.before, e.after]), [[EMPEROR, "equip_004", 2, 1]]);
+  assert.deepEqual(changes.map((e: any) => [e.unit, e.skill, e.before, e.after]), [[EMPEROR, "equip_004", ppBefore, ppBefore - 1]]);
 });
 
 test("Strange Box: pre-battle Confusion on every unit including the wearer; two boxes do not stack", () => {

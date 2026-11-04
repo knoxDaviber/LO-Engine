@@ -60,11 +60,12 @@ test("Quick Guard resolves before the hit: it spends 1 Passive PP and the same h
   const full = plain.ev("damage")[0]!.amount;
 
   const { u, ev, log, strike } = setup([[LEON, QUICK_GUARD]]);
+  const ppBefore = u(LEON).pp.passive.cur;
   strike(u(EMPEROR), u(LEON));
   const types = log.events.map((e) => e.type);
   assert.deepEqual(types.slice(0, 4), ["trigger", "pp_spend", "damage_reduction", "roll"]); // before the hit roll
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.event, t.handler]), [[LEON, "before_hit", "Quick Guard"]]);
-  assert.equal(u(LEON).pp.passive.cur, 1);
+  assert.equal(u(LEON).pp.passive.cur, ppBefore - 1);
   const d = ev("damage")[0]!;
   assert.deepEqual(d.reductions, [50]);
   assert.equal(d.amount, Math.max(1, Math.floor(full * 0.5)));
@@ -82,20 +83,22 @@ test("a passive without enough Passive PP does not fire and logs why", () => {
 
 test("a passive that is not enabled on the tactic sheet never runs", () => {
   const { u, ev, strike } = setup([], { over: (_p, b) => b.challenger.heroes[0]!.tactic_sheet.push(tactic(QUICK_GUARD, { priority: 9, enabled: false })) });
+  const ppBefore = u(LEON).pp.passive.cur;
   strike(u(EMPEROR), u(LEON)); // Leon owns Quick Guard, but it is disabled on his sheet
   assert.equal(ev("trigger").length, 0);
-  assert.equal(u(LEON).pp.passive.cur, 2);
+  assert.equal(u(LEON).pp.passive.cur, ppBefore);
 });
 
 test("Quick Heal resolves after a single-target hit on an ally, healing that ally; not after an area hit or a hit on an enemy", () => {
   const { u, ev, log, strike } = setup([[JASMINE, QUICK_HEAL]]);
+  const ppBefore = u(JASMINE).pp.passive.cur;
   strike(u(LEON), u(EMPEROR));
   const types = log.events.map((e) => e.type);
   assert.ok(types.indexOf("damage") < types.indexOf("trigger"));
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.event, t.subject]), [[JASMINE, "after_hit", EMPEROR]]);
   assert.deepEqual(ev("heal").map((h) => [h.unit, h.target, h.skill]), [[JASMINE, EMPEROR, QUICK_HEAL]]);
   assert.equal(u(EMPEROR).hp, u(EMPEROR).maxHp); // 1.5 x INT 100 = 150 covers the hit
-  assert.equal(u(JASMINE).pp.passive.cur, 1);
+  assert.equal(u(JASMINE).pp.passive.cur, ppBefore - 1);
   strike(u(LEON), u(EMPEROR), ASSAULT, "row"); // an area hit is not a single-target attack
   strike(u(EMPEROR), u(LEON)); // Leon is not Jasmine's ally
   assert.equal(ev("trigger").length, 1);
@@ -103,9 +106,10 @@ test("Quick Heal resolves after a single-target hit on an ally, healing that all
 
 test("Follow-Up and Pursuit strike the unit hit by a landed single-target attack (owner first, then the ally), once each", () => {
   const { u, ev, strike } = setup([[LEON, FOLLOW_UP], [LIEF, PURSUIT]]);
+  const before = [u(LEON).pp.passive.cur, u(LIEF).pp.passive.cur];
   strike(u(LEON), u(EMPEROR));
   assert.deepEqual(ev("damage").map((d) => [d.unit, d.skill, d.target]), [[LEON, ASSAULT, EMPEROR], [LEON, FOLLOW_UP, EMPEROR], [LIEF, PURSUIT, EMPEROR]]);
-  assert.deepEqual([u(LEON).pp.passive.cur, u(LIEF).pp.passive.cur], [1, 1]);
+  assert.deepEqual([u(LEON).pp.passive.cur, u(LIEF).pp.passive.cur], before.map((n) => n - 1));
 });
 
 test("Counter fires once per squad attack (one combined hit) and strikes the attacking squad", () => {
@@ -113,23 +117,25 @@ test("Counter fires once per squad attack (one combined hit) and strikes the att
   scheduleInitial(state);
   u(SQ_D).alive = false; // the Emperor is the squad's target
   u(EMPEROR).hp = 5000;
+  const ppBefore = u(EMPEROR).pp.passive.cur;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
   assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 1); // the one combined hit lands
   assert.deepEqual(ev("trigger").map((t) => [t.source, t.handler, t.event]), [[EMPEROR, "Counter", "after_hit"]]);
   assert.deepEqual(ev("damage").filter((d) => d.skill === COUNTER).map((d) => d.target), [SQ_C]);
-  assert.equal(u(EMPEROR).pp.passive.cur, 1);
+  assert.equal(u(EMPEROR).pp.passive.cur, ppBefore - 1);
 });
 
 test("Hegemony resolves before the attack: the attacker loses its buffs and gets Defense Down (passive category)", () => {
-  const { u, ev, log, strike, state } = setup([[EMPEROR, HEGEMONY]]);
+  const { pack, u, ev, log, strike, state } = setup([[EMPEROR, HEGEMONY]]);
   applyStatus(state, u(LEON), "buff_005", "active", LEON);
+  const ppBefore = u(EMPEROR).pp.passive.cur;
   strike(u(LEON), u(EMPEROR));
   const types = log.events.map((e) => e.type);
   assert.ok(types.indexOf("status_applied") < types.indexOf("roll"));
   assert.deepEqual(ev("status_applied").map((e) => [e.unit, e.status, e.category]), [[LEON, "debuff_001", "passive"]]);
   assert.deepEqual(ev("status_expired").map((e) => [e.unit, e.status, e.reason]), [[LEON, "buff_005", "removed"]]);
-  assert.equal(u(EMPEROR).pp.passive.cur, 0);
+  assert.equal(u(EMPEROR).pp.passive.cur, ppBefore - pack.byId.skills.get(HEGEMONY)!.pp_cost);
 });
 
 test("state passive (Frenzy): spends on activation, ends with its status when the condition ends, spends again when it returns", () => {
@@ -160,10 +166,11 @@ test("state passive (Frenzy): spends on activation, ends with its status when th
 test("pre_battle passive (Preventative Care) fires in the buff_grants step, spends PP, and its 1-turn statuses do not skip the wearer's first tick", () => {
   const { pack, battle } = loadReal();
   addPassive(pack, battle, JASMINE, PREV_CARE);
+  const ppBefore = pack.byId.characters.get(JASMINE)!.pp.passive;
   const log = new EventLog();
   const { state } = beginPhase(pack, battle, 1, null, log);
   const jas = state.units.find((v) => v.id === JASMINE)!;
-  assert.equal(jas.pp.passive.cur, 1);
+  assert.equal(jas.pp.passive.cur, ppBefore - pack.byId.skills.get(PREV_CARE)!.pp_cost);
   const trig = log.events.filter((e) => e.type === "trigger");
   assert.deepEqual(trig.map((t) => (t as any).event), ["pre_battle"]);
   const applied = log.events.filter((e): e is Extract<BattleEvent, { type: "status_applied" }> => e.type === "status_applied");
@@ -198,12 +205,12 @@ test("cover (Decision 116): a cover passive takes a single-target hit aimed at a
     p.byId.skills.set(sk.id, sk);
   };
   const { u, ev, strike } = setup([[LIEF, "skl_test_cover"]], { over: coverSkill });
-  const leonHp = u(LEON).hp;
+  const leonHp = u(LEON).hp, ppBefore = u(LIEF).pp.passive.cur;
   strike(u(EMPEROR), u(LEON));
   assert.deepEqual(ev("cover").map((c) => [c.unit, c.ally, c.attacker]), [[LIEF, LEON, EMPEROR]]);
   assert.deepEqual(ev("damage").map((d) => d.target), [LIEF]);
   assert.equal(u(LEON).hp, leonHp);
-  assert.equal(u(LIEF).pp.passive.cur, 1);
+  assert.equal(u(LIEF).pp.passive.cur, ppBefore - 1);
   strike(u(EMPEROR), u(LEON), ASSAULT, "row");
   assert.equal(ev("cover").length, 1);
   assert.deepEqual(ev("damage").map((d) => d.target), [LIEF, LEON]);

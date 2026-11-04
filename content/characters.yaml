@@ -12,7 +12,7 @@
   role: "Damage dealer"
   lore: "A loyal knight with dashing looks, blue eyes, blonde hair. As powerful as he is handsome. He serves the empire and it's emperor with unwavering spirit. Tales across the land sing of his heroics, and while his enemies fear him, they can't help but be awestruck by his very presence."
   base_stats: { HP: 800, ATK: 115, INT: 30, DEF: 70, MDEF: 46, SPD: 50, HIT: 100, SKL: 35, CRIT: 30, GUARD: 30, EVA: 30 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_cav_active_001, skl_cav_active_002, skl_passive_001]
   restrictions:
     equipment_tags: [sword, spear, heavy_armor, light_armor]
@@ -54,7 +54,7 @@
   role: "Tank/Damage dealer"
   lore: "The Emperor of the Empire who has been ruling for as long as it's people remember. He has greyed and aged but his skills have not. He rules his people with an Iron fist but is still respected and close to deified. He has conquered evil and has taken evil's power for himself. Evil submits to him."
   base_stats: { HP: 950, ATK: 100, INT: 30, DEF: 70, MDEF: 40, SPD: 30, HIT: 100, SKL: 22, CRIT: 30, GUARD: 45, EVA: 10 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_inf_active_002, skl_passive_002, skl_inf_active_001]
   restrictions:
     equipment_tags: [sword, heavy_armor]
@@ -89,7 +89,7 @@
   role: "Heal/Support"
   lore: "Childhood friend of Leon, secret child of The Emperor. Wishes for peace across the lands but born in a warring time. She retreats to the monastery to lead a life of piety, praying for peace and taking care of the vulnerable. But the monastery is attacked and now she wanders the continent trying to help those who need it the most."
   base_stats: { HP: 550, ATK: 20, INT: 100, DEF: 40, MDEF: 70, SPD: 30, HIT: 100, SKL: 15, CRIT: 30, GUARD: 30, EVA: 20 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_passive_003, skl_passive_004, skl_passive_001, skl_heal_active_001]
   restrictions:
     equipment_tags: [staff, robe, light_armor]
@@ -125,7 +125,7 @@
   role: "Damage Dealer"
   lore: "A young spearman from the forests to the south. He ventured out of his reclusive home in order to temper himself but finds himself in a continental conflict as he fights against the Empire's desire to conquer to continent."
   base_stats: { HP: 800, ATK: 90, INT: 40, DEF: 70, MDEF: 46, SPD: 40, HIT: 100, SKL: 22, CRIT: 30, GUARD: 30, EVA: 30 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_lancer_active_001, skl_lancer_active_002, skl_passive_005]
   restrictions:
     equipment_tags: [spear, light_armor]
@@ -164,7 +164,7 @@
   role: "Tank"
   lore: "A sturdy foot soldier who holds the line."
   base_stats: { HP: 900, ATK: 100, INT: 20, DEF: 80, MDEF: 40, SPD: 38, HIT: 100, SKL: 15, CRIT: 30, GUARD: 40, EVA: 10 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_004, skl_014, skl_020]
   restrictions:
     equipment_tags: [sword, dagger, hammer, heavy_armor, light_armor, shield]
@@ -195,7 +195,7 @@
   role: "Damage dealer"
   lore: "A spear fighter trained to break cavalry charges."
   base_stats: { HP: 750, ATK: 100, INT: 30, DEF: 70, MDEF: 50, SPD: 40, HIT: 100, SKL: 20, CRIT: 30, GUARD: 22, EVA: 20 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_005, skl_014, skl_019]
   restrictions:
     equipment_tags: [spear, axe, heavy_armor, light_armor, shield]
@@ -226,7 +226,7 @@
   role: "Damage dealer"
   lore: "A mounted knight who strikes fast and hard."
   base_stats: { HP: 700, ATK: 100, INT: 20, DEF: 60, MDEF: 40, SPD: 55, HIT: 100, SKL: 20, CRIT: 30, GUARD: 27, EVA: 20 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_006, skl_017, skl_018]
   restrictions:
     equipment_tags: [spear, sword, heavy_armor, light_armor, shield]
@@ -260,7 +260,7 @@
   role: "Ranged damage dealer"
   lore: "A marksman who fights from the back line."
   base_stats: { HP: 550, ATK: 100, INT: 25, DEF: 45, MDEF: 45, SPD: 41, HIT: 100, SKL: 25, CRIT: 30, GUARD: 15, EVA: 31 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_002, skl_007, skl_passive_001, skl_019]
   restrictions:
     equipment_tags: [bow, dagger, light_armor]
@@ -291,7 +291,7 @@
   role: "Skirmisher"
   lore: "A rider of winged beasts who dives on the enemy."
   base_stats: { HP: 600, ATK: 100, INT: 25, DEF: 40, MDEF: 55, SPD: 55, HIT: 100, SKL: 20, CRIT: 30, GUARD: 15, EVA: 38 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_008, skl_passive_001, skl_019]
   restrictions:
     equipment_tags: [spear, sword, light_armor]
@@ -322,7 +322,7 @@
   role: "Magic damage dealer"
   lore: "A scholar of the arcane who wields destructive spells."
   base_stats: { HP: 500, ATK: 15, INT: 100, DEF: 40, MDEF: 80, SPD: 39, HIT: 100, SKL: 20, CRIT: 30, GUARD: 20, EVA: 20 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_003, skl_010, skl_011, skl_passive_001]
   restrictions:
     equipment_tags: [tome, staff, robe]
@@ -353,7 +353,7 @@
   role: "Damage dealer"
   lore: "A killer who strikes from the shadows."
   base_stats: { HP: 500, ATK: 100, INT: 20, DEF: 40, MDEF: 40, SPD: 42, HIT: 100, SKL: 30, CRIT: 45, GUARD: 10, EVA: 40 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_009, skl_passive_001, skl_018]
   restrictions:
     equipment_tags: [dagger, sword, light_armor]
@@ -384,7 +384,7 @@
   role: "Heal/Support"
   lore: "A devout healer who mends allies with prayer."
   base_stats: { HP: 550, ATK: 20, INT: 100, DEF: 45, MDEF: 75, SPD: 38, HIT: 100, SKL: 15, CRIT: 30, GUARD: 30, EVA: 20 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_003, skl_012, skl_013, skl_passive_003]
   restrictions:
     equipment_tags: [staff, tome, hammer, robe, light_armor, shield]
@@ -415,7 +415,7 @@
   role: "Bruiser"
   lore: "A warrior of the seas and rivers."
   base_stats: { HP: 800, ATK: 100, INT: 30, DEF: 60, MDEF: 60, SPD: 40, HIT: 100, SKL: 20, CRIT: 30, GUARD: 19, EVA: 20 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_015, skl_014, skl_020]
   restrictions:
     equipment_tags: [spear, dagger, axe, light_armor]
@@ -446,7 +446,7 @@
   role: "Bruiser"
   lore: "A hero who gave in to madness or took evil into their heart, trading control for power."
   base_stats: { HP: 1000, ATK: 100, INT: 30, DEF: 80, MDEF: 45, SPD: 47, HIT: 100, SKL: 20, CRIT: 30, GUARD: 40, EVA: 10 }
-  pp: { active: 2, passive: 2 }
+  pp: { active: 3, passive: 3 }
   skills: [skl_001, skl_004, skl_016, skl_021]
   restrictions:
     equipment_tags: [hammer, sword, heavy_armor, light_armor, shield]

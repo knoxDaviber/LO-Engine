@@ -116,7 +116,8 @@ test("battle state: rows, columns, formation order, PP", () => {
     ["char_002", "defender", "front", 1, 0], ["char_003", "defender", "back", 1, 1],
   ]);
   assert.equal(unit(state, LEON).maxHp, 800);
-  assert.deepEqual(unit(state, LEON).pp.active, { cur: 2, max: 2 });
+  const leonPP = state.pack.byId.characters.get(LEON)!.pp; // content PP, not a literal
+  assert.deepEqual(unit(state, LEON).pp.active, { cur: leonPP.active, max: leonPP.active });
 });
 
 test("a status applied to another unit ticks on that unit's very next action (applying_action_counts false)", () => {
@@ -154,11 +155,12 @@ test("PP override (what-if knob) replaces every hero's base PP before gear PP; t
   const { loadReal } = await import("./engineHelpers");
   const { pack, battle } = loadReal();
   battle.challenger.heroes[0]!.equipment.accessory_1 = "equip_002";
+  const leonBase = pack.byId.characters.get(LEON)!.pp;
   const gearA = pack.byId.equipment.get("equip_002")!.pp_modifiers.active;
   const s = createBattleState(pack, battle, 1, { pp: { active: 5 } });
   assert.deepEqual(unit(s, LEON).pp.active, { cur: 5 + gearA, max: 5 + gearA });
-  assert.deepEqual(unit(s, LEON).pp.passive, { cur: 2, max: 2 }); // passive not overridden: content value
+  assert.deepEqual(unit(s, LEON).pp.passive, { cur: leonBase.passive, max: leonBase.passive }); // passive not overridden: content value
   assert.deepEqual(unit(s, "char_002").pp.active, { cur: 5, max: 5 });
   assert.deepEqual(unit(createBattleState(pack, battle, 1, { pp: { active: 0, passive: 1 } }), "char_002").pp, { active: { cur: 0, max: 0 }, passive: { cur: 1, max: 1 } });
-  assert.deepEqual(unit(createBattleState(pack, battle), LEON).pp.active, { cur: Math.min(2 + gearA, pack.rules.pp.max), max: Math.min(2 + gearA, pack.rules.pp.max) });
+  assert.deepEqual(unit(createBattleState(pack, battle), LEON).pp.active, { cur: Math.min(leonBase.active + gearA, pack.rules.pp.max), max: Math.min(leonBase.active + gearA, pack.rules.pp.max) });
 });

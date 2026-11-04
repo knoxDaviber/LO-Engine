@@ -227,9 +227,10 @@ test("Longinus (modify_pp on_attack, once_per_attack): a two-hit attack takes 1 
     effects: [...pack.byId.skills.get(ASSAULT)!.effects, ...pack.byId.skills.get(ASSAULT)!.effects, LONGINUS, LONGINUS] as Skill["effects"],
   }));
   u(EMPEROR).hp = u(EMPEROR).maxHp = 5000;
+  const ppBefore = u(EMPEROR).pp.passive.cur;
   act(u(LEON));
   assert.equal(ev("damage").filter((d) => d.target === EMPEROR).length, 2);
-  assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.pool, e.before, e.after]), [[EMPEROR, "passive", 2, 1]]);
+  assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.pool, e.before, e.after]), [[EMPEROR, "passive", ppBefore, ppBefore - 1]]);
   u(EMPEROR).pp.passive.cur = 0;
   act(u(LEON));
   assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.before, e.after]).at(-1), [EMPEROR, 0, 0]);
@@ -244,10 +245,11 @@ test("Longinus per-hit-once: as an on_hit reaction to a squad attack on a hero i
   });
   u(SQ_D).alive = false;
   u(EMPEROR).hp = 5000;
+  const ppBefore = u(EMPEROR).pp.passive.cur;
   state.timeline.pending.delete(SQ_C);
   executeSquadAction(x, u(SQ_C));
   assert.equal(ev("damage").filter((d) => d.unit === SQ_C).length, 1);
-  assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.after]), [[EMPEROR, 1]]);
+  assert.deepEqual(ev("pp_change").map((e) => [e.unit, e.after]), [[EMPEROR, ppBefore - 1]]);
 });
 
 test("delay_action and advance_action move the target's pending action by counts; advancing never goes before now", () => {
@@ -350,11 +352,12 @@ test("use_limit on a passive: Quick Guard with use_limit 1 guards once, then doe
     state.bus.beginAction(u(EMPEROR));
     runEffect(x, u(EMPEROR), { id: sk.id, name: sk.name, shape: "single", interactions: sk.interactions }, sk.effects[0]!, [u(LEON)], new Set(), false);
   };
+  const ppBefore = u(LEON).pp.passive.cur;
   strike();
   strike();
   assert.equal(ev("damage_reduction").length, 1);
   assert.deepEqual(ev("passive_blocked").map((e) => [e.skill, e.reason]), [[QUICK_GUARD, "use limit reached (1/1 this phase)"]]);
-  assert.equal(u(LEON).pp.passive.cur, 1);
+  assert.equal(u(LEON).pp.passive.cur, ppBefore - 1);
 });
 
 test("Hegemony strips only the attacker's buffs, before the attack resolves; other units keep theirs", () => {

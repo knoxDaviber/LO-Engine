@@ -154,8 +154,9 @@ test("executing Thousand Azure Hooves: spends PP, damages, stuns (pushback), SPD
   assert.equal(decision.skillId, "skl_cav_active_002");
   const x: ExecCtx = { state: s, rng, log };
   const empBefore = s.timeline.pending.get(EMPEROR)!.due;
+  const ppBefore = leon.pp.active.cur;
   executeSkill(x, leon, decision);
-  assert.equal(leon.pp.active.cur, 0);
+  assert.equal(leon.pp.active.cur, ppBefore - s.pack.byId.skills.get("skl_cav_active_002")!.pp_cost);
   assert.equal(emp.hp, 950 - 188);
   assert.equal(s.timeline.pending.get(LEON)!.due, 20 + 17); // interval 17 with SPD UP (57.5), not 20
   const empDue = s.timeline.pending.get(EMPEROR)!.due;

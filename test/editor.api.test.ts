@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { parse } from "yaml";
 import { createApi, requestGuard } from "../editor/api";
 import { readContentTexts } from "../src/load";
+import { loadReal } from "./engineHelpers";
 
 const api = createApi("content");
 const battle = (name: string) => parse(readFileSync(`content/battles/${name}`, "utf-8"));
@@ -84,11 +85,12 @@ test("editor api: breakdown shows the summed Full Moon entry with both contribut
 });
 
 test("editor api: an optional pp override (integers 0..10) reaches the breakdown PP pools and the sim; bad values are a 400", () => {
+  const leonPP = loadReal().pack.byId.characters.get("char_001")!.pp; // content PP, not a literal
   const plain = api.handle("POST", "/api/breakdown", { battle: battle("sample.yaml") }).json as any;
-  assert.deepEqual(plain.units.find((u: any) => u.id === "char_001").pp, { active: 2, passive: 2 });
+  assert.deepEqual(plain.units.find((u: any) => u.id === "char_001").pp, { active: leonPP.active, passive: leonPP.passive });
   assert.equal(plain.units.find((u: any) => u.kind === "squad").pp, null);
   const over = api.handle("POST", "/api/breakdown", { battle: battle("sample.yaml"), pp: { active: 5, passive: null } }).json as any;
-  assert.deepEqual(over.units.find((u: any) => u.id === "char_001").pp, { active: 5, passive: 2 });
+  assert.deepEqual(over.units.find((u: any) => u.id === "char_001").pp, { active: 5, passive: leonPP.passive });
   const sim = api.handle("POST", "/api/sim", { battle: battle("sample.yaml"), pp: { active: 3 } });
   assert.equal(sim.status, 200);
   assert.equal((sim.json as any).events[0].units[0].pp_active, 3);
