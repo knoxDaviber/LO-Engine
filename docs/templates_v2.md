@@ -524,7 +524,7 @@ rules:
   # hit% = clamp(HIT + hit_bonus - EVA + (aSKL - dSKL)/skl_divisor, hit_min, hit_max); crit% = clamp(CRIT - defender GUARD + (aSKL - dSKL)/skl_divisor, crit_min, crit_max); guard% = clamp(GUARD + dSKL/skl_divisor, guard_min, guard_max)
   class_traits: { flyer_melee_eva_bonus: 50, aquatic_water_spd_bonus: 30 }   # percent (Decision 126)
   phase:     { max_actions_per_phase: null }   # TBD; hard last-resort cap, added with the engine
-  # also: class_advantage, draft, limits, cost (stat_weights, skill_price, effect_price, aura_price, squad_price, caps)
+  # also: class_advantage, draft, limits, cost (stat_weights, pp_weights, skill_price, effect_price, aura_price, squad_price, caps)
 ```
 
 

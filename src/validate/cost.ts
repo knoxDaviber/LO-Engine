@@ -6,9 +6,10 @@ const STAT_KEYS = ["HP", "ATK", "INT", "DEF", "MDEF", "SPD", "HIT", "SKL", "CRIT
 /**
  * Computed by default, overridable:
  * hero part = weighted base stats + aura price + an official aura's cost_adjustment, or hero.cost_override when set. Each skill adds
- * its cost_override or the flat skill_price, each item its cost_override or its type's weighted base stats (rules.equipment_bases), a squad a flat price, each effect of an
+ * its cost_override or the flat skill_price, each item its cost_override or (its type's weighted base stats (rules.equipment_bases) + its signed
+ * pp_modifiers * cost.pp_weights + the `effectPrice` of each item effect), a squad a flat price, each effect of an
  * unlocked blessing tier (devotion, src/devotion.ts) its `effectPrice`.
- * Every number is a placeholder in rules.yaml until the gauntlet calibrates them.
+ * Weights live in rules.yaml (cost.stat_weights from the T6 balance test, cost.pp_weights).
  */
 export function heroCost(hero: Character, rules: Rules, opts: { squad?: SoldierType | null; equipment?: Equipment[]; skills?: Skill[]; blessings?: Effect[] } = {}): number {
   const w = rules.cost.stat_weights;
@@ -24,6 +25,8 @@ export function heroCost(hero: Character, rules: Rules, opts: { squad?: SoldierT
     else {
       const flat = equipmentStats(e, rules.equipment_bases);
       for (const k of STAT_KEYS) total += flat[k] * w[k];
+      total += e.pp_modifiers.active * rules.cost.pp_weights.active + e.pp_modifiers.passive * rules.cost.pp_weights.passive;
+      for (const fx of e.effects) total += effectPrice(fx, hero, rules);
     }
   }
   if (opts.squad) total += rules.cost.squad_price;

@@ -41,4 +41,4 @@ Passive stays at 3 because a tank needs its reactions; it pays in speed instead.
 - Items use `pp_modifiers` and `modify_stat` percent lines.
 - Unconditional gear HP percent lines now change Max HP (`state.ts`), for Bloodpact Ring.
 - Lines flagged `stacks` on `modify_stat` add up (`stats.ts`).
-- Not built, item 5: `heroCost` ignores `pp_modifiers`. Add `rules.cost.pp_weights` (Active above Passive), each point above any stat line.
+- Built (Decision 150): `heroCost` prices `pp_modifiers` through `rules.cost.pp_weights` (Active above Passive).

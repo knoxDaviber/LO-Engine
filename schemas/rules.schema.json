@@ -808,6 +808,22 @@
           ],
           "additionalProperties": false
         },
+        "pp_weights": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "number"
+            },
+            "passive": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "active",
+            "passive"
+          ],
+          "additionalProperties": false
+        },
         "skill_price": {
           "type": "number",
           "minimum": 0
@@ -871,6 +887,7 @@
       },
       "required": [
         "stat_weights",
+        "pp_weights",
         "skill_price",
         "effect_price",
         "aura_price",

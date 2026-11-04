@@ -66,6 +66,7 @@ export const rulesSchema = z.strictObject({
       HP: z.number(), ATK: z.number(), INT: z.number(), DEF: z.number(), MDEF: z.number(), SPD: z.number(),
       HIT: z.number(), SKL: z.number(), CRIT: z.number(), GUARD: z.number(), EVA: z.number(),
     }),
+    pp_weights: z.strictObject({ active: z.number(), passive: z.number() }), // per +1 of an item's pp_modifiers (signed)
     skill_price: z.number().min(0),
     effect_price: z.number().min(0), // a blessing effect that is not an unconditional modify_stat (devotion pricing, cost.ts)
     aura_price: z.number().min(0),

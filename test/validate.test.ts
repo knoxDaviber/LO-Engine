@@ -226,6 +226,23 @@ test("equipment type: the item's cost is its type base, weighted", () => {
   assert.equal(heroCost(hero, pack!.rules, { equipment: [pack!.byId.equipment.get("equip_009")!] }), Math.round((bare + 150 * w.ATK + 24 * w.DEF) * 10) / 10);
 });
 
+test("item pricing: base + signed PP + effect prices; cost_override replaces all", async () => {
+  const { effectPrice } = await import("../src/validate/cost");
+  const { pack } = validateRaw(fresh());
+  const rules = pack!.rules, hero = pack!.byId.characters.get("char_005")!, base = pack!.byId.equipment.get("equip_009")!;
+  const cost = (e: typeof base) => heroCost(hero, rules, { equipment: [e] });
+  const plain = cost(base), r1 = (n: number) => Math.round(n * 10) / 10;
+  const fx: any = { type: "modify_stat", stat: "ATK", mode: "flat", value: 5, trigger: "on_hit" }; // conditional-style line: flat effect_price
+  const withFx = { ...structuredClone(base), effects: [fx, fx] };
+  const bare = heroCost(hero, rules);
+  assert.equal(effectPrice(fx, hero, rules), rules.cost.effect_price);
+  assert.equal(cost(withFx), r1(bare + (plain - bare) + 2 * rules.cost.effect_price));
+  const pp = (a: number, p: number) => ({ ...structuredClone(base), pp_modifiers: { active: a, passive: p } });
+  assert.equal(cost(pp(1, 0)), r1(plain + rules.cost.pp_weights.active));
+  assert.equal(cost(pp(0, -1)), r1(plain - rules.cost.pp_weights.passive));
+  assert.equal(cost({ ...withFx, pp_modifiers: { active: 1, passive: 1 }, cost_override: 3 }), r1(bare + 3));
+});
+
 test("equipment type: weapon, armor and shield types are gated by the hero's equipment_tags; other accessory categories are open", async () => {
   const { canEquip } = await import("../src/validate/eligibility");
   const { pack } = validateRaw(fresh());

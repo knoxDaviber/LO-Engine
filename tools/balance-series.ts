@@ -1,6 +1,7 @@
 // Balance series (handover 3b): controlled tests, each changing exactly one thing, printed as markdown tables.
 //   npx tsx tools/balance-series.ts [--runs=N] [--seed=S] [--only=T0,T3]     (default 300 runs; T0 defaults to 1000)
-// T0 side (mirror), T1 team (swapped sides), T2 accessories, T3 sigil sets, T4 team comp round robin, T5 draft_city defender advantages.
+// T0 side (mirror), T1 team (swapped sides), T2 accessories, T3 sigil sets, T4 team comp round robin, T5 draft_city defender advantages,
+// T6 stat value (two real matchups, one side boosted at a time in both seats, paired seeds, saturated cells skipped; --steps=SPD:2:5,ATK:20 overrides the steps).
 // Every variant is built in memory and must pass validateBattle (checkBattle aborts naming it). All variants share the run seeds, so rows are paired.
 // Reading side effect (T1): A and B each play once as challenger. If sides were neutral, A's win as challenger + B's win as challenger = 100.
 // Side effect = (A wins as challenger + B wins as challenger) - 100, in points: positive favours the challenger seat, negative the defender seat.
@@ -216,5 +217,67 @@ if (want("T5")) {
   md(["row", "chal win %", "timeout %", "avg phases", "chal fielded", "def fielded", "chal banned", "def banned"], rows);
   console.log("Anchor not isolated: the anchor only protects a hero from bans, and the scripted human bans never target the Monster, so removing it changes nothing here.\n");
   done("T5", s);
+}
+// ---- T6: what one point of each stat (and one PP) is worth in win rate
+if (want("T6")) {
+  const s = Date.now();
+  const STEPS: Record<string, number[]> = { HP: [100], ATK: [10], INT: [10], DEF: [10], MDEF: [10], SPD: [2, 5], HIT: [20], SKL: [5, 10], CRIT: [20], GUARD: [10], EVA: [10] };
+  for (const kv of (arg("steps") ?? "").split(",").filter(Boolean)) { const [k, ...v] = kv.split(":"); STEPS[k!] = v.map(Number); }
+  console.log(`## T6 Stat value (${RUNS0} runs per cell)\nReal matchups, evenKit, no sigils, no terrain. A cell = one side of a pair boosted (+step on one stat for its heroes, soldiers untouched) in one seat; effect = its win % minus the same side's unboosted win % in the same seat, same seeds. Cells whose baseline is above 85% or below 15% are skipped (saturated). Standard error of a cell effect <= ${(50 / Math.sqrt(RUNS0)).toFixed(1)} points (unpaired bound), so a mean of 8 cells is about +-${(50 / Math.sqrt(RUNS0 * 8)).toFixed(1)}. PP rows: +1 on every hero's weapon pp_modifiers (base 3, max 4).\n`);
+  const city = fileRaw("city4v4.yaml");
+  const T4 = (ids: string[]): Team => fitFront(evenKit({ leader: `char_${ids[0]}`, heroes: ids.map((i) => structuredClone(sheets.get(`char_${i}`))) }));
+  const pairs: [string, string, Team, string, Team][] = [
+    ["P1", "A", evenKit(teamOf(city, "challenger")), "B", evenKit(teamOf(city, "defender"))],
+    ["P2", "3-backline (005 Infantry, 008 Archer, 010 Mage, 012 Holy)", T4(["005", "008", "010", "012"]), "no-healer (005 Infantry, 007 Cavalry, 008 Archer, 010 Mage)", T4(["005", "007", "008", "010"])],
+  ];
+  const W: Record<string, number> = (pack as any).rules.cost.stat_weights;
+  const ppWeapon = (id: string, kind: "active" | "passive") => {
+    const nid = `${id}_pp_${kind}`;
+    if (!pack.byId.equipment.has(nid)) { const e = structuredClone(pack.byId.equipment.get(id)!); e.id = nid; e.pp_modifiers[kind] += 1; pack.equipment.push(e); pack.byId.equipment.set(nid, e); }
+    return nid;
+  };
+  type Variant = { key: string; stat: string; step: number };
+  const variants: Variant[] = Object.entries(STEPS).flatMap(([stat, steps]) => steps.map((step) => ({ key: `${stat}+${step}`, stat, step })));
+  for (const k of ["active", "passive"]) variants.push({ key: `PP ${k}+1`, stat: `PP_${k}`, step: 1 });
+  const cells: Record<string, { pair: string; side: string; seat: string; e: number }[]> = {};
+  const skipped: string[] = [];
+  const counts: string[] = [];
+  const teamNote = (n: string, t: Team) => { const u = [0, 0]; for (const h of t.heroes) { const b = pack.byId.characters.get(orig(h.char_id))!.base_stats; u[b.ATK >= b.INT ? 0 : 1]!++; } counts.push(`${n}: ${u[0]} ATK / ${u[1]} INT`); };
+  const atkRef: Record<string, number> = {}; // pair|side|seat -> ATK effect, for the PP cost-equivalent
+  for (const [pn, xn, X0, yn, Y0] of pairs) {
+    const overlap = X0.heroes.some((h) => Y0.heroes.some((g) => g.char_id === h.char_id));
+    const X = X0, Y = overlap ? clone(Y0) : Y0;
+    teamNote(`${pn} ${xn}`, X); teamNote(`${pn} ${yn}`, Y);
+    for (const [side, own, foe] of [["X", X, Y], ["Y", Y, X]] as const) for (const seat of ["c", "d"] as const) {
+      const play = (t: Team) => { const r = run(`T6-${pn}-${side}-${seat}`, seat === "c" ? mk(t, foe) : mk(foe, t), RUNS0).challenger_win_rate; return seat === "c" ? r : 1 - r; };
+      const base = play(own);
+      const tag = `${pn} ${side === "X" ? xn : yn} as ${seat === "c" ? "challenger" : "defender"} (baseline ${pct(base)}%)`;
+      if (base > 0.85 || base < 0.15) { skipped.push(tag); continue; }
+      console.error(`T6 ${tag}`);
+      for (const v of variants) {
+        let boosted = own, restore = () => {};
+        if (v.stat.startsWith("PP_")) boosted = mapHeroes(own, (h) => { h.equipment.weapon = ppWeapon(h.equipment.weapon, v.stat.slice(3) as any); });
+        else {
+          const saved = own.heroes.map((h) => ({ ...pack.byId.characters.get(h.char_id)!.base_stats }));
+          own.heroes.forEach((h) => { (pack.byId.characters.get(h.char_id)!.base_stats as any)[v.stat] += v.step; });
+          restore = () => own.heroes.forEach((h, i) => Object.assign(pack.byId.characters.get(h.char_id)!.base_stats, saved[i]));
+        }
+        try { const e = (play(boosted) - base) * 100; (cells[v.key] ??= []).push({ pair: pn, side, seat, e }); if (v.key === `ATK+${STEPS.ATK![0]}`) atkRef[`${pn}${side}${seat}`] = e / v.step; } finally { restore(); }
+      }
+    }
+    console.error(`T6 ${pn} done ${((Date.now() - s) / 1000).toFixed(0)}s`);
+  }
+  console.log(`Heroes by higher base damage stat: ${counts.join("; ")}.\n`);
+  console.log(`Skipped (saturated baseline): ${skipped.join("; ") || "none"}.\n`);
+  const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(a.length, 1);
+  const atkPP = mean(Object.values(atkRef));
+  md(["variant", "step", "mean effect (pts)", "P1 mean", "P2 mean", "cell spread min..max", "cells", "effect per point", "implied weight (ATK=1.0)", "marginal per point (vs previous step)", "current weight"], variants.map((v, i) => {
+    const c = cells[v.key] ?? [], es = c.map((x) => x.e), m = mean(es), pm = (p: string) => (c.some((x) => x.pair === p) ? mean(c.filter((x) => x.pair === p).map((x) => x.e)).toFixed(1) : "-");
+    const pv = variants[i - 1], marg = pv && pv.stat === v.stat ? ((m - mean((cells[pv.key] ?? []).map((x) => x.e))) / (v.step - pv.step)).toFixed(3) : "-";
+    const w = v.stat.startsWith("PP_") ? `${(m / atkPP).toFixed(1)} ATK pts` : (m / v.step / atkPP).toFixed(2);
+    return [v.key, v.step, m.toFixed(1), pm("P1"), pm("P2"), `${Math.min(...es).toFixed(1)}..${Math.max(...es).toFixed(1)}`, c.length, (m / v.step).toFixed(3), w, marg, W[v.stat] ?? "-"];
+  }));
+  console.log(`Cost-equivalent PP: cell-wise PP effect divided by that cell's ATK points (cells with ATK effect > 0.1 pts per point are used): ${["PP active+1", "PP passive+1"].map((k) => { const r = (cells[k] ?? []).map((x) => ({ x, a: atkRef[`${x.pair}${x.side}${x.seat}`] })).filter((o) => o.a! > 0.1).map((o) => o.x.e / o.a!); return `${k} = ${r.length ? mean(r).toFixed(1) : "n/a"} ATK points (${r.length} cells, min ${Math.min(...r).toFixed(1)}, max ${Math.max(...r).toFixed(1)})`; }).join("; ")}.\n`);
+  done("T6", s);
 }
 console.error(`total ${((Date.now() - t0) / 1000).toFixed(0)}s`);
