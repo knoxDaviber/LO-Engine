@@ -10,10 +10,10 @@ import { Collector } from "../src/types";
 import { validateBattle } from "../src/validate/battle";
 import { bootPack } from "../game/logic/content";
 import { buildBattle } from "../game/logic/battle";
-import { autoField, kitOf, matchupPct, moveHero, pickLeader, poolHero, rollOrder, type PoolHero } from "../game/logic/party";
+import { autoField, kitOf, matchupPct, moveHero, pickLeader, poolHero, isGeneric, rollOrder, type PoolHero } from "../game/logic/party";
 import { buildReplay, motionOf, type Beat, type Pop, type UnitInfo } from "../game/logic/replay";
-import { afterResult, fight, fightBlocker, moveTo, poolIds, rerollStart, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
-import { resolveEnemies, STAGES } from "../game/logic/stages";
+import { afterResult, companyLeft, fight, fightBlocker, moveTo, poolIds, rerollStart, ROGUE_START_POOL, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
+import { resolveEnemies, rogueEnemyCount, ROGUE_STAGES, STAGES } from "../game/logic/stages";
 import { captionsFor, CAPTIONS, fillText, PREP_STEPS, tutorialContext, tutorialEvent, tutorialHero, startTutorial } from "../game/logic/tutorial";
 
 const pack = bootPack(readContentTexts("content"));
@@ -254,4 +254,73 @@ test("matchupPct reads the class rules: advantage up, reverse down, same class n
   assert.ok(matchupPct(pack, p.attacker, p.defender) > 0);
   assert.equal(matchupPct(pack, p.defender, p.attacker), pack.rules.matchup.disadvantage_damage_percent);
   assert.equal(matchupPct(pack, p.attacker, p.attacker), 0);
+});
+
+/** A rogue run's fought battle with chosen heroes dead at the last beat and a chosen result. */
+function rogueFought(seed: number, dead: (pool: string[]) => string[], won: boolean, stage = 0): RunState {
+  const s = fight(pack, toPrep(pack, { ...startRun(pack, seed, false, "rogue"), stage }));
+  const out = dead(poolIds(s)), f = s.fought!;
+  const beats = f.replay.beats.map((b, i, all) => (i < all.length - 1 ? b : { ...b, units: b.units.map((u) => ({ ...u, alive: !out.includes(u.id) })) }));
+  return { ...s, fought: { ...f, replay: { ...f.replay, beats }, summary: { ...f.summary, won } } };
+}
+
+test("rogue: 20 stages, enemy counts by wave, generics only, rogue battle id", () => {
+  assert.equal(ROGUE_STAGES.length, 20);
+  ROGUE_STAGES.forEach((st, i) => assert.equal(st.enemies.length, rogueEnemyCount(i)));
+  assert.deepEqual([0, 2, 4].map(rogueEnemyCount), [2, 3, 4]);
+  const s = toPrep(pack, startRun(pack, 3, false, "rogue"));
+  for (let i = 0; i < ROGUE_STAGES.length; i++) {
+    const e = resolveEnemies(pack, 3, i, poolIds(s), "rogue");
+    assert.equal(e.heroes.length, rogueEnemyCount(i));
+    assert.ok(e.heroes.every((h) => isGeneric(pack.byId.characters.get(h.char_id)!)));
+  }
+  assert.equal(buildBattle(pack, { seed: 3, stage: 4, attempt: 0, pool: s.pool, leader: s.leader!, enemy: s.enemy!, mode: "rogue" }).battle_id, "rogue_5");
+});
+
+test("rogue: starts with ROGUE_START_POOL heroes, and a reroll keeps that", () => {
+  const s = startRun(pack, 5, false, "rogue");
+  assert.equal(s.pool.length, ROGUE_START_POOL);
+  assert.equal(rerollStart(pack, s, 6).pool.length, ROGUE_START_POOL);
+});
+
+test("rogue: a win recruits one hero, the dead leave for good and are never recruited again", () => {
+  const s = rogueFought(8, (p) => [p[0]!], true);
+  const dead = poolIds(s)[0]!, n = poolIds(s).length;
+  const next = afterResult(pack, s);
+  assert.deepEqual(next.fallen, [dead]);
+  assert.ok(!poolIds(next).includes(dead));
+  assert.equal(next.pool.length, n);
+  assert.equal(next.fresh[0], s.order[n]);
+  assert.equal(next.screen, "reveal");
+  assert.ok(next.leader && next.pool.find((h) => h.entry.char_id === next.leader)!.slot);
+  assert.ok(next.pool.find((h) => h.entry.char_id === next.fresh[0])!.slot, "the recruit fields on a free slot");
+});
+
+test("rogue: a loss recruits nobody and retries the wave with the survivors", () => {
+  const s = rogueFought(8, (p) => [p[0]!], false);
+  const next = afterResult(pack, s);
+  assert.equal(next.screen, "prep");
+  assert.equal(next.stage, s.stage);
+  assert.equal(next.attempt, s.attempt + 1);
+  assert.equal(next.pool.length, s.pool.length - 1);
+  assert.ok(!next.leader || poolIds(next).includes(next.leader));
+});
+
+test("rogue: the run is over when nobody is left", () => {
+  const s = rogueFought(8, (p) => p, false);
+  assert.equal(companyLeft(s).length, 0);
+  assert.equal(companyLeft(rogueFought(8, () => [], false)).length, s.pool.length);
+});
+
+test("rogue: with the order exhausted a win goes straight to the next prep", () => {
+  const base = rogueFought(8, () => [], true);
+  const s = { ...base, order: poolIds(base) };
+  const next = afterResult(pack, s);
+  assert.equal(next.screen, "prep");
+  assert.equal(next.stage, s.stage + 1);
+  assert.equal(next.pool.length, s.pool.length);
+});
+
+test("rogue: the last win is the victory", () => {
+  assert.equal(afterResult(pack, rogueFought(8, () => [], true, ROGUE_STAGES.length - 1)).screen, "victory");
 });

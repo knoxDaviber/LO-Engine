@@ -1,6 +1,6 @@
 import { Sprite } from "../../editor/src/Sprite";
-import type { RunState } from "../logic/run";
-import { STAGES } from "../logic/stages";
+import { companyLeft, fellInBattle, type RunState } from "../logic/run";
+import { stagesOf } from "../logic/stages";
 import { AFTER_WIN, fillText, tutorialContext } from "../logic/tutorial";
 import { GAME_TITLE, pack } from "./pack";
 import { MuteButton } from "./music";
@@ -9,7 +9,9 @@ import { Backdrop, cap, Screen, useScale } from "./ui";
 export function Result({ s, onNext, onTitle }: { s: RunState; onNext: () => void; onTitle: () => void }) {
   const k = useScale();
   const sum = s.fought!.summary;
-  const stage = STAGES[s.stage]!;
+  const stage = stagesOf(s)[s.stage]!;
+  const rogue = s.mode === "rogue", over = rogue && companyLeft(s).length === 0;
+  const names = (ids: string[]) => ids.map((id) => pack.byId.characters.get(id)!.name).join(", ");
   const note = s.tutorial && sum.won && s.stage === 0
     ? fillText(AFTER_WIN, pack, tutorialContext(pack, s.pool, s.leader, stage.party))
     : null;
@@ -37,9 +39,11 @@ export function Result({ s, onNext, onTitle }: { s: RunState; onNext: () => void
           <div><dt>Phases</dt><dd>{sum.phases}</dd></div>
         </dl>
         {note && <p className="result-note">{note}</p>}
-        {!sum.won && <p className="result-note">Your company regroups. Change your line-up or orders and try again.</p>}
-        <button className="btn btn-primary btn-xl" onClick={onNext} autoFocus>{sum.won ? (s.stage + 1 >= STAGES.length ? "Claim Victory" : "Onward") : "Retry Battle"}</button>
-        {!sum.won && <button className="btn" onClick={onTitle}>Back to Title</button>}
+        {rogue && fellInBattle(s).length > 0 && <p className="result-note">Fallen: {names(fellInBattle(s))}.</p>}
+        {over && <p className="result-note">Your company has fallen. The road ends here.</p>}
+        {!sum.won && !over && <p className="result-note">Your company regroups. Change your line-up or orders and try again.</p>}
+        {!over && <button className="btn btn-primary btn-xl" onClick={onNext} autoFocus>{sum.won ? (s.stage + 1 >= stagesOf(s).length ? "Claim Victory" : "Onward") : "Retry Battle"}</button>}
+        {(!sum.won || over) && <button className="btn" onClick={onTitle}>Back to Title</button>}
       </div>
     </Screen>
   );
@@ -47,14 +51,15 @@ export function Result({ s, onNext, onTitle }: { s: RunState; onNext: () => void
 
 export function Victory({ s, onTitle }: { s: RunState; onTitle: () => void }) {
   const k = useScale();
+  const rogue = s.mode === "rogue";
   return (
     <Screen name="victory">
       <Backdrop scene="lake" embers={40} />
       <MuteButton fixed />
       <div className="victory-col">
         <p className="kicker">{GAME_TITLE}</p>
-        <h2 className="result-title">The Road Is Open</h2>
-        <p className="result-sub">{STAGES.length} battles won. Your company holds the Ember Gate.</p>
+        <h2 className="result-title">{rogue ? "The Crown Is Broken" : "The Road Is Open"}</h2>
+        <p className="result-sub">{stagesOf(s).length} battles won. {rogue ? `${s.pool.length} of your company survive, ${s.fallen.length} fell on the way.` : "Your company holds the Ember Gate."}</p>
         <ul className="victory-line">
           {s.pool.map((h) => {
             const ch = pack.byId.characters.get(h.entry.char_id)!;

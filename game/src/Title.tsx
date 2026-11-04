@@ -1,3 +1,4 @@
+import type { Mode } from "../logic/stages";
 import { Sprite } from "../../editor/src/Sprite";
 import { GAME_TITLE } from "./pack";
 import { MuteButton } from "./music";
@@ -5,7 +6,7 @@ import { Backdrop, Screen, useScale } from "./ui";
 
 const MARCH = ["infantry", "lancer", "cavalry", "archer", "mage", "holy", "flyer", "assassin", "aquatic", "monster"];
 
-export function Title({ onStart }: { onStart: (guided: boolean) => void }) {
+export function Title({ onStart }: { onStart: (guided: boolean, mode?: Mode) => void }) {
   const k = useScale();
   const [first, ...rest] = GAME_TITLE.split(" ");
   return (
@@ -25,6 +26,7 @@ export function Title({ onStart }: { onStart: (guided: boolean) => void }) {
         <div className="title-menu">
           <button className="btn btn-primary btn-xl" onClick={() => onStart(true)} autoFocus>Begin Tutorial</button>
           <button className="btn btn-ghost btn-xl" onClick={() => onStart(false)}>Play Without Guide</button>
+          <button className="btn btn-ghost btn-xl" onClick={() => onStart(false, "rogue")}>Rogue Mode</button>
         </div>
       </div>
     </Screen>

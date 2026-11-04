@@ -88,8 +88,11 @@ export function poolHero(pack: Pack, id: string): PoolHero {
   return { entry: { char_id: id, squad_id: SQUAD[ch.class], equipment: kitOf(ch.class), tactic_sheet: defaultSheet(pack, ch) }, slot: null };
 }
 
-/** A random order of every named hero (generics, named after their class, are enemy-only): the first ones are the starting pool, the next ones the recruits. */
-export const rollOrder = (pack: Pack, seed: number): string[] => shuffled(pack.characters.filter((c) => c.name.toLowerCase() !== c.class).map((c) => c.id), mulberry(seed));
+/** A generic hero is named after its class; generics are enemy-only (rogue mode fields only them). */
+export const isGeneric = (c: Character): boolean => c.name.toLowerCase() === c.class;
+
+/** A random order of every named hero: the first ones are the starting pool, the next ones the recruits. */
+export const rollOrder = (pack: Pack, seed: number): string[] => shuffled(pack.characters.filter((c) => !isGeneric(c)).map((c) => c.id), mulberry(seed));
 
 const sideOf = (heroes: RosterHero[], leader: string): BattleSide => ({ leader, heroes });
 

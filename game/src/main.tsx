@@ -8,17 +8,17 @@ import { Prep } from "./Prep";
 import { Result, Victory } from "./Result";
 import { Reveal } from "./Reveal";
 import { useMusic } from "./music";
-import { STAGES } from "../logic/stages";
+import { stagesOf, type Mode } from "../logic/stages";
 import { Title } from "./Title";
 import "./style.css";
 
 function App() {
   const [s, set] = useState<RunState>(titleState);
   useEffect(() => { window.scrollTo(0, 0); }, [s.screen]);
-  const begin = (guided: boolean) => set(startRun(pack, crypto.getRandomValues(new Uint32Array(1))[0]!, guided));
+  const begin = (guided: boolean, mode?: Mode) => set(startRun(pack, crypto.getRandomValues(new Uint32Array(1))[0]!, guided, mode));
   const reroll = () => set((x) => rerollStart(pack, x, crypto.getRandomValues(new Uint32Array(1))[0]!));
   const won = s.screen === "result" && s.fought!.summary.won;
-  useMusic(s.screen === "title" || s.screen === "reveal" ? "title" : s.screen === "victory" || won ? "victory" : STAGES[s.stage]!.scene);
+  useMusic(s.screen === "title" || s.screen === "reveal" ? "title" : s.screen === "victory" || won ? "victory" : stagesOf(s)[s.stage]!.scene);
   switch (s.screen) {
     case "title": return <Title onStart={begin} />;
     case "reveal": return <Reveal s={s} onNext={() => set(toPrep(pack, s))} onReroll={s.stage === 0 ? reroll : undefined} />;

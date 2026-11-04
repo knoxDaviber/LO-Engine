@@ -5,10 +5,12 @@ import type { Pack } from "../../src/validate/pack";
 import { buildBattle } from "./battle";
 import { autoField, freeSlot, moveHero, pickLeader, poolHero, rollOrder, type PoolHero, type Slot } from "./party";
 import { buildReplay, summarize, type Replay, type Summary } from "./replay";
-import { resolveEnemies, STAGES } from "./stages";
+import { resolveEnemies, stagesOf, type Mode } from "./stages";
 import { startTutorial, type TutorialState } from "./tutorial";
 
 export const START_POOL = 4;
+export const ROGUE_START_POOL = 2;
+const startPool = (mode: Mode) => (mode === "rogue" ? ROGUE_START_POOL : START_POOL);
 
 export type Screen = "title" | "reveal" | "prep" | "fight" | "result" | "victory";
 
@@ -16,11 +18,14 @@ export interface Fought { result: BattleResult; replay: Replay; summary: Summary
 
 export interface RunState {
   screen: Screen;
+  mode: Mode;
   seed: number;
   /** Every hero in rolled order: the pool is its start, the next one is the next recruit. */
   order: string[];
   pool: PoolHero[];
   leader: string | null;
+  /** Rogue mode: heroes lost for good, in order of death. */
+  fallen: string[];
   stage: number;
   attempt: number;
   /** Heroes the reveal screen shows as new. */
@@ -31,13 +36,13 @@ export interface RunState {
 }
 
 export const titleState = (): RunState => ({
-  screen: "title", seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
+  screen: "title", mode: "tutorial", fallen: [], seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
 });
 
-export function startRun(pack: Pack, seed: number, guided: boolean): RunState {
+export function startRun(pack: Pack, seed: number, guided: boolean, mode: Mode = "tutorial"): RunState {
   const order = rollOrder(pack, seed);
-  const pool = autoField(pack, order.slice(0, START_POOL).map((id) => poolHero(pack, id)));
-  return { ...titleState(), screen: "reveal", seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, START_POOL), tutorial: guided ? startTutorial() : null };
+  const pool = autoField(pack, order.slice(0, startPool(mode)).map((id) => poolHero(pack, id)));
+  return { ...titleState(), screen: "reveal", mode, seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, startPool(mode)), tutorial: guided ? startTutorial() : null };
 }
 
 export const poolIds = (s: RunState): string[] => s.pool.map((h) => h.entry.char_id);
@@ -46,11 +51,11 @@ export const poolIds = (s: RunState): string[] => s.pool.map((h) => h.entry.char
 export function rerollStart(pack: Pack, s: RunState, seed: number): RunState {
   if (s.stage !== 0) return s;
   const order = rollOrder(pack, seed);
-  const pool = autoField(pack, order.slice(0, START_POOL).map((id) => poolHero(pack, id)));
-  return { ...s, seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, START_POOL) };
+  const pool = autoField(pack, order.slice(0, startPool(s.mode)).map((id) => poolHero(pack, id)));
+  return { ...s, seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, startPool(s.mode)) };
 }
 
-export const toPrep = (pack: Pack, s: RunState): RunState => ({ ...s, screen: "prep", fresh: [], fought: null, enemy: resolveEnemies(pack, s.seed, s.stage, poolIds(s)) });
+export const toPrep = (pack: Pack, s: RunState): RunState => ({ ...s, screen: "prep", fresh: [], fought: null, enemy: resolveEnemies(pack, s.seed, s.stage, poolIds(s), s.mode) });
 
 /** Keeps the leader valid after a move: a benched leader hands over, a first fielded hero takes it. */
 const withLeader = (s: RunState, pool: PoolHero[]): RunState => {
@@ -83,7 +88,7 @@ export function fightBlocker(pack: Pack, s: RunState): string | null {
 
 export function fight(pack: Pack, s: RunState): RunState {
   if (fightBlocker(pack, s)) return s;
-  const battle = buildBattle(pack, { seed: s.seed, stage: s.stage, attempt: s.attempt, pool: s.pool, leader: s.leader!, enemy: s.enemy! });
+  const battle = buildBattle(pack, { seed: s.seed, stage: s.stage, attempt: s.attempt, pool: s.pool, leader: s.leader!, enemy: s.enemy!, mode: s.mode });
   const result = runBattle(pack, battle);
   const replay = buildReplay(result.events);
   return { ...s, screen: "fight", fought: { result, replay, summary: summarize(replay) } };
@@ -91,10 +96,36 @@ export function fight(pack: Pack, s: RunState): RunState {
 
 export const toResult = (s: RunState): RunState => ({ ...s, screen: "result" });
 
+/** Rogue: the fielded heroes dead at the last beat of the fought battle (benched heroes never fought). */
+export const fellInBattle = (s: RunState): string[] => {
+  const last = s.fought?.replay.beats.at(-1)?.units ?? [];
+  return poolIds(s).filter((id) => last.some((u) => u.id === id && !u.alive));
+};
+
+/** Rogue: heroes still in the company once this battle's dead are out. Zero ends the run. */
+export const companyLeft = (s: RunState): string[] => poolIds(s).filter((id) => !fellInBattle(s).includes(id));
+
+/** Rogue: the dead leave the pool for good; a win recruits the next hero of the order (none left: straight to prep), a loss retries with the survivors. */
+function afterRogue(pack: Pack, s: RunState): RunState {
+  const dead = fellInBattle(s);
+  const pool = s.pool.filter((h) => !dead.includes(h.entry.char_id));
+  const base = withLeader({ ...s, pool, fallen: [...s.fallen, ...dead], fought: null }, pool);
+  if (pool.length === 0) return titleState();
+  if (!s.fought!.summary.won) return toPrep(pack, { ...base, attempt: s.attempt + 1 });
+  if (s.stage + 1 >= stagesOf(s).length) return { ...base, screen: "victory" };
+  const next = { ...base, stage: s.stage + 1, attempt: 0 };
+  const id = s.order[pool.length + next.fallen.length];
+  if (!id) return toPrep(pack, next);
+  const joined = { ...next, pool: [...pool, poolHero(pack, id)] };
+  const slot = pool.filter((h) => h.slot).length < pack.rules.draft.fielded ? freeSlot(pack, joined.pool, id) : null;
+  return { ...(slot ? moveTo(pack, joined, id, slot) : joined), screen: "reveal", fresh: [id] };
+}
+
 /** After the result: a loss retries the stage, a win recruits and moves on, the last win ends the run. */
 export function afterResult(pack: Pack, s: RunState): RunState {
+  if (s.mode === "rogue") return afterRogue(pack, s);
   if (!s.fought?.summary.won) return toPrep(pack, { ...s, attempt: s.attempt + 1 });
-  if (s.stage + 1 >= STAGES.length) return { ...s, screen: "victory" };
+  if (s.stage + 1 >= stagesOf(s).length) return { ...s, screen: "victory" };
   const id = s.order[s.pool.length]!;
   return { ...s, screen: "reveal", stage: s.stage + 1, attempt: 0, pool: [...s.pool, poolHero(pack, id)], fresh: [id], fought: null, tutorial: null };
 }

@@ -5,15 +5,16 @@ import { Collector } from "../../src/types";
 import { validateBattle } from "../../src/validate/battle";
 import type { Pack } from "../../src/validate/pack";
 import { fieldedEntries, mix, type PoolHero } from "./party";
-import { STAGES } from "./stages";
+import { stagesOf, type Mode } from "./stages";
 
 export const battleSeeds = (seed: number, stage: number, attempt: number): number[] =>
   Array.from({ length: MAX_PHASES }, (_, p) => mix(seed, stage, attempt, p + 1));
 
 /** Throws when the battle does not validate: the game only ever hands the engine a valid battle. */
-export function buildBattle(pack: Pack, o: { seed: number; stage: number; attempt: number; pool: PoolHero[]; leader: string; enemy: BattleSide }): Battle {
+export function buildBattle(pack: Pack, o: { seed: number; stage: number; attempt: number; pool: PoolHero[]; leader: string; enemy: BattleSide; mode?: Mode }): Battle {
+  const mode = o.mode ?? "tutorial";
   const battle: Battle = {
-    battle_id: `tutorial_${o.stage + 1}`, version: "1", time: STAGES[o.stage]!.time, seeds: battleSeeds(o.seed, o.stage, o.attempt),
+    battle_id: `${mode}_${o.stage + 1}`, version: "1", time: stagesOf({ mode })[o.stage]!.time, seeds: battleSeeds(o.seed, o.stage, o.attempt),
     challenger: { leader: o.leader, heroes: fieldedEntries(o.pool) }, defender: o.enemy,
   };
   const c = new Collector();

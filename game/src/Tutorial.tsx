@@ -1,7 +1,7 @@
 // The spotlight and narrator. It dims everything but the data-tut target; the hole stays clickable, so a step can wait for the real action.
 import { useEffect, useLayoutEffect, useState } from "react";
 import type { RunState } from "../logic/run";
-import { STAGES } from "../logic/stages";
+import { stagesOf } from "../logic/stages";
 import { fillText, PREP_STEPS, tutorialContext, tutorialNext, type TutStep } from "../logic/tutorial";
 import { pack } from "./pack";
 
@@ -49,7 +49,7 @@ export function Tutorial({ s, set, step }: { s: RunState; set: (s: RunState) => 
   const [nh, setNh] = useState(150);
   useLayoutEffect(() => { setNh(document.querySelector<HTMLElement>(".narrator")?.offsetHeight ?? 150); }, [step?.text]);
   if (!step) return null;
-  const text = fillText(step.text, pack, tutorialContext(pack, s.pool, s.leader, STAGES[s.stage]!.party));
+  const text = fillText(step.text, pack, tutorialContext(pack, s.pool, s.leader, stagesOf(s)[s.stage]!.party));
   const next = () => set({ ...s, tutorial: tutorialNext(s.tutorial!) });
   const skip = () => set({ ...s, tutorial: null });
   const b = box ?? { x: 0, y: 0, w: 0, h: 0 };

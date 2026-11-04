@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Sprite } from "../../editor/src/Sprite";
 import { motionOf, type Beat, type Motion, type Pop, type UnitInfo, type UnitSnap } from "../logic/replay";
 import type { RunState } from "../logic/run";
-import { STAGES } from "../logic/stages";
+import { stagesOf } from "../logic/stages";
 import { captionsFor, CAPTIONS, fillText, tutorialContext } from "../logic/tutorial";
 import { pack } from "./pack";
 import { Narrator } from "./Tutorial";
@@ -82,7 +82,7 @@ function Unit({ u, units, snap, beat, landed, speed, size, aim, onInspect }: { o
 
 export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => void; onDone: () => void }) {
   const k = useScale();
-  const stage = STAGES[s.stage]!;
+  const stage = stagesOf(s)[s.stage]!;
   const replay = s.fought!.replay;
   const beats = replay.beats;
   const units = replay.units;

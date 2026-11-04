@@ -1,6 +1,6 @@
 import { Sprite } from "../../editor/src/Sprite";
 import type { RunState } from "../logic/run";
-import { STAGES } from "../logic/stages";
+import { stagesOf } from "../logic/stages";
 import { pack } from "./pack";
 import { MuteButton } from "./music";
 import { Backdrop, cap, Crest, Screen, useScale } from "./ui";
@@ -8,7 +8,8 @@ import { Backdrop, cap, Crest, Screen, useScale } from "./ui";
 export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => void; onReroll?: () => void }) {
   const k = useScale();
   const recruit = s.stage > 0;
-  const stage = STAGES[s.stage]!;
+  const stage = stagesOf(s)[s.stage]!;
+  const shown = s.mode === "rogue" ? s.pool.filter((h) => s.fresh.includes(h.entry.char_id)) : s.pool; // ten cards would not fit
   let flip = 0;
   return (
     <Screen name="reveal">
@@ -19,8 +20,8 @@ export function Reveal({ s, onNext, onReroll }: { s: RunState; onNext: () => voi
           <p className="kicker">{recruit ? "A hero joins your company" : "Fate deals your company"}</p>
           <h2>{recruit ? `${pack.byId.characters.get(s.fresh[0]!)!.name} answers the call` : "Your Company"}</h2>
         </header>
-        <ul className={`cards cards-${s.pool.length}`}>
-          {s.pool.map((h) => {
+        <ul className={`cards cards-${shown.length}`}>
+          {shown.map((h) => {
             const ch = pack.byId.characters.get(h.entry.char_id)!;
             const isNew = s.fresh.includes(ch.id);
             return (

@@ -7,7 +7,7 @@ import type { RosterHero } from "../../src/schema/roster";
 import type { BattleSide } from "../../src/schema";
 import { fieldedEntries } from "../logic/party";
 import { fightBlocker, moveTo, toggleField, type RunState } from "../logic/run";
-import { STAGES } from "../logic/stages";
+import { stagesOf } from "../logic/stages";
 import { currentStep, tutorialEvent, tutorialHero, type TutEvent } from "../logic/tutorial";
 import { HeroPanel, type PanelTab } from "./HeroPanel";
 import { pack } from "./pack";
@@ -65,7 +65,7 @@ function SquadBlock({ side, s, size }: { side: "challenger" | "defender"; s: Bat
 
 export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<SetStateAction<RunState>>; onFight: (s: RunState) => void; onTitle: () => void }) {
   const k = useScale();
-  const stage = STAGES[s.stage]!;
+  const stage = stagesOf(s)[s.stage]!;
   const enemy = s.enemy!;
   const [sel, setSel] = useState<Selected | null>(null);
   const [tab, setTab] = useState<PanelTab>("overview");
@@ -169,7 +169,7 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
     <Screen name="prep">
       <Backdrop scene={stage.scene} embers={14} dim />
       <header className="topbar">
-        <div className="stage-chip"><b>Battle {s.stage + 1}<small> of {STAGES.length}</small></b><span>{stage.name}</span></div>
+        <div className="stage-chip"><b>Battle {s.stage + 1}<small> of {stagesOf(s).length}</small></b><span>{stage.name}</span></div>
         <div className="topbar-mid" />
         <MuteButton />
         <button className="btn btn-small" data-tut="matchups" onClick={() => { setCharts(true); fire("matchups_opened"); }}>Matchups</button>
