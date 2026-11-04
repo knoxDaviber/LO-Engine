@@ -11,7 +11,7 @@ import { setLeader, setSheet, toggleField, type RunState } from "../logic/run";
 import { COMMON_PRESETS } from "../logic/presets";
 import { currentStep, type TutEvent } from "../logic/tutorial";
 import { pack } from "./pack";
-import { cap, Crest, Pips, useEsc, useExit, useScale } from "./ui";
+import { cap, Crest, FactionEmblem, Pips, useEsc, useExit, useScale } from "./ui";
 
 export type PanelTab = "overview" | "tactics";
 
@@ -207,6 +207,7 @@ export function HeroPanel({ s, set, sel, tab, setTab, onClose, setPicker, fire }
           <div>
             <h2>{ch.name}{isLeader && <em className="crown" />}</h2>
             <p className="card-class"><Crest cls={ch.class} size={20} />{cap(ch.class)} · {cap(ch.sub_race ?? ch.race)}</p>
+            <p className="panel-factions">{ch.factions.map((f) => { const n = pack.byId.factions.get(f)?.name ?? f; return <span key={f}><FactionEmblem id={f} name={n} size={16} />{n}</span>; })}</p>
             <p className="panel-role">{ch.role}</p>
             <p className="pp-row" data-tut="pp">
               <span><small>Active</small><Pips n={pp.active} max={pp.active} kind="active" /></span>

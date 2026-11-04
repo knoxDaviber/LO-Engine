@@ -8,7 +8,7 @@
   name: Leon
   class: cavalry
   race: human
-  factions: [faction_001]
+  factions: [faction_001, faction_003]
   role: "Damage dealer"
   lore: "A loyal knight with dashing looks, blue eyes, blonde hair. As powerful as he is handsome. He serves the empire and it's emperor with unwavering spirit. Tales across the land sing of his heroics, and while his enemies fear him, they can't help but be awestruck by his very presence."
   base_stats: { HP: 800, ATK: 115, INT: 30, DEF: 70, MDEF: 46, SPD: 50, HIT: 100, SKL: 35, CRIT: 30, GUARD: 30, EVA: 30 }
@@ -160,7 +160,7 @@
   name: Infantry
   class: infantry
   race: human
-  factions: []
+  factions: [faction_001, faction_005]
   role: "Tank"
   lore: "A sturdy foot soldier who holds the line."
   base_stats: { HP: 900, ATK: 100, INT: 20, DEF: 80, MDEF: 40, SPD: 38, HIT: 100, SKL: 15, CRIT: 30, GUARD: 40, EVA: 10 }
@@ -191,7 +191,7 @@
   name: Lancer
   class: lancer
   race: human
-  factions: []
+  factions: [faction_001, faction_006]
   role: "Damage dealer"
   lore: "A spear fighter trained to break cavalry charges."
   base_stats: { HP: 750, ATK: 100, INT: 30, DEF: 70, MDEF: 50, SPD: 40, HIT: 100, SKL: 20, CRIT: 30, GUARD: 22, EVA: 20 }
@@ -222,7 +222,7 @@
   name: Cavalry
   class: cavalry
   race: human
-  factions: []
+  factions: [faction_001, faction_006]
   role: "Damage dealer"
   lore: "A mounted knight who strikes fast and hard."
   base_stats: { HP: 700, ATK: 100, INT: 20, DEF: 60, MDEF: 40, SPD: 55, HIT: 100, SKL: 20, CRIT: 30, GUARD: 27, EVA: 20 }
@@ -256,7 +256,7 @@
   name: Archer
   class: archer
   race: human
-  factions: []
+  factions: [faction_004, faction_005]
   role: "Ranged damage dealer"
   lore: "A marksman who fights from the back line."
   base_stats: { HP: 550, ATK: 100, INT: 25, DEF: 45, MDEF: 45, SPD: 41, HIT: 100, SKL: 25, CRIT: 30, GUARD: 15, EVA: 31 }
@@ -287,7 +287,7 @@
   name: Flyer
   class: flyer
   race: human
-  factions: []
+  factions: [faction_006, faction_007]
   role: "Skirmisher"
   lore: "A rider of winged beasts who dives on the enemy."
   base_stats: { HP: 600, ATK: 100, INT: 25, DEF: 40, MDEF: 55, SPD: 55, HIT: 100, SKL: 20, CRIT: 30, GUARD: 15, EVA: 38 }
@@ -318,7 +318,7 @@
   name: Mage
   class: mage
   race: human
-  factions: []
+  factions: [faction_003, faction_005]
   role: "Magic damage dealer"
   lore: "A scholar of the arcane who wields destructive spells."
   base_stats: { HP: 500, ATK: 15, INT: 100, DEF: 40, MDEF: 80, SPD: 39, HIT: 100, SKL: 20, CRIT: 30, GUARD: 20, EVA: 20 }
@@ -349,7 +349,7 @@
   name: Assassin
   class: assassin
   race: human
-  factions: []
+  factions: [faction_002, faction_006]
   role: "Damage dealer"
   lore: "A killer who strikes from the shadows."
   base_stats: { HP: 500, ATK: 100, INT: 20, DEF: 40, MDEF: 40, SPD: 42, HIT: 100, SKL: 30, CRIT: 45, GUARD: 10, EVA: 40 }
@@ -380,7 +380,7 @@
   name: Holy
   class: holy
   race: human
-  factions: []
+  factions: [faction_003, faction_007]
   role: "Heal/Support"
   lore: "A devout healer who mends allies with prayer."
   base_stats: { HP: 550, ATK: 20, INT: 100, DEF: 45, MDEF: 75, SPD: 38, HIT: 100, SKL: 15, CRIT: 30, GUARD: 30, EVA: 20 }
@@ -411,7 +411,7 @@
   name: Aquatic
   class: aquatic
   race: human
-  factions: []
+  factions: [faction_004, faction_007]
   role: "Bruiser"
   lore: "A warrior of the seas and rivers."
   base_stats: { HP: 800, ATK: 100, INT: 30, DEF: 60, MDEF: 60, SPD: 40, HIT: 100, SKL: 20, CRIT: 30, GUARD: 19, EVA: 20 }
@@ -442,7 +442,7 @@
   name: Monster
   class: monster
   race: human
-  factions: []
+  factions: [faction_002, faction_004]
   role: "Bruiser"
   lore: "A hero who gave in to madness or took evil into their heart, trading control for power."
   base_stats: { HP: 1000, ATK: 100, INT: 30, DEF: 80, MDEF: 45, SPD: 47, HIT: 100, SKL: 20, CRIT: 30, GUARD: 40, EVA: 10 }
@@ -474,7 +474,7 @@
   class: archer
   race: elf
   sub_race: dark_elf
-  factions: []
+  factions: [faction_002, faction_004]
   role: "Back-row anti-air and setup"
   lore: "A dark-elf markswoman who strikes from the tree line."
   base_stats: { HP: 550, ATK: 100, INT: 25, DEF: 45, MDEF: 45, SPD: 41, HIT: 100, SKL: 25, CRIT: 30, GUARD: 15, EVA: 31 }
@@ -505,7 +505,7 @@
   name: Aurael
   class: mage
   race: angel
-  factions: []
+  factions: [faction_003, faction_005]
   role: "Battle healer, hard to remove"
   lore: "An angel who mends the line between spells."
   base_stats: { HP: 500, ATK: 15, INT: 100, DEF: 40, MDEF: 80, SPD: 39, HIT: 100, SKL: 20, CRIT: 30, GUARD: 20, EVA: 20 }
@@ -536,7 +536,7 @@
   name: Vexis
   class: flyer
   race: demon
-  factions: []
+  factions: [faction_002, faction_006]
   role: "High-risk diver"
   lore: "A demon who dives at full health and pays for it."
   base_stats: { HP: 600, ATK: 100, INT: 25, DEF: 40, MDEF: 55, SPD: 55, HIT: 100, SKL: 20, CRIT: 30, GUARD: 15, EVA: 38 }
@@ -568,7 +568,7 @@
   class: assassin
   race: beastfolk
   sub_race: rabbit_folk
-  factions: []
+  factions: [faction_004, faction_006]
   role: "Opener on fresh targets"
   lore: "A quick rabbit-folk who ends fights before they start."
   base_stats: { HP: 500, ATK: 100, INT: 20, DEF: 40, MDEF: 40, SPD: 42, HIT: 100, SKL: 30, CRIT: 45, GUARD: 10, EVA: 40 }
@@ -599,7 +599,7 @@
   name: Brunna
   class: aquatic
   race: dwarf
-  factions: []
+  factions: [faction_005, faction_007]
   role: "Front-row protector"
   lore: "A dwarf who stands in front of her friends."
   base_stats: { HP: 800, ATK: 100, INT: 30, DEF: 60, MDEF: 60, SPD: 40, HIT: 100, SKL: 20, CRIT: 30, GUARD: 19, EVA: 20 }
@@ -630,7 +630,7 @@
   name: Ashkarn
   class: monster
   race: dragon
-  factions: []
+  factions: [faction_002, faction_007]
   role: "Late-fight anchor"
   lore: "A dragon that grows harder to kill as the fight drags on."
   base_stats: { HP: 1000, ATK: 100, INT: 30, DEF: 80, MDEF: 45, SPD: 47, HIT: 100, SKL: 20, CRIT: 30, GUARD: 40, EVA: 10 }

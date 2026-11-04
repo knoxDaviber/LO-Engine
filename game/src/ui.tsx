@@ -99,3 +99,22 @@ export function Backdrop({ scene, dim, embers = 22 }: { scene: Scene; dim?: bool
 export function Screen({ name, children }: { name: string; children: ReactNode }) {
   return <main className={`screen screen-${name}`}>{children}</main>;
 }
+
+// ------------------------------------------------------------------ faction emblems
+const EMBLEM: Record<string, string> = {
+  faction_001: "M3 18l-1-11 5 4 5-7 5 7 5-4-1 11z",
+  faction_002: "M12 3C6 3 4 8 6 12v4l3 2v3h6v-3l3-2v-4c2-4 0-9-6-9zM3 2c1 3 2 4 4 4zM21 2c-1 3-2 4-4 4zM8 11h3v3H8zm5 0h3v3h-3z",
+  faction_003: "M12 7a5 5 0 100 10 5 5 0 000-10zM11 1h2v4h-2zm0 18h2v4h-2zM1 11h4v2H1zm18 0h4v2h-4z",
+  faction_004: "M20 3C9 3 4 9 4 15c0 2 1 4 1 4l2-4c-1 4 3 5 5 5 6 0 9-8 8-17z",
+  faction_005: "M5 22V9h2V5h2v2h2V5h2v2h2V5h2v4h2v13h-5v-5h-4v5z",
+  faction_006: "M14 1L5 14h6l-2 9 10-14h-6z",
+  faction_007: "M2 12c3-5 6-5 9 0s6 5 9 0l2 1c-3 6-7 6-11 0-3 5-6 5-9 0zM2 18c3-5 6-5 9 0s6 5 9 0l2 1c-3 6-7 6-11 0-3 5-6 5-9 0z",
+};
+
+export function FactionEmblem({ id, name, size = 18 }: { id: string; name: string; size?: number }) {
+  return (
+    <span className={`crest emblem emblem-${id}`} style={{ width: size, height: size }} aria-hidden title={name}>
+      <svg viewBox="0 0 24 24" width={size * 0.66} height={size * 0.66} aria-hidden><path d={EMBLEM[id] ?? EMBLEM.faction_001} fill="currentColor" /></svg>
+    </span>
+  );
+}

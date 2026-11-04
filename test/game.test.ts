@@ -404,3 +404,9 @@ test("beatCues maps pops to impact cues, caps them at 4, then adds cover and dea
   assert.deepEqual(cues(mk([{ kind: "miss", unit: u }, { kind: "text", unit: u, text: "x" }], { covers: [{ unit: u, ally: u }], deaths: [u] })).impact, ["miss", "cover", "death"]);
   assert.deepEqual(cues(replay.beats.at(-1)!).start, [replay.winner === "challenger" ? "win" : "lose"]);
 });
+
+test("content: every character belongs to at least 2 known factions", () => {
+  for (const c of pack.byId.characters.values()) {
+    assert.ok(new Set(c.factions).size >= 2 && c.factions.every((f) => pack.byId.factions.has(f)), c.name);
+  }
+});

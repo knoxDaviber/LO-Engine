@@ -433,3 +433,8 @@ button.unit:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px;
 .unit-card p { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; color: var(--ink-soft); }
 .unit-card .hud-st { justify-content: flex-start; margin-top: 6px; gap: 3px; }
 .menu-btns { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+
+.panel-factions { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 0 0; font-size: 12px; }
+.panel-factions > span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.emblem-faction_001 { --cc: #d9a441; } .emblem-faction_002 { --cc: #b8404a; } .emblem-faction_003 { --cc: #f3e08a; } .emblem-faction_004 { --cc: #6fbf6a; }
+.emblem-faction_005 { --cc: #8fa4d8; } .emblem-faction_006 { --cc: #f08a3c; } .emblem-faction_007 { --cc: #4fb8c4; }

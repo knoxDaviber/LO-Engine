@@ -1,5 +1,6 @@
 # factions.yaml
 # Faction IDs were assigned by the converter and accepted by the designer.
+# Aldermark and Saltreach names are placeholders.
 # Factions carry no effects for now: they are a category other effects can target, plus lore.
 - id: faction_001
   name: Empire
@@ -22,7 +23,17 @@
   effects: []
   meta: {}
 - id: faction_005
-  name: Princess
+  name: Aldermark
+  lore: null
+  effects: []
+  meta: {}
+- id: faction_006
+  name: Strikers
+  lore: Fast, hard hitters with low defense.
+  effects: []
+  meta: {}
+- id: faction_007
+  name: Saltreach
   lore: null
   effects: []
   meta: {}
