@@ -543,6 +543,9 @@
                       }
                     ]
                   },
+                  "counts_as_guard": {
+                    "type": "boolean"
+                  },
                   "trigger": {
                     "type": "string",
                     "enum": [
@@ -1401,6 +1404,9 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "counts_as_guard": {
+                        "type": "boolean"
                       },
                       "trigger": {
                         "type": "string",
@@ -2266,6 +2272,9 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "counts_as_guard": {
+                        "type": "boolean"
                       },
                       "trigger": {
                         "type": "string",

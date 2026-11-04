@@ -9,7 +9,7 @@
 //                        or the disadvantage percent (negative), + every bonus_vs_class modifier_percent for the defender's class,
 //                        + every bonus_on_terrain modifier_percent for the battle's battlefield, + the attacker's damage_bonus percents (DamageCtx.damageBonus).
 //   reduction % (added up) = rules.guard.damage_reduction_percent when the guard activates, + every reduce_damage percent of the defender in
-//                        force for this hit (Plate, Quick Guard, any duration; reductionsOn)
+//                        force for this hit (Plate, Quick Guard, any duration; reductionsOn). Quick Guard counts as GUARD: a hit that ignores guard skips it
 //   pool    = max(1 - total_reduction_cap_percent/100, 1 + bonus/100 - reduction/100)
 //   amount  = max(min_damage, floor(core * pool * crit))    crit = rules.damage.crit_multiplier on a crit, else 1 (a separate multiplier)
 //   The class advantage HIT bonus is unchanged (hitChance).
@@ -292,14 +292,15 @@ export const isSingleShape = (shape: string | undefined): boolean => shape === u
 
 export const hitMeta = (skill: SkillRef, effect: DamageEffect): HitMeta => ({ damageType: effect.damage_type, range: effect.range, single: isSingleShape(skill.shape), shape: skill.shape });
 
-/** The defender's reduce_damage effects in force that cover the damage type (hybrid: any) and, for a first_single one, the hit's shape. */
-const reductionsOn = (state: BattleState, defender: Unit, skill: SkillRef, effect: DamageEffect): Reduction[] =>
-  state.bus.reductions.filter((r) => r.unit === defender && (r.until !== "first_single" || isSingleShape(skill.shape))
+/** The defender's reduce_damage effects in force that cover the damage type (hybrid: any) and, for a first_single one, the hit's shape;
+ *  guard-flagged ones (Quick Guard) drop out when the hit ignores guard. */
+const reductionsOn = (state: BattleState, defender: Unit, skill: SkillRef, effect: DamageEffect, attacker?: Unit): Reduction[] =>
+  state.bus.reductions.filter((r) => r.unit === defender && !(r.guard && (effect.ignores_guard || guardModeOf(state, attacker, skill) === "ignores")) && (r.until !== "first_single" || isSingleShape(skill.shape))
     && (r.appliesTo === "all" || r.appliesTo === effect.damage_type || effect.damage_type === "hybrid"));
 
 /** A landed hit used up the defender's next_hit reductions (they still cover the rest of this attacking action) and its first_single ones (gone at once). */
-const markReductionsHit = (state: BattleState, defender: Unit, skill: SkillRef, effect: DamageEffect): void => {
-  const on = reductionsOn(state, defender, skill, effect);
+const markReductionsHit = (state: BattleState, defender: Unit, skill: SkillRef, effect: DamageEffect, attacker?: Unit): void => {
+  const on = reductionsOn(state, defender, skill, effect, attacker);
   for (const r of on) if (r.until === "hit") r.hit = true;
   state.bus.reductions = state.bus.reductions.filter((r) => r.until !== "first_single" || !on.includes(r));
 };
@@ -310,7 +311,7 @@ const guardModeOf = (state: BattleState, attacker: Unit | undefined, skill: Skil
 
 /** DamageCtx for one hit on `defender`, with its reduce_damage effects that cover the damage type and both sides' blessing hit modifiers. */
 export function hitCtx(state: BattleState, skill: SkillRef, defender: Unit, effect: DamageEffect, attacker?: Unit): DamageCtx {
-  const reductions = reductionsOn(state, defender, skill, effect).map((r) => r.percent);
+  const reductions = reductionsOn(state, defender, skill, effect, attacker).map((r) => r.percent);
   const damageBonus = attacker ? hitMods(state, attacker, "damage_bonus").map((e) => e.percent) : [];
   if (attacker?.attackCharge && state.bus.actor === attacker) damageBonus.push(attacker.attackCharge);
   const ignoreDefense = attacker ? sum(hitMods(state, attacker, "ignore_defense").map((e) => e.percent)) : 0;
@@ -510,7 +511,7 @@ export function hitSquad(x: ExecCtx, attacker: Unit, squad: Unit, skill: SkillRe
   if (!d.landed) return;
   const first = lowestHpSoldier(squad);
   if (!first) return;
-  markReductionsHit(x.state, squad, skill, effect);
+  markReductionsHit(x.state, squad, skill, effect, attacker);
   applySoldierDamage(x, attacker, squad, first, skill, d, undefined, { ...hitMeta(skill, effect), single: !area });
 }
 
@@ -520,7 +521,7 @@ export function hitHero(x: ExecCtx, attacker: Unit, target: Unit, skill: SkillRe
   const def = outcome.defender ?? target;
   const d = computeDamage(attacker, def, effect, hitCtx(x.state, skill, def, effect, attacker), outcome);
   if (!d.landed) return;
-  markReductionsHit(x.state, def, skill, effect);
+  markReductionsHit(x.state, def, skill, effect, attacker);
   applyDamage(x, attacker, def, skill, d, by, hitMeta(skill, effect));
 }
 
@@ -775,7 +776,7 @@ export function runEffect(x: ExecCtx, actor: Unit, skill: EffectSkill, effect: E
       if (!span) { ni(`not implemented: reduce_damage with duration ${effect.duration} in ${skill.name}`); break; }
       for (const t of targets) {
         if (!t.alive) continue;
-        state.bus.reductions.push({ unit: t, percent: effect.percent, appliesTo: effect.applies_to, until: span.until, actionId: state.bus.actionId });
+        state.bus.reductions.push({ unit: t, percent: effect.percent, appliesTo: effect.applies_to, until: span.until, actionId: state.bus.actionId, ...(effect.counts_as_guard ? { guard: true } : {}) });
         log.emit({ type: "damage_reduction", ...at(state), unit: t.id, source: actor.id, skill: skill.id, percent: effect.percent, applies_to: effect.applies_to, duration: span.label });
       }
       break;

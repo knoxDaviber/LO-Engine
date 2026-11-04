@@ -120,6 +120,8 @@ export interface Reduction {
   actionId: number;
   /** next_hit: it reduced a landed hit; it ends when the next action begins. */
   hit?: boolean;
+  /** Counts as GUARD (Quick Guard): bypassed by a hit that ignores guard. */
+  guard?: boolean;
 }
 
 export class EventBus {

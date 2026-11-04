@@ -189,7 +189,7 @@ function effectBody(e: Effect, cat: Cat, at?: string, named?: readonly string[])
       return `${signed(e.amount)} ${e.pool} PP for ${target(e.target)}${e.once_per_attack ? " (once per attack)" : ""}`;
     case "reduce_damage": {
       const when = e.duration === null || e.duration === undefined ? "" : ` ${DURATION_WORD[e.duration] ?? words(e.duration)}`;
-      return `Reduces ${e.applies_to === "all" ? "all" : e.applies_to} damage taken by ${fmt(e.percent)}%${when}`;
+      return `Reduces ${e.applies_to === "all" ? "all" : e.applies_to} damage taken by ${fmt(e.percent)}%${when}${e.counts_as_guard ? " (counts as GUARD: ignored by attacks that ignore GUARD)" : ""}`;
     }
     case "delay_action": return `Delays the target's next action by ${fmt(e.counts)} timeline counts`;
     case "advance_action": return `Brings the target's next action ${fmt(e.counts)} timeline counts closer`;

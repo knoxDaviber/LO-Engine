@@ -92,6 +92,8 @@ const reduceDamage = z.strictObject({
   percent: pct,
   applies_to: z.enum(APPLIES_TO),
   duration: z.string().nullable(),
+  /** Counts as GUARD: an attack that ignores guard bypasses it (Quick Guard). */
+  counts_as_guard: z.boolean().optional(),
   ...common,
 });
 

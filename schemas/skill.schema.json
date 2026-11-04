@@ -698,6 +698,9 @@
                   }
                 ]
               },
+              "counts_as_guard": {
+                "type": "boolean"
+              },
               "trigger": {
                 "type": "string",
                 "enum": [

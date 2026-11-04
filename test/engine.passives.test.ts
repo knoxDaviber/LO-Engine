@@ -52,14 +52,23 @@ function setup(passives: [string, string][], opts: { squads?: boolean; over?: (p
   return { pack, battle, state, log, x, u, ev, strike };
 }
 
+/** Assault ignores guard in content; tests that need a normal hit make it a standard one. */
+const standardGuard = (pack: Pack): void => {
+  const sk = pack.byId.skills.get(ASSAULT)!;
+  sk.interactions = { ...sk.interactions, guard: "standard" };
+  (sk.effects[0] as { ignores_guard?: boolean }).ignores_guard = false;
+};
+
 const amountOf = (n: number): DamageBreakdown => ({ landed: true, scaled: 0, matchup: 1, power: 0, defense: 0, base: n, crit: false, guard: false, guardFactor: 1, amount: n });
 
 test("Quick Guard resolves after the hit roll, before crit/guard/damage: it spends 1 Passive PP and the same hit takes 50% less damage", () => {
   const plain = setup([]);
+  standardGuard(plain.pack);
   plain.strike(plain.u(EMPEROR), plain.u(LEON));
   const full = plain.ev("damage")[0]!.amount;
 
-  const { u, ev, log, strike } = setup([[LEON, QUICK_GUARD]]);
+  const { pack, u, ev, log, strike } = setup([[LEON, QUICK_GUARD]]);
+  standardGuard(pack);
   const ppBefore = u(LEON).pp.passive.cur;
   strike(u(EMPEROR), u(LEON));
   const types = log.events.map((e) => e.type);
@@ -69,6 +78,41 @@ test("Quick Guard resolves after the hit roll, before crit/guard/damage: it spen
   const d = ev("damage")[0]!;
   assert.deepEqual(d.reductions, [50]);
   assert.equal(d.amount, Math.max(1, Math.floor(full * 0.5)));
+});
+
+test("Quick Guard counts as GUARD: a hit that ignores guard (effect flag or skill interaction) still triggers it and spends PP, but is not reduced", () => {
+  const plain = setup([]);
+  standardGuard(plain.pack);
+  plain.strike(plain.u(EMPEROR), plain.u(LEON));
+  const full = plain.ev("damage")[0]!.amount;
+  for (const how of ["effect", "skill"]) {
+    const { pack, u, ev, strike } = setup([[LEON, QUICK_GUARD]]);
+    standardGuard(pack);
+    const sk = pack.byId.skills.get(ASSAULT)!;
+    if (how === "effect") (sk.effects[0] as { ignores_guard?: boolean }).ignores_guard = true;
+    else sk.interactions = { ...sk.interactions, guard: "ignores" };
+    const ppBefore = u(LEON).pp.passive.cur;
+    strike(u(EMPEROR), u(LEON));
+    assert.equal(ev("trigger").length, 1, how);
+    assert.equal(u(LEON).pp.passive.cur, ppBefore - 1, how);
+    assert.equal(ev("damage_reduction").length, 1, how);
+    assert.equal(ev("damage")[0]!.reductions, undefined, how);
+    assert.equal(ev("damage")[0]!.amount, full, how);
+  }
+});
+
+test("a non-guard reduce_damage (Plate, Sidestep) still applies to a hit that ignores guard", () => {
+  const plain = setup([]);
+  standardGuard(plain.pack);
+  plain.strike(plain.u(EMPEROR), plain.u(LEON));
+  const full = plain.ev("damage")[0]!.amount;
+  const { pack, state, u, ev, strike } = setup([]);
+  standardGuard(pack);
+  (pack.byId.skills.get(ASSAULT)!.effects[0] as { ignores_guard?: boolean }).ignores_guard = true;
+  state.bus.reductions.push({ unit: u(LEON), percent: 50, appliesTo: "all", until: "phase", actionId: 0 });
+  strike(u(EMPEROR), u(LEON));
+  assert.deepEqual(ev("damage")[0]!.reductions, [50]);
+  assert.equal(ev("damage")[0]!.amount, Math.max(1, Math.floor(full * 0.5)));
 });
 
 test("a missed attack fires no before_hit reaction: Quick Guard spends no Passive PP", () => {
