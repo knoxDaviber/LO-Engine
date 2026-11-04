@@ -67,8 +67,10 @@ progress in `docs/roadmap.md`.
    First sim (city4v4, all 4 heroes of one side on one god, gear slots filled, 300 runs; baseline 75.3% challenger win). Challenger win with it on the defender:
    Full Moon ATK 6, Full Moon DEF 8, Gift DEF 9, Breeze ATK 9, Breeze DEF 11, Plate ATK 20, Rush ATK 24, Mirror ATK 29, Rush DEF 33, Mirror DEF 45, Plate DEF 46,
    Gift ATK 54, Meteor ATK 63, Meteor DEF 71. One matchup only, so a ranking hint, not a verdict: Full Moon looks strongest, Meteor weakest.
-   **Open calls:** Meteor DEF makes a crit weaker than a normal hit (1.5 x 0.5 = 0.75): clamp at 1x, or cut only the crit bonus (1.25x)? Battle `sigil_side` picks are placeholders.
+   Meteor DEF cuts the whole crit hit by its percent, so a crit can land below a normal hit: as planned (designer 2026-11-04). **Open call:** battle `sigil_side` picks are placeholders.
    `self_killed_enemy` works only as a top-level condition.
+3a. **Side check 2026-11-04 (300 runs, swap test, after gear, HP% timeout and blessings):** challenger win / same battle with sides swapped: sample 100 / 0,
+   full4v4 93 / 7, city4v4 35 / 69, city4v4-edit 98 / 8; draft_city 0 (not swapped). The winner follows the team, not the side: no defender penalty in the engine.
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
    roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft

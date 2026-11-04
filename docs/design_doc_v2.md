@@ -345,7 +345,7 @@ Rules [DEFAULT] (Decision 125):
 - **Sunder** (`ignore_defense`): scales the defense of every hit before any formula uses it, including a squad's summed DEF / MDEF and hybrid's average.
 - **Sidestep** (`reduce_damage` duration `first_single_hit`): one charge per phase, spent by the first landed single-target hit alone (a second hit of that action is not reduced); a miss or an area hit leaves it. It counts toward the reduction cap. [DEFAULT]
 - **Second Wind**: an ordinary conditional SPD line; the usual SPD-change rescheduling applies at the end of the action.
-- **Meteor** (`crit_damage`) [DEFAULT]: multiplies `crit_multiplier` on that hit, in every formula and outside the reduction cap, so a crit on Meteor DEF deals less than a normal hit while `crit_multiplier` is below 2.
+- **Meteor** (`crit_damage`) [DECIDED, designer 2026-11-04]: multiplies `crit_multiplier` on that hit, in every formula and outside the reduction cap, so a crit on Meteor DEF deals less than a normal hit while `crit_multiplier` is below 2.
 - **Rush DEF counter** (`damage` with `trigger: on_event`, leaf `self_dodged`) [DEFAULT]: a dodge is any missed hit roll. After the attacking action, one counter per dodge at the attacker (a squad too), physical melee, rolled like any hit, with `hero_hits`; none if the attacker or the wearer is dead. Reactions never trigger reactions, so a counter cannot be countered, reflected or healed from.
 - **Ignore GUARD** (`ignore_guard`): while active, the wearer's hits skip the guard roll, also over a skill's guaranteed guard.
 
