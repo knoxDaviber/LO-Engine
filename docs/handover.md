@@ -1,4 +1,4 @@
-# Session handover (updated 2026-11-04, late; item 22 awaiting designer review)
+# Session handover (updated 2026-11-04, late; item 22 awaiting designer review, next item 23)
 
 Read this first, then `CLAUDE.md` (working rules, commands, architecture). Design intent is in `docs/design_doc_v2.md`,
 progress in `docs/roadmap.md`.
@@ -125,6 +125,9 @@ progress in `docs/roadmap.md`.
    - **Reroll: done 2026-11-04.** Free and unlimited, starting pool only (`rerollStart`). Open call: limit rerolls, or allow them on recruits? Not browser-tested in tutorial mode.
    - **Art and music: done 2026-11-04 (designer assets).** `game/art/` (committed), `game/music/` (.ogg, committed), scene table in `game/src/scenes.ts`, `game/src/music.tsx`. The city scene uses `city2.ogg`; `city.ogg` and `forest-calm.ogg` are not in the repo. Stages do not set a `battlefield` terrain, so art is cosmetic: open call whether Saltmarsh should really be Swamp terrain (changes balance).
    - **UI rating loop (5 of 5 passes done, stopped for designer review; scores and what 10s need in `docs/ui_rating.md`):** rate the UI 1-10 on a set of categories a strategy RPG player would use (fans of Final Fantasy Tactics, Langrisser Mobile, Unicorn Overlord, Etrian Odyssey), e.g. readability of the board, tactics setup, battle feedback, information access, menu flow, art direction, onboarding. Iterate until every category is 10/10, but **stop after 5 passes for the designer's review**, even if not at 10. Judge from real screenshots at 1280x720 (the browser pane needs `resize_window`), and keep the score table per pass so the designer can see what changed. Rate honestly: don't raise a score without a visible change.
+
+   **Item 22 result:** all passes committed, final scores 8-9, no 10s; `docs/ui_rating.md` lists what each category still needs. **Not checked:** music by ear (only load and switch), the lake victory and defeat screens, the battle action card with the final tile glow, reduced motion, the narrator height fix on screen. **Open calls:** limit rerolls or allow them on recruits; real stage terrain (changes balance); `city2` or `city` on Ember Gate (`city2` used; `city.ogg` and `forest-calm.ogg` are not in the repo). Dev server: restart `npm run game` if the page goes blank (it can cache the old `music.ts` path).
+23. **Queued 2026-11-04 (designer): deploy the game page.** Plan in `docs/deploy_plan.md`: game at `/LO-Engine/game/` alongside the editor, one Pages artifact. Not started; needs designer calls on public release, the name and the URL. Nothing is pushed yet, so the commits since `0b646cb` are local only.
 
 **Open from the 2026-11-04 critique (designer to decide):** project CLAUDE.md ("the supervisor never writes code") conflicts with the global "make small changes directly"; should the supervisor edit small code itself? This file is 27KB and loads every session: trim it (the finished editor brief at the end can go)? Suggested: a single playable battle, which needs no meta loop, to test the tactics board before more balance work.
 
