@@ -5,7 +5,7 @@ import type { RosterHero } from "../../src/schema/roster";
 import type { Pack } from "../../src/validate/pack";
 import { defaultSheet, isCopy, isGeneric, kitOf, mix, mulberry, placeTeam, shuffled, type GearTier } from "./party";
 
-export type Mode = "tutorial" | "rogue";
+export type Mode = "tutorial" | "rogue" | "versus";
 
 export interface EnemySlot {
   /** Classes wanted, best first; the first with a hero outside the pool is used, any free hero otherwise. */
@@ -146,8 +146,13 @@ export const ROGUE_STAGES: Stage[] = [
   { name: "The Crown of Ash", party: "The Emperor's Own", flavour: "At the end of the road a throne of cinders, the Emperor upon it, and his knight at his right hand. Nobody else was ever the Hollow King.", time: "night", scene: "city", squad: "soldier_002", enemies: [], team: CROWN },
 ];
 
+/** Versus: one stage, a field to test an imported rival team on. Its enemy side is the imported team, never resolved. */
+export const VERSUS_STAGES: Stage[] = [
+  { name: "The Proving Ground", party: "Rival team", flavour: "Import a rival's team key or file, set your line, and fight as often as you like. Nothing here is kept.", time: "day", scene: "plains", squad: "soldier_001", enemies: [] },
+];
+
 /** The stages a run plays. */
-export const stagesOf = (s: { mode: Mode }): Stage[] => (s.mode === "rogue" ? ROGUE_STAGES : STAGES);
+export const stagesOf = (s: { mode: Mode }): Stage[] => (s.mode === "rogue" ? ROGUE_STAGES : s.mode === "versus" ? VERSUS_STAGES : STAGES);
 
 function teamHero(pack: Pack, t: TeamHero, squad: string): RosterHero {
   const ch = pack.byId.characters.get(`${t.hero}_c1`)!;

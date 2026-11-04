@@ -11,6 +11,7 @@ import { stagesOf } from "../logic/stages";
 import { currentStep, tutorialEvent, tutorialHero, type TutEvent } from "../logic/tutorial";
 import { HeroPanel, type PanelTab } from "./HeroPanel";
 import { pack } from "./pack";
+import { Share } from "./Share";
 import { Tutorial } from "./Tutorial";
 import { MuteButton } from "./music";
 import { tileStyle } from "./scenes";
@@ -77,6 +78,8 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
   const [drop, setDrop] = useState<string | null>(null);
   const chart = useExit(charts ? true : null);
   const [menu, setMenu] = useState(false);
+  const [share, setShare] = useState(false);
+  useEsc(share, () => setShare(false));
   useEsc(menu, () => setMenu(false));
 
   const step = currentStep(s.tutorial);
@@ -172,10 +175,11 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
     <Screen name="prep">
       <Backdrop scene={stage.scene} embers={14} dim />
       <header className="topbar">
-        <div className="stage-chip"><b>Battle {s.stage + 1}<small> of {stagesOf(s).length}</small></b><span>{stage.name}</span></div>
+        <div className="stage-chip"><b>{s.mode === "versus" ? "Versus" : <>Battle {s.stage + 1}<small> of {stagesOf(s).length}</small></>}</b><span>{stage.name}</span></div>
         <div className="topbar-mid" />
         <MuteButton />
         <button className="btn btn-small" data-tut="matchups" onClick={() => { setCharts(true); fire("matchups_opened"); }}>Matchups</button>
+        {!s.tutorial && <button className="btn btn-small" onClick={() => { close(); setShare(true); }}>Share</button>}
         {!s.tutorial && <button className="btn btn-small" onClick={() => { close(); setMenu(true); }}>Menu</button>}
       </header>
 
@@ -205,7 +209,7 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
         <section className="field" aria-label="Battlefield" style={tileStyle(stage.scene)}>
           <div className="field-ground" />
           <div className="side-tag mine">Your line</div>
-          <div className="side-tag theirs">{stage.party}</div>
+          <div className="side-tag theirs">{s.rival ?? stage.party}</div>
           <div className="hole hole-player" data-tut="board-player" />
           <div className="hole hole-enemy" data-tut="board-enemy" />
           {(["back", "front"] as Row[]).flatMap((r) => [1, 2, 3].map((c) => tile(r, c)))}
@@ -215,12 +219,12 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
             return <span key={`${r}${c}`} className="tile foe vacant" style={{ left: `${pos.x}%`, top: `${pos.y}%` }}><span className="tile-floor" /></span>;
           }))}
           {s.leader && <SquadBlock side="challenger" s={mine} size={Math.round(46 * k)} />}
-          <SquadBlock side="defender" s={enemy} size={Math.round(46 * k)} />
+          {enemy.heroes.length > 0 && <SquadBlock side="defender" s={enemy} size={Math.round(46 * k)} />}
         </section>
       </div>
 
       <footer className="prep-foot">
-        <p className="flavour"><b>{stage.party}.</b> {stage.flavour}</p>
+        <p className="flavour"><b>{s.rival ?? stage.party}.</b> {stage.flavour}</p>
         <div className="fight-wrap">
           {blocker && <span className="fight-why">{blocker}</span>}
           <button className="btn btn-primary btn-fight" data-tut="fight" disabled={!!blocker} onClick={() => { const t = tutorialEvent(s.tutorial, "fight"); onFight({ ...s, tutorial: t }); }}>Fight</button>
@@ -234,12 +238,14 @@ export function Prep({ s, set, onFight, onTitle }: { s: RunState; set: Dispatch<
       {menu && (
         <div className="scrim" onClick={() => setMenu(false)}>
           <section className="modal modal-chart" role="dialog" aria-label="Menu" onClick={(e) => e.stopPropagation()}>
-            <header><h2>Abandon this run?</h2></header>
-            <p className="chart-note">Your company and progress are lost.</p>
-            <div className="menu-btns"><button className="btn" onClick={onTitle}>Abandon</button><button className="btn btn-primary" onClick={() => setMenu(false)} autoFocus>Keep playing</button></div>
+            <header><h2>{s.mode === "versus" ? "Leave Versus?" : "Abandon this run?"}</h2></header>
+            <p className="chart-note">{s.mode === "versus" ? "Your team and the imported rival are lost." : "Your company and progress are lost."}</p>
+            <div className="menu-btns"><button className="btn" onClick={onTitle}>{s.mode === "versus" ? "Leave" : "Abandon"}</button><button className="btn btn-primary" onClick={() => setMenu(false)} autoFocus>Keep playing</button></div>
           </section>
         </div>
       )}
+
+      {share && <Share s={s} set={set} onClose={() => setShare(false)} />}
 
       {drag.ghost && <div className="ghost" style={{ left: drag.ghost.x, top: drag.ghost.y }}><Sprite cls={classOf(drag.ghost.id)} name={heroName(drag.ghost.id)} size={spriteSize} /></div>}
 

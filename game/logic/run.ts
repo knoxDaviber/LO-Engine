@@ -3,7 +3,7 @@ import { runBattle, type BattleResult } from "../../src/engine";
 import type { BattleSide, Tactic } from "../../src/schema";
 import type { Pack } from "../../src/validate/pack";
 import { buildBattle } from "./battle";
-import { autoField, freeSlot, mix, moveHero, mulberry, pickLeader, poolHero, rollOrder, shuffled, type PoolHero, type Slot } from "./party";
+import { autoField, freeSlot, isCopy, isGeneric, mix, moveHero, mulberry, pickLeader, poolHero, rollOrder, shuffled, type PoolHero, type Slot } from "./party";
 import { buildReplay, summarize, type Replay, type Summary } from "./replay";
 import { resolveEnemies, stagesOf, type Mode } from "./stages";
 import { startTutorial, type TutorialState } from "./tutorial";
@@ -35,15 +35,25 @@ export interface RunState {
   /** Heroes the reveal screen shows as new. */
   fresh: string[];
   enemy: BattleSide | null;
+  /** Versus: the imported rival team's name, null until one is imported. */
+  rival: string | null;
   fought: Fought | null;
   tutorial: TutorialState | null;
 }
 
 export const titleState = (): RunState => ({
-  screen: "title", mode: "tutorial", fallen: [], wounds: {}, offers: [], seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
+  screen: "title", mode: "tutorial", fallen: [], wounds: {}, offers: [], rival: null, seed: 0, order: [], pool: [], leader: null, stage: 0, attempt: 0, fresh: [], enemy: null, fought: null, tutorial: null,
 });
 
+/** Versus: every named hero fully geared, the line-up fielded, no rival yet. */
+function startVersus(pack: Pack, seed: number): RunState {
+  const order = pack.characters.filter((c) => !isGeneric(c) && !isCopy(c)).map((c) => c.id);
+  const pool = autoField(pack, order.map((id) => poolHero(pack, id)));
+  return { ...titleState(), screen: "prep", mode: "versus", seed, order, pool, leader: pickLeader(pool), enemy: { leader: "", heroes: [] } };
+}
+
 export function startRun(pack: Pack, seed: number, guided: boolean, mode: Mode = "tutorial"): RunState {
+  if (mode === "versus") return startVersus(pack, seed);
   const order = rollOrder(pack, seed);
   const pool = autoField(pack, order.slice(0, startPool(mode)).map((id) => poolHero(pack, id)));
   return { ...titleState(), screen: "reveal", mode, seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, startPool(mode)), tutorial: guided ? startTutorial() : null };
@@ -59,7 +69,7 @@ export function rerollStart(pack: Pack, s: RunState, seed: number): RunState {
   return { ...s, seed, order, pool, leader: pickLeader(pool), fresh: order.slice(0, startPool(s.mode)) };
 }
 
-export const toPrep = (pack: Pack, s: RunState): RunState => ({ ...s, screen: "prep", fresh: [], fought: null, enemy: resolveEnemies(pack, s.seed, s.stage, poolIds(s), s.mode) });
+export const toPrep = (pack: Pack, s: RunState): RunState => ({ ...s, screen: "prep", fresh: [], fought: null, enemy: s.mode === "versus" ? s.enemy : resolveEnemies(pack, s.seed, s.stage, poolIds(s), s.mode) });
 
 /** Keeps the leader valid after a move: a benched leader hands over, a first fielded hero takes it. */
 const withLeader = (s: RunState, pool: PoolHero[]): RunState => {
@@ -87,6 +97,7 @@ export function fightBlocker(pack: Pack, s: RunState): string | null {
   if (n === 0) return "Field at least one hero";
   if (n > pack.rules.draft.fielded) return `Field at most ${pack.rules.draft.fielded} heroes`;
   if (!s.leader) return "Choose a leader";
+  if (s.mode === "versus" && s.enemy!.heroes.length === 0) return "Import a rival team first";
   return null;
 }
 
@@ -143,6 +154,7 @@ export function pickRecruit(pack: Pack, s: RunState, id: string): RunState {
 /** After the result: a loss retries the stage, a win recruits and moves on, the last win ends the run. */
 export function afterResult(pack: Pack, s: RunState): RunState {
   if (s.mode === "rogue") return afterRogue(pack, s);
+  if (s.mode === "versus") return toPrep(pack, { ...s, attempt: s.attempt + 1 }); // no consequence: same teams, refight
   if (!s.fought?.summary.won) return toPrep(pack, { ...s, attempt: s.attempt + 1 });
   if (s.stage + 1 >= stagesOf(s).length) return { ...s, screen: "victory" };
   const id = s.order[s.pool.length]!;

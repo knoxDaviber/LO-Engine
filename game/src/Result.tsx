@@ -41,9 +41,9 @@ export function Result({ s, onNext, onTitle }: { s: RunState; onNext: () => void
         {note && <p className="result-note">{note}</p>}
         {rogue && fellInBattle(s).length > 0 && <p className="result-note">Fallen: {names(fellInBattle(s))}.</p>}
         {over && <p className="result-note">Your company has fallen. The road ends here.</p>}
-        {!sum.won && !over && <p className="result-note">Your company regroups. Change your line-up or orders and try again.</p>}
-        {!over && <button className="btn btn-primary btn-xl" onClick={onNext} autoFocus>{sum.won ? (s.stage + 1 >= stagesOf(s).length ? "Claim Victory" : "Onward") : "Retry Battle"}</button>}
-        {(!sum.won || over) && <button className="btn" onClick={onTitle}>Back to Title</button>}
+        {!sum.won && !over && s.mode !== "versus" && <p className="result-note">Your company regroups. Change your line-up or orders and try again.</p>}
+        {!over && <button className="btn btn-primary btn-xl" onClick={onNext} autoFocus>{s.mode === "versus" ? "Back to Prep" : sum.won ? (s.stage + 1 >= stagesOf(s).length ? "Claim Victory" : "Onward") : "Retry Battle"}</button>}
+        {(!sum.won || over || s.mode === "versus") && <button className="btn" onClick={onTitle}>Back to Title</button>}
       </div>
     </Screen>
   );

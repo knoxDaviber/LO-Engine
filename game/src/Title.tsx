@@ -27,6 +27,7 @@ export function Title({ onStart }: { onStart: (guided: boolean, mode?: Mode) => 
           <button className="btn btn-primary btn-xl" onClick={() => onStart(true)} autoFocus>Begin Tutorial</button>
           <button className="btn btn-ghost btn-xl" onClick={() => onStart(false)}>Play Without Guide</button>
           <button className="btn btn-ghost btn-xl" onClick={() => onStart(false, "rogue")}>Rogue Mode</button>
+          <button className="btn btn-ghost btn-xl" onClick={() => onStart(false, "versus")}>Versus</button>
         </div>
       </div>
     </Screen>
