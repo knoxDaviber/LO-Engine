@@ -1,4 +1,5 @@
 import type { ConditionNode } from "../schema";
+import { isSelector } from "../schema";
 import type { Effect } from "../schema";
 import type { CondContext } from "../registry/conditions";
 import { FILES } from "../content";
@@ -39,7 +40,8 @@ export function forEachCondition(pack: Pack, fn: (node: ConditionNode, context: 
   pack.skills.forEach((s) => {
     const w = { file: FILES.skills, id: s.id };
     cond(s.default_activation, "tactic", { ...w, path: "default_activation" });
-    cond(s.targeting.default_main, "tactic", { ...w, path: "targeting.default_main" });
+    const dm = s.targeting.default_main;
+    cond(isSelector(dm) ? dm.filter : dm, "tactic", { ...w, path: isSelector(dm) ? "targeting.default_main.filter" : "targeting.default_main" });
     cond(s.targeting.default_sub, "tactic", { ...w, path: "targeting.default_sub" });
   });
   pack.characters.forEach((h) => {

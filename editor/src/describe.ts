@@ -8,6 +8,7 @@
 // `text(d)` joins both into a multi-line string.
 import { equipmentStats, equipmentType } from "../../src/equipmentBase";
 import type { ConditionNode, Effect } from "../../src/schema";
+import { isSelector } from "../../src/schema";
 import type { Catalog } from "../apiTypes";
 
 export interface Described { summary: string; lines: string[] }
@@ -234,7 +235,7 @@ export function describeSkill(s: Skill, cat: Cat): Described {
   if (s.use_limit) lines.push(`Limited to ${s.use_limit} use${s.use_limit === 1 ? "" : "s"} per phase`);
   if (s.cooldown) lines.push(`Cooldown: ${s.cooldown} of its own actions`);
   if (s.default_activation) lines.push(`Default activation: ${describeCondition(s.default_activation, cat).summary}`);
-  if (s.targeting.default_main) lines.push(`Default target: ${describeCondition(s.targeting.default_main, cat).summary}`);
+  if (s.targeting.default_main) lines.push(`Default Main: ${(isSelector(s.targeting.default_main) ? { summary: `${s.targeting.default_main.select}${s.targeting.default_main.metric ? ` ${s.targeting.default_main.metric}` : ""}` } : describeCondition(s.targeting.default_main, cat)).summary}`);
   if (s.targeting.default_sub) lines.push(`Then: ${describeCondition(s.targeting.default_sub, cat).summary}`);
   if (t.valid_rows.length) lines.push(`Valid target rows: ${list(t.valid_rows)}`);
   if (t.max_targets) lines.push(`Up to ${t.max_targets} target${t.max_targets === 1 ? "" : "s"}`);

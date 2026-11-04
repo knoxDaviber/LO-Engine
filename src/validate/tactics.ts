@@ -30,6 +30,8 @@ export function checkTacticSheet(sheet: Tactic[], heroSkills: readonly string[],
     if (priorities.has(t.priority)) c.error("E_TACTIC_PRIORITY", `priority ${t.priority} is used twice`, here("priority"));
     priorities.add(t.priority);
     if (!heroSkills.includes(t.skill_id)) c.error("E_TACTIC_SKILL", `'${t.skill_id}' is not one of this hero's skills`, here("skill_id"));
+    const sk = pack.byId.skills.get(t.skill_id);
+    if (sk && sk.category === "active" && !t.main && !sk.targeting.default_main) c.warn("W_TACTIC_NO_CONDITION", "no Main condition and the skill has no default, so this tactic never triggers", here("main"));
     for (const name of ["main", "sub"] as const) {
       const slot = t[name];
       if (!slot) continue;

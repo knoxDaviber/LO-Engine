@@ -236,3 +236,20 @@ test("equipment type: weapon, armor and shield types are gated by the hero's equ
   assert.equal(canEquip(jasmine, eq("equip_008")), true); // gloves
   assert.equal(canEquip(jasmine, eq("equip_023")), true); // boots
 });
+
+test("W_TACTIC_NO_CONDITION: an active skill with no Main and no default_main; passives and skills with a default are exempt; a selector default validates", () => {
+  const raw = fresh(); const r: any = roster(raw);
+  const skills = raw.skills as any[];
+  const active = skills.find((s) => s.category === "active"), passive = skills.find((s) => s.category === "passive");
+  const warn = () => validateRaw(raw).report.issues.filter((i) => i.code === "W_TACTIC_NO_CONDITION");
+  const sheet = (...ids: string[]) => { r.heroes[0].tactic_sheet = ids.map((skill_id, i) => ({ priority: i + 1, skill_id, enabled: true, main: null, sub: null })); raw.rosters = [{ name: "challenger.yaml", data: r }]; };
+  sheet(active.id, passive.id);
+  assert.equal(warn().length, 0); // shipped defaults; passives exempt
+  active.targeting.default_main = null;
+  assert.equal(warn().length, 1);
+  active.targeting.default_main = { select: "lowest", metric: "hp_percent" };
+  assert.equal(warn().length, 0);
+  assert.ok(!codes(raw).includes("E_SCHEMA") && !codes(raw).includes("E_TACTIC_SHAPE"));
+  active.targeting.default_main = { select: "prefer", filter: { all: [{ type: "always" }, { type: "always" }] } };
+  assert.ok(codes(raw).includes("E_TACTIC_SHAPE")); // a group in a selector default's filter, as in a player slot
+});

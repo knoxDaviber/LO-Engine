@@ -76,7 +76,7 @@ export function createCore(texts: Record<string, string>, store: ContentStore) {
         id: ch.id, name: ch.name, class: ch.class, preferred_row: ch.preferred_row,
         skills: ch.skills.flatMap((id) => {
           const s = skill(id);
-          return s ? [{ id, name: s.name, kind: s.category, pp_pool: s.pp_pool, pp_cost: s.pp_cost, trigger: s.trigger, shape: s.targeting.shape, side: s.targeting.side }] : [];
+          return s ? [{ id, name: s.name, kind: s.category, pp_pool: s.pp_pool, pp_cost: s.pp_cost, trigger: s.trigger, shape: s.targeting.shape, side: s.targeting.side, default_main: s.targeting.default_main }] : [];
         }),
       })),
       equipment: [...p.byId.equipment.values()].map((e) => ({

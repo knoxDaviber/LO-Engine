@@ -1,12 +1,12 @@
 import { blessingKind } from "../devotion";
 import { FILES } from "../content";
 import { EFFECT_REGISTRY, OFFICIAL_ONLY_STATUS_FLAGS } from "../registry/effects";
-import { CANONICAL_ID, COUNTED_DURATIONS, SLOT_TAGS, type Effect } from "../schema";
+import { CANONICAL_ID, COUNTED_DURATIONS, isSelector, SLOT_TAGS, type Effect } from "../schema";
 import type { Collector, Tier } from "../types";
 import { checkCondition } from "./conditions";
 import { canEquip, skillEligible } from "./eligibility";
 import type { Pack } from "./pack";
-import { checkSlotShape } from "./tactics";
+import { checkPlayerLeaf, checkSlotShape } from "./tactics";
 import { forEachCondition, forEachEffect } from "./walk";
 
 /** Cross-reference, semantic and tier rules over the entries that passed the schema pass. */
@@ -113,7 +113,9 @@ function checkSkills(c: Collector, pack: Pack, tier: Tier): void {
       if (!pack.byId.characters.has(id)) c.error("E_REF_MISSING", `eligible character '${id}' does not exist`, { ...loc, path: `eligible.characters[${i}]` });
     });
     if (s.default_activation) checkSlotShape(s.default_activation, { ...loc, path: "default_activation" }, c);
-    if (s.targeting.default_main) checkSlotShape(s.targeting.default_main, { ...loc, path: "targeting.default_main" }, c);
+    const dm = s.targeting.default_main;
+    if (dm && !isSelector(dm)) checkSlotShape(dm, { ...loc, path: "targeting.default_main" }, c);
+    else if (dm?.filter) checkPlayerLeaf(dm.filter, { ...loc, path: "targeting.default_main.filter" }, c);
     if (s.targeting.default_sub) checkSlotShape(s.targeting.default_sub, { ...loc, path: "targeting.default_sub" }, c);
     if (tier === "community" && s.cost_override != null) c.error("E_NOT_COMMUNITY_SAFE", "cost_override is official-only", { ...loc, path: "cost_override" });
   }

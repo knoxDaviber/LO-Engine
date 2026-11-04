@@ -22,6 +22,7 @@
 //   action_count             the actor's own completed actions this phase (skills and idles): "first action" = action_count = 0
 //   has_any_buff / lacks_*   buff = a `buff`-category status or an aura instance with a positive modifier (debuff as above)
 //   is_self / not_self       the unit is / is not the actor
+//   always                   true (the default Main of skills that need no filter)
 //   row_size / row_rank      living combatants (a hero 1, a squad its living soldiers) in the unit's board row on its side; row_rank compares
 //                            with the side's non-empty board rows (ties count as both most and least)
 //   column_full              a hero whose column holds a living hero in both hero rows of its side (a squad: false)
@@ -135,6 +136,7 @@ const LEAVES: Record<string, LeafFn> = {
   race_is: (u, l) => u.race === l.value,
   is_self: (u, _l, c) => u === c.self,
   not_self: (u, _l, c) => u !== c.self,
+  always: () => true,
   row_size: (u, l, c) => compare(rowCount(c.state, u.side, boardRank(u)), l.op, l.value),
   row_rank: (u, l, c) => {
     // Among the side's non-empty board rows; ties count as both most and least.

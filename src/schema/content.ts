@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { conditionNode } from "./condition";
 import { effectSchema } from "./effect";
+import { selectorSchema } from "./roster";
 import {
   AURA_TARGET_SIDES,
   AURA_TRIGGERS,
@@ -109,7 +110,7 @@ export const skillSchema = z.strictObject({
   targeting: z.strictObject({
     side: z.enum(TARGET_SIDES),
     shape: z.enum(TARGET_SHAPES).nullable(),
-    default_main: conditionNode.nullable(),
+    default_main: z.union([selectorSchema, conditionNode]).nullable(), // shown in the tactic's Main slot; a player Main replaces it (Decision 145)
     default_sub: conditionNode.nullable(),
     valid_rows: z.array(z.enum(ROWS)),
     max_targets: z.number().int().positive().nullable(),

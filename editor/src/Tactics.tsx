@@ -92,12 +92,15 @@ export function LeafEditor({ c, leaf, path, edit, leaves = c.leaves }: { c: Cont
 }
 
 /** Main / Sub slot: a categorised preset list. A value matching no preset shows as "Custom: ..." and stays intact; the gear button edits a leaf raw. */
-function CondPicker({ c, presets, value, path, set, label }: { c: ContentInfo; presets: Preset[]; value: Json; path: string; set: (v: Json) => void; label: string }) {
+function CondPicker({ c, presets, value, path, set, label, dflt }: { c: ContentInfo; presets: Preset[]; value: Json; path: string; set: (v: Json) => void; label: string; dflt?: Json }) {
   const tips = useTips();
   const [adv, setAdv] = useState(false);
   const match = value == null ? undefined : presets.find((p) => canon(p.value) === canon(value));
   const selected = value == null ? "" : match ? match.id : "custom";
   const groups = [...new Set(presets.map((p) => p.category))];
+  // Main only: a null slot shows the skill's default, marked as such; picking it again (or "(none)" below) returns to it.
+  const useDefault = value == null && dflt != null;
+  const dMatch = dflt != null ? presets.find((p) => canon(p.value) === canon(dflt)) : undefined;
   const customText = isLeaf(value) ? tips.condition(value)?.summary ?? value.type : `${value?.select ?? "?"}${value?.metric ? ` ${value.metric}` : ""}${value?.filter ? ` ${tips.condition(value.filter)?.summary ?? value.filter.type}` : ""}`;
   return (
     <span className="cond-pick" data-path={path}>
@@ -105,7 +108,7 @@ function CondPicker({ c, presets, value, path, set, label }: { c: ContentInfo; p
         if (e.target.value === "custom") return;
         set(e.target.value === "" ? null : structuredClone(presets.find((p) => p.id === e.target.value)!.value));
       }}>
-        <option value="">(none)</option>
+        <option value="">{dflt != null ? `${dMatch ? dMatch.label : "Custom"} (skill default)` : "(none)"}</option>
         {selected === "custom" && <option value="custom">Custom: {customText}</option>}
         {groups.map((g) => (
           <optgroup key={g} label={g}>
@@ -114,6 +117,7 @@ function CondPicker({ c, presets, value, path, set, label }: { c: ContentInfo; p
         ))}
       </select>
       {match && <span className="kind" title={match.tip}>{match.kind}</span>}
+      {useDefault && <span className="kind" title="Used while this slot is empty. Pick another condition to replace it.">{dMatch?.kind ?? "default"}</span>}
       {isLeaf(value) && <button className="small" aria-label={`Advanced ${label}`} title="Edit the raw condition" onClick={() => setAdv(!adv)}>⚙</button>}
       {adv && isLeaf(value) && <LeafEditor c={c} leaf={value} path={path} edit={(fn) => { const n = structuredClone(value); fn(n); set(n); }} />}
     </span>
@@ -149,7 +153,7 @@ export function TacticsBoard({ c, hero, sheet, path, edit }: Props) {
                 <button className="small" aria-label="Remove tactic" onClick={() => edit((s) => { s.splice(i, 1); renumber(s); })}>✕</button>
               </span>
             </div>
-            <div className="tc-row"><span className="tc-label">Main condition</span><CondPicker c={c} presets={presets} label="Main condition" value={t.main} path={`${tp}.main`} set={(v) => set((x) => (x.main = v))} /></div>
+            <div className="tc-row"><span className="tc-label">Main condition</span><CondPicker c={c} presets={presets} label="Main condition" value={t.main} dflt={skills.find((s) => s.id === t.skill_id)?.default_main as Json} path={`${tp}.main`} set={(v) => set((x) => (x.main = v))} /></div>
             <div className="tc-row"><span className="tc-label">Sub condition</span><CondPicker c={c} presets={presets} label="Sub condition" value={t.sub} path={`${tp}.sub`} set={(v) => set((x) => (x.sub = v))} /></div>
           </div>
         );

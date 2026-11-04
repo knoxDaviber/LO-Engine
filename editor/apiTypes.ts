@@ -2,7 +2,7 @@
 import type { Character, Equipment, Faction, God, Rules, Skill, SoldierType, Status, Terrain } from "../src/schema";
 import type { Severity } from "../src/types";
 
-export interface SkillInfo { id: string; name: string; kind: "active" | "passive"; pp_pool: string; pp_cost: number; trigger: string; shape: string | null; side: string }
+export interface SkillInfo { id: string; name: string; kind: "active" | "passive"; pp_pool: string; pp_cost: number; trigger: string; shape: string | null; side: string; default_main: unknown }
 export interface CharacterInfo { id: string; name: string; class: string; preferred_row: string; skills: SkillInfo[] }
 /** `type` is the item's equipment type and `base` its flat stat lines (rules.equipment_bases, Decision 133; zero stats left out). */
 export interface EquipmentInfo { id: string; name: string; slot: string; type: string | null; base: Record<string, number>; eligible: { classes: string[]; characters: string[]; required_tags: string[] } }

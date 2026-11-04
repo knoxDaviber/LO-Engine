@@ -19,7 +19,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.2, ignores_guard: true, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: ignores, soldiers: standard }
   designer_notes: "Basic attack skill for cavalry units."
 
@@ -42,7 +42,7 @@
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 20 }
     - { type: apply_status, status_id: status_001, chance_percent: 100, target: targets }
     - { type: apply_status, status_id: buff_007, chance_percent: 100, target: self }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Signature skill of Cavalry type characters."
   meta:
@@ -65,7 +65,7 @@
   default_activation: null
   effects:
     - { type: apply_status, status_id: buff_003, chance_percent: 100, target: targets }
-  targeting: { side: ally, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
+  targeting: { side: ally, shape: single, default_main: { select: lowest, metric: hp_percent }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Grants the holy unit a powerful active skill so they aren't as useless"
   meta:
@@ -134,7 +134,7 @@
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }, { stat: DEF, coef: 0.5 }], multiplier: 1.2, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
     - { type: apply_status, status_id: buff_004, chance_percent: 100, target: self }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Default attack for Lancers. Power = (100% ATK + 50% DEF), then x1.2 as the skill multiplier."
 
@@ -181,7 +181,7 @@
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.5, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
     - { type: apply_status, status_id: status_003, chance_percent: 100, target: targets }
     - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: targets }
-  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: row, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Signature move of The Emperor. Which row is hit is set by the player's tactics. A soldier squad counts as one target."
 
@@ -203,7 +203,7 @@
   effects:
     - { type: apply_status, status_id: buff_005, chance_percent: 100, target: self }
     - { type: apply_status, status_id: buff_006, chance_percent: 100, target: caster_row, include_soldiers: false }
-  targeting: { side: self, shape: caster_row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: skip }
+  targeting: { side: self, shape: caster_row, default_main: { type: always }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: skip }
   interactions: { guard: standard, soldiers: skip_soldiers }
   designer_notes: "Basic guard skill modified for the emperor. Guard stacks multiplicatively with other guards, to a 75% total cap."
   meta:
@@ -274,7 +274,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }, { stat: INT, coef: 0.5 }], multiplier: 1.5, ignores_guard: false, bonus_vs_class: [{ class: cavalry, modifier_percent: 30 }], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: column, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: column, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Cav bonus attack for Lief. Power = (100% ATK + 50% INT), then x1.5 as the skill multiplier."
   meta:
@@ -299,7 +299,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Generic basic melee attack."
 
@@ -320,7 +320,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: ranged, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 10 }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Generic basic ranged attack."
 
@@ -341,7 +341,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: "Generic basic spell."
 
@@ -362,7 +362,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: row, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -383,7 +383,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.0, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: column, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: column, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -405,7 +405,7 @@
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.4, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
     - { type: apply_status, status_id: buff_007, chance_percent: 100, target: self }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -426,7 +426,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: ranged, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 0.7, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: row, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -447,7 +447,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.3, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [{ terrain: terrain_003, modifier_percent: 20 }], hit_bonus_percent: 20 }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -468,7 +468,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.2, ignores_guard: true, bonus_vs_class: [], bonus_on_terrain: [{ terrain: terrain_002, modifier_percent: 20 }], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: ignores, soldiers: standard }
   designer_notes: ""
 
@@ -489,7 +489,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.9, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: row, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -511,7 +511,7 @@
   effects:
     - { type: damage, damage_type: magical, range: ranged, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.8, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
     - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: targets }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -532,7 +532,7 @@
   default_activation: null
   effects:
     - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 1.5 }
-  targeting: { side: ally, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
+  targeting: { side: ally, shape: single, default_main: { select: lowest, metric: hp_percent }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -553,7 +553,7 @@
   default_activation: null
   effects:
     - { type: heal, scaling: [{ stat: INT, coef: 1.0 }], multiplier: 0.8 }
-  targeting: { side: ally, shape: all, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: re_evaluate }
+  targeting: { side: ally, shape: all, default_main: { type: always }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -575,7 +575,7 @@
   effects:
     - { type: apply_status, status_id: buff_004, chance_percent: 100, target: self }
     - { type: apply_status, status_id: buff_006, chance_percent: 100, target: self }
-  targeting: { side: self, shape: self, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
+  targeting: { side: self, shape: self, default_main: { type: always }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: null, fallback: skip }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -596,7 +596,7 @@
   default_activation: null
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.1, ignores_guard: false, bonus_vs_class: [], bonus_on_terrain: [{ terrain: terrain_004, modifier_percent: 30 }], hit_bonus_percent: 0 }
-  targeting: { side: enemy, shape: row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: row, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -618,7 +618,7 @@
   effects:
     - { type: damage, damage_type: physical, range: melee, scaling: [{ stat: ATK, coef: 1.0 }], multiplier: 1.5, ignores_guard: false, bonus_vs_class: [], hit_bonus_percent: 0 }
     - { type: apply_status, status_id: debuff_001, chance_percent: 100, target: targets }
-  targeting: { side: enemy, shape: single, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
+  targeting: { side: enemy, shape: single, default_main: { select: nearest }, default_sub: null, valid_rows: [front, back], max_targets: 1, damage_distribution: per_target, fallback: re_evaluate }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 
@@ -639,7 +639,7 @@
   default_activation: null
   effects:
     - { type: apply_status, status_id: buff_005, chance_percent: 100, target: caster_row, include_soldiers: false }
-  targeting: { side: self, shape: caster_row, default_main: null, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: skip }
+  targeting: { side: self, shape: caster_row, default_main: { type: always }, default_sub: null, valid_rows: [front, back], max_targets: null, damage_distribution: null, fallback: skip }
   interactions: { guard: standard, soldiers: standard }
   designer_notes: ""
 

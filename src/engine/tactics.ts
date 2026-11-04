@@ -3,8 +3,9 @@
 //
 // Decisions (slice):
 //  - targeting (Decision 136, resolveTargets): a tactic is a skill plus two slots, main and sub, each a condition leaf (filters candidates) or a
-//    selector (orders them, never skips). The skill's default_activation (no target) and default_main always apply too; default_sub only when
-//    neither slot is a selector. Nothing set = nearest (front row first), ties by column index then unit id. The first candidate is the anchor:
+//    selector (orders them, never skips). Decision 145: the effective Main is the tactic's main, else the skill's default_main (a player Main
+//    REPLACES it); no effective Main = the tactic does not trigger ("no condition"). The skill's default_activation (no target) still applies
+//    too; default_sub only when neither player slot is a selector. Ties fall back to nearest (front row first), then column index, then unit id. The first candidate is the anchor:
 //    single = it, row/column = everyone alive in its row/column on its side, all = every candidate that passed the filters,
 //    self = the caster, caster_row = the caster's row.
 //  - selector metrics: hp_percent / hp_current / hp_missing / max_hp / active_pp / passive_pp / max_active_pp / max_passive_pp / a stat name.
@@ -175,7 +176,7 @@ type TargetResult = { targets: Unit[]; reason: string };
 
 /**
  * Targets for a player tactic (Decision 136). Candidates = the skill's target pool (side, soldier mode, valid_rows). Filters, in order: the
- * skill's default_main, a leaf in main, a leaf in sub, then default_sub (only when neither slot is a selector). A candidate passes a leaf iff it
+ * effective main (the tactic's main, else the skill's default_main), a leaf in sub, then default_sub (only when neither slot is a selector). A candidate passes a leaf iff it
  * is true for (self = caster, target = candidate), so a self/board leaf is an "only if" check. Selectors only order: main's first, sub's breaks
  * ties, then default order. The first candidate anchors the shape.
  */
@@ -193,10 +194,11 @@ export function resolveTargets(skill: Skill, tactic: Tactic, caster: Unit, state
   pool = pool.filter((u) => (t.valid_rows as string[]).includes(u.row));
   if (pool.length === 0) return { targets: [], reason: "no valid target: no candidate in the skill's target pool" };
 
+  const main = tactic.main ?? t.default_main;
   const leaf = (c: Tactic["main"]): ConditionNode | null => (c && !isSelector(c) ? c : null);
   const anySelector = isSelector(tactic.main) || isSelector(tactic.sub);
   const filters: [string, ConditionNode | null][] = [
-    ["skill default_main", t.default_main], ["main", leaf(tactic.main)], ["sub", leaf(tactic.sub)], ["skill default_sub", anySelector ? null : t.default_sub],
+    [tactic.main ? "main" : "skill default_main", leaf(main)], ["sub", leaf(tactic.sub)], ["skill default_sub", anySelector ? null : t.default_sub],
   ];
   let kept = pool;
   for (const [name, cond] of filters) {
@@ -214,7 +216,7 @@ export function resolveTargets(skill: Skill, tactic: Tactic, caster: Unit, state
   let ordered = [...kept].sort(byDefault);
   const via: string[] = [];
   const keys: Map<Unit, number>[] = [];
-  for (const [name, sel] of [["main", tactic.main], ["sub", tactic.sub]] as const) {
+  for (const [name, sel] of [["main", main], ["sub", tactic.sub]] as const) {
     if (!isSelector(sel)) continue;
     const k = selectorKey(sel, ordered, caster, state, rng);
     if (typeof k === "string") return { targets: [], reason: `no valid target: ${name} ${k}` };
@@ -264,6 +266,7 @@ export function decideTactic(state: BattleState, unit: Unit, rng: Rng): TacticDe
     if (unsupported) { skip(tactic, unsupported); continue; }
     const notReady = skillReady(unit, skill);
     if (notReady) { skip(tactic, notReady); continue; }
+    if (!tactic.main && !skill.targeting.default_main) { skip(tactic, "no condition: no Main set and the skill has no default_main"); continue; }
     const act = evaluateCondition(skill.default_activation, { state, self: unit });
     if (!act.value) { skip(tactic, `condition false: skill default_activation${act.reasons.length ? ` (${[...new Set(act.reasons)].join("; ")})` : ""}`); continue; }
     if (unit.pp.active.cur < skill.pp_cost) { skip(tactic, `not enough Active PP (${unit.pp.active.cur} < ${skill.pp_cost})`); continue; }

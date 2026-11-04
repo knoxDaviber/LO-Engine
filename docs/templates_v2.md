@@ -157,7 +157,7 @@ effects:
 targeting:
   side: enemy
   shape: single                     # single | row | column | all | self
-  default_main: null                # condition node, see Section 6
+  default_main: null                # the skill's default Main: a condition leaf or a selector (Section 6); a player Main replaces it, none = the tactic never triggers (Decision 145)
   default_sub: null
   valid_rows: [front, back]
   max_targets: 1
@@ -303,7 +303,7 @@ designer_notes: ""
 
 ## 6. Condition node (used for tactic conditions and skill defaults)
 
-A condition is either a leaf or a group. Groups combine with `all` (AND), `any` (OR), `not`. **Authored content may use full trees.** A player tactic slot (`main`, `sub`, a `prefer` filter) holds exactly one leaf or a selector (Decision 136). Ban-sheet slots and skills' default_activation / default_main / default_sub are limited to one leaf, or `all` of exactly two leaves (no nesting, OR or NOT). The validator enforces both (E_TACTIC_SHAPE).
+A condition is either a leaf or a group. Groups combine with `all` (AND), `any` (OR), `not`. **Authored content may use full trees.** A player tactic slot (`main`, `sub`, a `prefer` filter) holds exactly one leaf or a selector (Decision 136). Ban-sheet slots and skills' default_activation / default_main (or a selector) / default_sub are limited to one leaf, or `all` of exactly two leaves (no nesting, OR or NOT). The validator enforces both (E_TACTIC_SHAPE).
 
 ```yaml
 # group
@@ -381,7 +381,7 @@ main: null                  # one condition leaf or a selector; null = none
 sub: null                   # the same; a sub selector breaks ties of main's
 ```
 
-A leaf keeps the candidates (the skill's target pool) for which it is true with the candidate as `target`; a leaf about the hero itself or the board ("Own HP < 50%", `time_is`, `side_has`) is an "only if": false skips the tactic. A selector only orders. The skill's default_activation and default_main always apply too; default_sub only when neither slot is a selector. Example: `{ priority: 1, skill_id: skl_012, enabled: true, main: { type: hp_percent, side: target, op: "<", value: 70 }, sub: { select: lowest, metric: hp_percent } }`.
+A leaf keeps the candidates (the skill's target pool) for which it is true with the candidate as `target`; a leaf about the hero itself or the board ("Own HP < 50%", `time_is`, `side_has`) is an "only if": false skips the tactic. A selector only orders. The effective Main is the tactic's `main`, else the skill's default_main (a player Main replaces it, Decision 145); with neither the tactic does not trigger (W_TACTIC_NO_CONDITION). The skill's default_activation still always applies; default_sub only when neither slot is a selector. Example: `{ priority: 1, skill_id: skl_012, enabled: true, main: { type: hp_percent, side: target, op: "<", value: 70 }, sub: { select: lowest, metric: hp_percent } }`.
 
 Rules the validator enforces: max 10 tactics; each player slot is one leaf or a selector (E_TACTIC_SHAPE); no duplicate `priority`; every `skill_id` must be on the hero's skill list; a skill's `pp_pool` must match its `category`.
 

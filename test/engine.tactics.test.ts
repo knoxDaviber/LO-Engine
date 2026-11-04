@@ -203,23 +203,47 @@ test("prefer orders without skipping; main's selector beats sub's", () => {
   assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // tie on main: sub breaks it
 });
 
-test("the skill's default_main always applies with the player's conditions; default_sub only without a selector", () => {
+test("a player Main replaces the skill's default_main; a null Main uses it (Decision 145)", () => {
   const s = sampleState();
   const leon = unit(s, LEON);
   const sk = s.pack.byId.skills.get(ASSAULT)!;
   const saved = structuredClone(sk.targeting);
   try {
     sk.targeting.default_main = { type: "row_is", value: "back" };
+    leon.tactics = [tactic(ASSAULT)];
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // null main = the default
     leon.tactics = [tactic(ASSAULT, { main: { type: "unit_kind", is: "hero" } })];
-    assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
-    leon.tactics = [tactic(ASSAULT, { main: { type: "class_is", side: "target", value: "infantry" } })]; // the Emperor, but he is front row
-    assert.match(decideTactic(s, leon, rng()).evaluations[0]!.reason, /condition false: main class_is/);
-    sk.targeting.default_main = null;
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // the default is no longer applied
+    sk.targeting.default_main = { select: "farthest" };
+    leon.tactics = [tactic(ASSAULT)];
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // a selector default works
+    sk.targeting.default_main = { type: "always" };
     sk.targeting.default_sub = { type: "row_is", value: "back" };
     leon.tactics = [tactic(ASSAULT)];
     assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]);
     leon.tactics = [tactic(ASSAULT, { sub: { select: "nearest" } })];
-    assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // a selector turns default_sub off
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [EMPEROR]); // a selector in a player slot turns default_sub off
+    sk.targeting.default_main = { select: "farthest" };
+    leon.tactics = [tactic(ASSAULT, { sub: { select: "nearest" } })];
+    assert.deepEqual(ids(decideTactic(s, leon, rng())), [JASMINE]); // null Main + player Sub selector: the default orders first, Sub only breaks ties
+  } finally {
+    sk.targeting = saved;
+  }
+});
+
+test("no Main and no default_main: the tactic is skipped as 'no condition' and the next one runs", () => {
+  const s = sampleState();
+  const leon = unit(s, LEON);
+  const sk = s.pack.byId.skills.get(ASSAULT)!;
+  const saved = structuredClone(sk.targeting);
+  try {
+    sk.targeting.default_main = null;
+    leon.tactics = [tactic(ASSAULT, { priority: 1 }), tactic(HOOVES, { priority: 2 })];
+    const d = decideTactic(s, leon, rng());
+    assert.equal(d.skillId, HOOVES);
+    assert.match(d.evaluations[0]!.reason, /^no condition/);
+    leon.tactics = [tactic(ASSAULT, { main: { type: "unit_kind", is: "hero" } })];
+    assert.equal(decideTactic(s, leon, rng()).skillId, ASSAULT); // a player Main is enough
   } finally {
     sk.targeting = saved;
   }

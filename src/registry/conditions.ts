@@ -76,6 +76,7 @@ export const LEAF_REGISTRY: Record<string, LeafSpec> = {
   row_rank: player(z.strictObject({ side: side.optional(), value: z.enum(["most", "least"]) }), "The unit's board row holds the most / least combatants of its side's occupied rows (ties count as both)"),
   column_full: player(z.strictObject({ side: side.optional() }), "The unit's column holds a living hero in both the front and the back hero row"),
   is_self: player(none, "The unit is the acting hero itself"),
+  always: player(none, "Always true (a check that never skips)"),
   not_self: player(none, "The unit is not the acting hero"),
   race_is: player(z.strictObject({ side, value: z.enum(RACES) }), "Unit race (squads count as human)"),
   // Status

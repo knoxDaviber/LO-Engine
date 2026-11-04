@@ -112,6 +112,8 @@ export function buildPresets(statuses: StatusRef[]): Preset[] {
   // Own condition
   const O = "Own condition";
   add(O, "is_self", "User", "Filter", "are the acting hero itself; skipped if none.", { type: "is_self" });
+  add(O, "always", "Always", "Check", "always holds (no filter).", { type: "always" });
+  add(O, "nearest", "Nearest", "Prioritise", "the nearest target, front row first.", { select: "nearest" });
   add(O, "not_self", "Other combatants", "Filter", "are not the acting hero; skipped if none.", { type: "not_self" });
   add(O, "self_buffed", "User is Buffed", "Check", "the acting hero has any buff.", { type: "has_any_buff", side: "self" });
   add(O, "self_debuffed", "User is Debuffed", "Check", "the acting hero has any debuff.", { type: "has_any_debuff", side: "self" });
