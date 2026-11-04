@@ -324,3 +324,38 @@ test("rogue: with the order exhausted a win goes straight to the next prep", () 
 test("rogue: the last win is the victory", () => {
   assert.equal(afterResult(pack, rogueFought(8, () => [], true, ROGUE_STAGES.length - 1)).screen, "victory");
 });
+
+/** Real tutorial-stage battles over a few seeds, until one has a beat that `want` accepts. */
+function findBeat(want: (b: Beat) => boolean) {
+  for (let seed = 1; seed <= 80; seed++) for (let stage = 0; stage < STAGES.length; stage++) {
+    const r = runBattle(pack, stageBattle(seed, stage).battle), replay = buildReplay(r.events), beat = replay.beats.find(want);
+    if (beat) return { r, replay, beat };
+  }
+  throw new Error("no battle with such a beat in the scanned seeds");
+}
+
+test("a Bodyguard cover is a beat cover, with the Cover pop on the coverer", () => {
+  const { beat } = findBeat((b) => b.covers.length > 0);
+  const c = beat.covers[0]!;
+  assert.notEqual(c.unit, c.ally);
+  assert.ok(beat.pops.some((p) => p.kind === "text" && p.unit === c.unit && p.text === "Cover"));
+});
+
+test("a damaging reaction is its own followup beat: the reactor acts, its damage pops there, no damage is lost", () => {
+  const { r, replay, beat } = findBeat((b) => b.followup);
+  const u = replay.units.find((x) => x.id === beat.actor)!;
+  assert.equal(u.kind, "hero");
+  assert.ok(beat.lines[0]!.startsWith(`${u.name} follows up with `));
+  assert.ok(beat.pops.some((p) => (p.kind === "damage" || p.kind === "miss") && p.unit === beat.targets[0] && !p.by));
+  assert.ok(["melee", "shot", "cast"].includes(motionOf(u, beat, replay.units)!));
+  const popped = replay.beats.flatMap((b) => b.pops).reduce((n, p) => n + (p.kind === "damage" ? p.amount : 0), 0);
+  const logged = r.events.reduce((n, e) => n + (e.type === "damage" || e.type === "self_hp_cost" ? e.amount : 0), 0);
+  assert.equal(popped, logged);
+  assert.ok(captionsFor(replay).every((c) => c.beat < replay.beats.length));
+});
+
+test("a reaction only splits when the damage carries the skill it paid for", () => {
+  const { r } = findBeat((b) => b.followup);
+  const events = r.events.map((e) => (e.type === "pp_spend" && e.pool === "passive" ? { ...e, skill: "not_the_damage_skill" } : e));
+  assert.ok(!buildReplay(events).beats.some((b) => b.followup));
+});

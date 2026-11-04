@@ -32,7 +32,7 @@ function Bar({ hp, max }: { hp: number; max: number }) {
 
 interface Aim { dx: number; dy: number; reach: number }
 
-function Unit({ u, units, snap, beat, landed, speed, size, aim, onInspect }: { onInspect: () => void; u: UnitInfo; units: UnitInfo[]; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; aim: Aim | null }) {
+function Unit({ u, units, snap, beat, landed, speed, size, aim, cover, onInspect }: { onInspect: () => void; cover: Aim | null; u: UnitInfo; units: UnitInfo[]; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; aim: Aim | null }) {
   const actorSide = units.find((x) => x.id === beat?.actor)?.side;
   const lane = u.row as Lane;
   const pos = fieldPos(u.side, lane, u.column);
@@ -50,11 +50,12 @@ function Unit({ u, units, snap, beat, landed, speed, size, aim, onInspect }: { o
       : motion === "squad" ? { dx: aim.dx * 0.22, dy: aim.dy * 0.22 }
         : motion === "shot" ? { dx: aim.dx * -0.1, dy: aim.dy * -0.1 }
           : { dx: 0, dy: 0 };
+  const dash = cover ?? body;
   const style = {
-    left: `${pos.x}%`, top: `${pos.y}%`, ["--speed" as string]: speed, ["--dx" as string]: `${body.dx}vw`, ["--dy" as string]: `${body.dy}vh`,
+    left: `${pos.x}%`, top: `${pos.y}%`, ["--speed" as string]: speed, ["--dx" as string]: `${dash.dx}vw`, ["--dy" as string]: `${dash.dy}vh`,
     ["--ax" as string]: `${aim?.dx ?? 0}vw`, ["--ay" as string]: `${aim?.dy ?? 0}vh`,
   } as CSSProperties;
-  const cls = `unit unit-${u.kind} side-${u.side}${snap.alive ? "" : " dead"}${acting ? " acting" : ""}${motion ? ` motion-${motion}` : ""}${hit ? " hit" : ""}${healed ? " healed" : ""}`;
+  const cls = `unit unit-${u.kind} side-${u.side}${snap.alive ? "" : " dead"}${acting ? " acting" : ""}${motion ? ` motion-${motion}` : ""}${cover ? " motion-cover" : ""}${hit ? " hit" : ""}${healed ? " healed" : ""}`;
   return (
     <button type="button" className={cls} style={style} data-unit={u.id} onClick={onInspect} aria-label={`Inspect ${u.name}`}>
       {aim && (motion === "shot" || motion === "cast") && <i key={`f${beat!.index}`} className={`fx fx-${motion}`} aria-hidden />}
@@ -138,6 +139,14 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
     return { dx: b.x - a.x, dy: b.y - a.y, reach: t.side === u.side ? 0.1 : 0.42 };
   };
 
+  /** The coverer dashes most of the way to its ally, toward the attacker's side so both stay visible. */
+  const coverFor = (u: UnitInfo): Aim | null => {
+    const c = beat?.covers.find((x) => x.unit === u.id), ally = units.find((x) => x.id === c?.ally), atk = units.find((x) => x.id === beat?.actor);
+    if (!c || !ally || !atk) return null;
+    const a = fieldPos(u.side, u.row as Lane, u.column), b = fieldPos(ally.side, ally.row as Lane, ally.column), t = fieldPos(atk.side, atk.row as Lane, atk.column);
+    return { dx: b.x - a.x + (t.x - b.x) * 0.12, dy: (b.y - a.y + (t.y - b.y) * 0.12) / 1.6, reach: 1 };
+  };
+
   const banner = beat && (beat.kind === "phase" || beat.kind === "phase_end" || beat.kind === "end");
   const logLines = beats.slice(0, i + 1).flatMap((b) => b.lines);
 
@@ -168,7 +177,7 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
           const pos = fieldPos(side, r, c);
           return <span key={`${side}${r}${c}`} className={`tile ground${side === "defender" ? " foe" : ""}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}><span className="tile-floor" /></span>;
         })))}
-        {units.map((u) => <Unit key={u.id} u={u} units={units} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} aim={aimFor(u)} onInspect={() => setInspect(inspect === u.id ? null : u.id)} />)}
+        {units.map((u) => <Unit key={u.id} u={u} units={units} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} aim={aimFor(u)} cover={coverFor(u)} onInspect={() => setInspect(inspect === u.id ? null : u.id)} />)}
       </section>
 
       {inspect && (() => {

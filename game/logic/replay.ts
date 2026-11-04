@@ -33,6 +33,10 @@ export interface Beat {
   /** Active PP the actor paid for this action. */
   spent: number;
   squadHit: boolean;
+  /** Bodyguard covers: the unit stands in front of the ally for the hit. */
+  covers: { unit: string; ally: string }[];
+  /** A passive reaction that dealt damage on another unit's action, split out so the reactor moves. */
+  followup: boolean;
   /** Why the phase ended, on a phase_end beat. */
   reason: string | null;
   lines: string[];
@@ -113,7 +117,7 @@ export function buildReplay(events: BattleEvent[]): Replay {
   const open = (kind: Beat["kind"], actor: string | null, skill: string | null): Beat => {
     close();
     changed = kind !== "action";
-    return (cur = { index: 0, kind, phase, actor, skill, targets: [], pops: [], deaths: [], soldierDeaths: 0, spent: 0, squadHit: false, reason: null, lines: [], units: [], next: [], at: 0 });
+    return (cur = { index: 0, kind, phase, actor, skill, targets: [], pops: [], deaths: [], soldierDeaths: 0, spent: 0, squadHit: false, covers: [], followup: false, reason: null, lines: [], units: [], next: [], at: 0 });
   };
   function close(): void {
     const b = cur;
@@ -124,16 +128,39 @@ export function buildReplay(events: BattleEvent[]): Replay {
     b.units = units.map((u) => { const s = snaps.get(u.id)!; return { ...s, statuses: [...s.statuses] }; });
     b.next = [...due.entries()].filter(([id]) => snaps.get(id)!.alive).sort((x, y) => x[1] - y[1]).map(([id]) => id).slice(0, 8);
     beats.push(b);
+    pending = null;
   }
   /** The beat to write to; an event outside any beat (never expected after phase_start) still lands in one. */
   const beat = (): Beat => { changed = true; return cur ?? open("action", null, null); };
   const by = (unit: string) => (cur && unit !== cur.actor ? { by: unit } : {});
+  // A reaction that spends PP on another unit's action and then deals damage becomes its own beat; the original actor's later damage resumes in a new one.
+  let pending: { unit: string; id: string; skill: string; pop: Pop; line: string; at: number } | null = null; // id: the reaction's skill id, which its damage, hit rolls and cover carry
+  let resume: { unit: string; skill: string | null } | null = null;
+  const route = (unit: string, id: string, target: string): void => {
+    if (!cur) return;
+    if (pending && unit === pending.unit && id === pending.id && cur.actor !== unit) {
+      const p = pending;
+      pending = null;
+      cur.pops = cur.pops.filter((x) => x !== p.pop);
+      const l = cur.lines[p.at]; // lines[0] may have grown (cover): cut the trigger text out of it
+      if (l === p.line) cur.lines.splice(p.at, 1); else if (l?.includes(p.line)) cur.lines[p.at] = l.replace(p.line, "").trim();
+      if (!cur.followup) { resume = { unit: cur.actor!, skill: cur.skill }; due.delete(cur.actor!); } // like the engine, the unit mid-action is off the timeline
+      open("action", unit, p.skill).followup = true;
+      cur!.targets = [target];
+      cur!.lines.push(`${U(unit)} follows up with ${p.skill}.`);
+    } else if (resume && cur.followup && unit === resume.unit) {
+      const r = resume;
+      resume = null;
+      open("action", r.unit, r.skill).targets = [target];
+    }
+  };
 
   for (const [i, e] of events.entries()) {
     pos = i;
     switch (e.type) {
       case "phase_start": {
         phase = e.phase;
+        pending = resume = null;
         due.clear();
         open("phase", null, null);
         for (const u of e.units) {
@@ -150,13 +177,16 @@ export function buildReplay(events: BattleEvent[]): Replay {
         if (e.due === null) due.delete(e.unit); else due.set(e.unit, e.due);
         break;
       case "tactic_evaluation": {
+        pending = resume = null;
         open("action", e.unit, e.chosen ? S(e.chosen) : null);
         break;
       }
       case "squad_attack":
+        pending = resume = null;
         open("squad", e.unit, "Squad attack").lines.push(`${U(e.unit)} attacks with ${e.attackers} soldiers.`);
         break;
       case "action_prevented":
+        pending = resume = null;
         open("stunned", e.unit, null).lines.push(`${U(e.unit)} cannot act (${ST(e.status)}).`);
         beat().pops.push({ kind: "text", unit: e.unit, text: ST(e.status) });
         break;
@@ -170,7 +200,11 @@ export function buildReplay(events: BattleEvent[]): Replay {
         const s = snaps.get(e.unit)!, b = beat();
         if (e.pool === "active") s.ppActive = e.after; else s.ppPassive = e.after;
         if (e.unit === b.actor && e.pool === "active") b.spent += e.cost;
-        else { b.pops.push({ kind: "text", unit: e.unit, text: S(e.skill) }); b.lines.push(`${U(e.unit)} triggers ${S(e.skill)}.`); }
+        else {
+          const pop: Pop = { kind: "text", unit: e.unit, text: S(e.skill) }, line = `${U(e.unit)} triggers ${S(e.skill)}.`;
+          b.pops.push(pop); b.lines.push(line);
+          if (b.actor) pending = { unit: e.unit, id: e.skill, skill: S(e.skill), pop, line, at: b.lines.length - 1 };
+        }
         break;
       }
       case "pp_change": {
@@ -180,10 +214,11 @@ export function buildReplay(events: BattleEvent[]): Replay {
         break;
       }
       case "roll":
-        if (e.kind === "hit" && !e.result) { const b = beat(); b.pops.push({ kind: "miss", unit: e.target, ...by(e.unit) }); b.lines.push(`${U(e.unit)} misses ${U(e.target)}.`); }
+        if (e.kind === "hit" && !e.result) { route(e.unit, e.skill, e.target); const b = beat(); b.pops.push({ kind: "miss", unit: e.target, ...by(e.unit) }); b.lines.push(`${U(e.unit)} misses ${U(e.target)}.`); }
         else if (e.kind === "status" && !e.result) beat().pops.push({ kind: "text", unit: e.target, text: "Resisted" });
         break;
       case "damage": {
+        route(e.unit, e.skill, e.target);
         const b = beat();
         totals[e.unit]!.damage += e.amount;
         if (e.soldier === undefined) snaps.get(e.target)!.hp = e.hp_after;
@@ -268,9 +303,11 @@ export function buildReplay(events: BattleEvent[]): Replay {
         beat().pops.push({ kind: "text", unit: e.unit, text: "Immune" });
         break;
       case "cover": {
+        route(e.attacker, e.skill, e.ally);
         const b = beat();
+        b.covers.push({ unit: e.unit, ally: e.ally });
         b.pops.push({ kind: "text", unit: e.unit, text: "Cover" });
-        b.lines.push(`${U(e.unit)} shields ${U(e.ally)}.`);
+        const said = `${U(e.unit)} shields ${U(e.ally)}.`; if (b.lines[0]) b.lines[0] += ` ${said}`; else b.lines.push(said); // one line: the caption only shows the first
         break;
       }
       case "not_implemented": notImplemented.push(e.what); break;
