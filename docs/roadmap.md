@@ -106,7 +106,7 @@ Balance numbers from 4 heroes are meaningless, so content grows alongside the si
 ## Later (not scheduled)
 
 - **Main game client** (Decision 137): separate from the editor, all default content built in, visual-first UI inspired by Unicorn Overlord; import and export with the editor.
-- **Soldier skill points** (Decision 138): limited points into soldier skill trees; design the open questions in Section 18 first.
+- **Soldier skill points** (Decision 138): 20 points per soldier type into skill trees; design the tree contents in Section 18 first.
 
 ---
 

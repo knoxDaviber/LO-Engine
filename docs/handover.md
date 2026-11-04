@@ -49,23 +49,18 @@ progress in `docs/roadmap.md`.
      tiebreak, not combat. Cause is the damage wall: summed squad DEF (Decision 130) meets hero ATK, e.g. the Emperor's 180
      ATK vs the Heavy Infantry squad's 182 DEF = min damage (4 per hit) every action; `nearest, front row first` keeps him
      on the squad. full4v4 swapped: the Leon team wins 12% by wipe on either side.
-   **Designer calls:** (a) skill multipliers (planned) or cap/scale summed squad DEF against heroes; (b) whether the
-   timeout tiebreak should stay defender-wins (Decision 115) or use HP%; (c) the Monster team's focus fire + back-row
-   assassin may be fine as counterplay, but the generic challenger kit has no answer to it.
-2. **Default PP** (designer: decide after the formula), then sweep PP 2-5 under the chosen formula.
-3. **Two-sided blessings (designer notes, 2026-11-03).** Each god gets a DEF and an ATK enchantment; new 2-pieces:
-   Mirror HP+20%, Full Moon DEF/MDEF+10%, Plate GUARD+10, Gift HP+20%, Breeze ATK/INT+10%, Meteor CRIT+10, Rush EVA+10.
-   Given: Mirror DEF reflect 30% (single-target); Full Moon DEF: HP>80% DEF/MDEF+20%, ATK: HP>80% ATK/INT+20%; Plate DEF
-   -10% damage taken; Gift DEF: when attacked, 50% chance to heal 30% max HP after the attack (once per enemy action);
-   Breeze ATK: HP>80% SPD+20%; Meteor ATK: crit damage +30%; Rush ATK: ignore GUARD on single-target attacks. Blank in the
-   short list (Mirror ATK, Plate ATK, Gift ATK, Breeze DEF, Meteor DEF, Rush DEF): the designer's long document proposes
-   each (Mirror ATK: next attack +30% after being attacked; Plate ATK: +20% vs enemies with GUARD; Gift ATK: heal 20% on a
-   kill; Breeze DEF: HP>80% EVA+20%; Meteor DEF: -30% crit damage taken; Rush DEF: counter for 50% ATK after a dodge);
-   confirm before building. Soldier effects, AP/PP refunds and extra gods (Clock, Crystal, Ice, Tree of Life) are later.
-   The sigil choice must record the side (schema change).
+   **Correction (designer 2026-11-04):** always assume heroes have weapons and gear. The sample / full4v4 wall above comes
+   from their bare heroes, so it is not a finding yet.
+1a. **Next: gear up `sample` and `full4v4`,** rerun the batch, and only then judge squad DEF and skill multipliers.
+1b. **Timeout tiebreak (Decision 139, not built):** a phase-3 timeout goes to the higher remaining HP%, exact tie to the
+   defender. Replaces the rule in `runBattle` (`src/engine/phase.ts`); decide whether HP% counts soldiers; update the batch
+   report, which assumes timeout = defender.
+2. **Default PP:** 3/3 for now (Decision 140, not locked; max still 4). Sweep PP 2-5 after 1a and 1b, then the designer decides.
+3. **Two-sided blessings: waiting on designer approval of `docs/enchantments_proposal.md`** (critique pass over all 14, not
+   built or simmed). Build only after approval; the sigil choice must record the side (schema change).
 4. **Done:** `node_modules` is untracked (commit 55e141c); nothing left here.
 5. **4.3 balance pass** after 1-2: cost weights (`rules.cost`, `effect_price` [DEFAULT]), Jasmine's aura `cost_adjustment`,
-   roll constants, GUARD dual role, leader focus (back-row leaders now allowed), timeout tiebreak (Decision 115). The draft
+   roll constants, GUARD dual role, leader focus (back-row leaders now allowed), The draft
    is identical every run (picks don't depend on the seed).
    Gear now dominates hero cost (Decision 135): axe + heavy armor + shield + bracelet prices ~333, about 70-80% of a bare
    hero's ~400-500, because ATK weighs 1.0 per point; recalibrate the cost weights before any cost caps are set.
@@ -77,7 +72,8 @@ progress in `docs/roadmap.md`.
    stack trace.
 
 Blocked / later: Step 6 tower service needs the meta loop designed first (roadmap Step 6). Main game client (Decision 137:
-the editor is a separate tool) and soldier skill points (Decision 138) are specced, not scheduled; open questions in design doc Section 18.
+the editor is a separate tool) and soldier skill points (Decision 138: 20 per soldier type, trees with prerequisites, 5 levels per category, season-end
+reallocation, slight cost) are specced, not scheduled; open questions in design doc Section 18.
 
 ## Brief: editor visual overhaul (done via the designer zip, applied 2026-11-03; kept for reference)
 

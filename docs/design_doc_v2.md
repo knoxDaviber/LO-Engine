@@ -55,7 +55,7 @@ Legend used throughout: **[DECIDED]** = confirmed by the designer. **[DEFAULT]**
 - **Squads share their leader's buffs and debuffs** [DECIDED]: any stat buff or debuff applied to the leader also applies to the leader's squad, because they are one squad. Status and buff effects that hit "everyone in a row" or "the party" skip squads unless they say otherwise, so a squad is otherwise buffed only through its leader (Iron Fist's row guard reaches the squad only when the Emperor is leader). **Only stat modifiers propagate** [DECIDED]: death intercepts (Fairy's Grace), Regen and control statuses (Stun, Confusion) stay on the leader.
 - Heroes can filter targeting to heroes only, ignoring soldiers [DECIDED] (see Section 4).
 - Soldier squad wiped: the hero lives. Hero dead: squad removed.
-- **Soldier skill points** [DECIDED concept, later] (Decision 138): players allocate a limited pool of points into soldier skill trees, so that everyone's soldiers differ. Example nodes: more damage to the class triangle, less damage taken from the class triangle, more damage to buffed or debuffed units, more damage from the back row, less damage taken on certain battlefields. Not built yet; open questions are in Section 18.
+- **Soldier skill points** [DECIDED, later] (Decision 138): each soldier type has 20 skill points, spent in skill trees with prerequisites, so that everyone's soldiers differ. Each category goes up to 5 levels (so at most 4 maxed categories). Points can be reallocated at season end, and spent points raise cost slightly. Example categories: more damage to the class triangle, less damage taken from the class triangle, more damage to buffed or debuffed units, more damage from the back row, less damage taken on certain battlefields. Not built yet; the tree contents are open (Section 18).
 
 ---
 
@@ -218,7 +218,7 @@ A battle is up to **3 phases**.
 - No free action: a hero with no PP does nothing [DECIDED].
 
 ### 5.4 Result
-Survivors after phase 3 with no side wiped: **the challenger loses** [DECIDED]. In PvE the player is always the challenger.
+Survivors after phase 3 with no side wiped: **the side with the higher remaining HP% wins** [DECIDED, Decision 139, not built yet: the engine still gives it to the defender]. In PvE the player is always the challenger.
 - **Known risk: turtling** [DECIDED to keep the rule and rely on bans]. Defenders can build walls that run out the clock. The anchor is unbannable, so defenders will make their best wall the anchor. The batch simulator must report the timeout rate (Section 14). Candidate fix: a timeout tiebreak by remaining HP % or total damage dealt (Decision 115).
 
 ### 5.5 Challenger edits between phases [DECIDED]
@@ -246,7 +246,7 @@ The challenger may adjust between phases. [DEFAULT scope]:
 
 ## 7. PP [DECIDED]
 
-- Active PP base 2, Passive PP base 2; max 4 with equipment [DECIDED]. Dragon Scale (+1 Active PP) is a valid test.
+- Active PP base 3, Passive PP base 3 [DEFAULT, not locked, Decision 140]; max 4 with equipment [DECIDED]. Dragon Scale (+1 Active PP) is a valid test.
 - Separate pools. Active skills spend Active, passives spend Passive.
 - PP is spent per use (a 1-PP skill can be used twice at 2 PP).
 - **Passives spend PP when their condition triggers them, and the passive then becomes *used*** [DECIDED]. If there is not enough Passive PP when the condition is met, the passive does not fire (logged).
@@ -377,7 +377,7 @@ Rules [DEFAULT] (Decision 125):
 
 ## 12. Authoring and the Editor
 
-- **The editor and the main game are two separate products** [DECIDED] (Decision 137). The **editor** (`editor/`) is a tool: battle simulation, testing and balance, plus a character creator, with import and export into the main game. It is not what players play, and its UI can stay technical. The **main game** is a separate client, not built yet: it ships with all default heroes, weapons, soldiers and other content, and has a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Both share the same content schema and engine. The import/export format is not designed yet.
+- **The editor and the main game are two separate products** [DECIDED] (Decision 137). The **editor** (`editor/`) is a tool: battle simulation, testing and balance, plus a character creator, with import and export into the main game. It is not what players play, and its UI can stay technical. The **main game** is a separate client, not built yet: it ships with all default heroes, weapons, soldiers and other content, and has a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Both share the same content schema and engine. Import and export use the same YAML files as `content/` [DEFAULT], checked by the same validator on import.
 - Mechanics are stored as structured data (JSON/YAML). Markdown is for lore only. Free-text fields like "1.2x" or "Armour/Armor" are what produce validation errors.
 - Enumerated tags for equipment types: weapons `sword`, `spear`, `axe`, `staff`, `tome`, `bow`, `dagger`, `hammer`; armor `light_armor`, `heavy_armor`, `robe`; accessory categories `shield`, `gloves`, `boots`, `ring`, `amulet`, `charm`, `bracelet`, `earring`, `cloak`, `belt`. A class can use several weapon types (Decision 120). Every item has exactly one type valid for its slot (`E_EQUIP_TYPE`). A hero must list weapon, armor and shield types in `restrictions.equipment_tags` to wear them; the other accessory categories are open to every hero.
 - The editor shows the per-stat stacking breakdown (Section 9.1) alongside the tactics board.
@@ -591,8 +591,10 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 | 134 | Additive-pool damage, hero hits, Speed Boots | DECIDED formula shape, DEFAULT values | "ATK (from all sources) - DEF (from all sources) x (DMG bonus - DMG reduction)": `pool` formula, `(ATK_total - DEF_total) x (1 + bonus% - reduction%)`, class advantage / pair / bonus_vs_class / bonus_on_terrain in the bonus part, guard and reduce_damage in the reduction part, cap 75%, crit after (Section 8). "Heroes hit for 4x to begin with": `rules.damage.hero_hits` 4 multiplies hero damage (not squads, not heals), sweepable. Older formulas kept selectable. equip_006 Speed Ring re-typed to boots as Speed Boots |
 | 135 | Equipment base retune | DEFAULT values (designer guide) | "Increase weapon stats by roughly 3x, then defence gear roughly 1/3 - 1/2 of weapons; sword ATK 150 DEF 24, Leather Armour (light_armor) DEF 50 HP 150. Armour should give a better stat total, ATK is just very powerful. Building up a high defence should be an intentional build." The designer asked "roughly 3x" with the sword anchored at ATK 150 / DEF 24; the anchor set weapon ATK at 5x the previous base table (sword ATK 30), weapon secondary lines ~3x; armor main defensive line 1/3-1/2 of a weapon line with a slightly higher raw total; offensive accessories scale with weapons; defensive accessories about 2x, kept modest, so stacking DEF is deliberate; CRIT / GUARD / SPD identities unchanged. Table in Section 12.1 |
 | 136 | Tactic = skill + Main + Sub | DECIDED (DEFAULT details) | Player tactics drop `activation`, `targeting` and `fallback`: `{ priority, skill_id, enabled, main, sub }`, each slot one condition leaf or a selector (Section 4.1-4.3). Leaves filter the candidates (self / board leaves act as "only if"), selectors only order (Main first, Sub tie-break; new `prefer` with a `filter` leaf, metrics max_hp / max_active_pp / max_passive_pp; selector `side` dropped). Skill default_activation and default_main always apply; default_sub only without a selector. Races (`race` on characters: human, elf, beastfolk, dwarf, dragon, demon, angel; [DEFAULT] squads human), battle `time: day / night` (default day; no race day/night bonuses yet) and new leaves: time_is, race_is, has_any_buff / lacks_any_buff / lacks_any_debuff, row_size, row_rank (ties count as both, among occupied rows), column_full, average_hp_percent ([DEFAULT] every living hero and soldier counts once), combatants, side_has, is_self / not_self, attacked_since_last_action with damage_type / shape / by_class / by_race filters |
-| 137 | Editor and main game are separate | DECIDED | The editor is the simulation, testing and character creation tool, with import and export into the main game. The main game is a separate client with all default content built in and a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Same schema and engine; import/export format open (Section 12) |
-| 138 | Soldier skill points | DECIDED concept, later | Limited points allocated into soldier skill trees to differentiate players' soldiers (class triangle damage dealt/taken, vs buffed or debuffed units, back-row damage, damage taken by battlefield). Separate from hero progression (Decision 114). Details open (Section 18) |
+| 137 | Editor and main game are separate | DECIDED | The editor is the simulation, testing and character creation tool, with import and export into the main game. The main game is a separate client with all default content built in and a much more user-friendly, visual-first UI inspired by Unicorn Overlord. Same schema and engine; import/export uses the `content/` YAML files, validated on import [DEFAULT] (Section 12) |
+| 138 | Soldier skill points | DECIDED, later | 20 points per soldier type, spent in skill trees with prerequisites, up to 5 levels per category; reallocated at season end; slight cost increase. Differentiates players' soldiers (class triangle damage dealt/taken, vs buffed or debuffed units, back-row damage, damage taken by battlefield). Separate from hero progression (Decision 114). Tree contents open (Section 18) |
+| 139 | Timeout result | DECIDED (not built) | Replaces "survivors after phase 3 = challenger loss" (Decisions 68, 115): a phase-3 timeout goes to the side with the higher remaining HP%; an exact tie goes to the defender [DEFAULT] |
+| 140 | Default PP 3/3 | DEFAULT, not locked | Active 3, Passive 3 for now, max still 4; still being decided after the PP sweep |
 
 ---
 
@@ -656,8 +658,8 @@ The **phase controller** and **batch simulator** are new relative to v1. The bat
 - Tower attempt limits, HP persistence between floors, and anti-degenerate measures (Section 11).
 - Devotion: the pantheon and blessings are placeholders (Decision 125); final gods and blessing balance come with the batch sim.
 - **Races** (Decisions 109, 112): final race list and lore; each race's stat lean and racial soldier type or class option; whether to add a racial passive list after the batch sim. Factions (Evil, Light, Forest-folk) may need recasting as political allegiances so they do not overlap races.
-- **Soldier skill points** (Decision 138): how many points and where they come from, whether they are spent per soldier type or per squad, whether they can be respecced, the tree layout and node values, and how they affect cost (Section 2A).
-- **Editor import/export** (Decision 137): the file format and what can move between the editor and the main game (official tier vs community content).
+- **Soldier skill points** (Decision 138): how points are earned (or all 20 from the start), the tree layout, prerequisites and per-level values, and the cost weight (Section 2A).
+- **Editor import/export** (Decision 137): which content can move between the editor and the main game (official tier vs community content).
 
 
 ## Implementation note: schema is the source of truth
