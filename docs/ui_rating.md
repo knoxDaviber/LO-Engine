@@ -4,15 +4,15 @@ Scored 1-10 from real screenshots at 1280x720, as a strategy RPG player would (F
 
 Screenshot note: the browser pane barely advances CSS animations, so finish them first (`document.getAnimations()`, `finish()` on the finite ones) or the title menu and narrator look missing.
 
-| Category | P1 | P2 |
-|---|---|---|
-| Board readability | 6 | 8 |
-| Tactics setup | 6 | 6 |
-| Battle feedback | 6 | 8 |
-| Information access | 6 | 7 |
-| Menu flow | 7 | 7 |
-| Art direction | 7 | 9 |
-| Onboarding | 7 | 7 |
+| Category | P1 | P2 | P3 |
+|---|---|---|---|
+| Board readability | 6 | 8 | 8 |
+| Tactics setup | 6 | 6 | 8 |
+| Battle feedback | 6 | 8 | 8 |
+| Information access | 6 | 7 | 8 |
+| Menu flow | 7 | 7 | 7 |
+| Art direction | 7 | 9 | 9 |
+| Onboarding | 7 | 7 | 7 |
 
 ## Pass 1 (baseline, commit 236ae06)
 
@@ -31,3 +31,9 @@ Screenshot note: the browser pane barely advances CSS animations, so finish them
 - **Information access (6 to 7):** the log no longer covers heroes. Still no unit inspection during battle.
 - **Art direction (7 to 9):** painted scenes per stage, matching tiles, music. Bright scenes need the dim overlay to keep text readable.
 - **Tactics setup, Menu flow, Onboarding:** no visible change, so no score change. The hero panel still hides the enemy side.
+
+## Pass 3 (Facing strip, unit inspection)
+
+- **Tactics setup (6 to 8):** the Tactics tab now lists who you face, with matchup tags, so the panel no longer hides the enemy. The strip has no visible heading yet, and "Nearest / None" still reads like raw data.
+- **Information access (7 to 8):** click any unit in battle for a live card with HP, PP and statuses.
+- **Others:** no visible change, so no score change.

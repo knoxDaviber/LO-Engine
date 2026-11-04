@@ -9,7 +9,7 @@ import { pack } from "./pack";
 import { Narrator } from "./Tutorial";
 import { MuteButton } from "./music";
 import { tileStyle } from "./scenes";
-import { Backdrop, Crest, fieldPos, Pips, Screen, useScale, type Lane } from "./ui";
+import { Backdrop, cap, Crest, fieldPos, Pips, Screen, useEsc, useScale, type Lane } from "./ui";
 
 const SPEEDS = [1, 2, 4];
 const BASE: Record<Beat["kind"], number> = { phase: 1700, action: 1250, squad: 850, stunned: 800, phase_end: 1500, end: 1500 };
@@ -32,7 +32,7 @@ function Bar({ hp, max }: { hp: number; max: number }) {
 
 interface Aim { dx: number; dy: number; reach: number }
 
-function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo; units: UnitInfo[]; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; aim: Aim | null }) {
+function Unit({ u, units, snap, beat, landed, speed, size, aim, onInspect }: { onInspect: () => void; u: UnitInfo; units: UnitInfo[]; snap: UnitSnap; beat: Beat | null; landed: boolean; speed: number; size: number; aim: Aim | null }) {
   const actorSide = units.find((x) => x.id === beat?.actor)?.side;
   const lane = u.row as Lane;
   const pos = fieldPos(u.side, lane, u.column);
@@ -56,7 +56,7 @@ function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo;
   } as CSSProperties;
   const cls = `unit unit-${u.kind} side-${u.side}${snap.alive ? "" : " dead"}${acting ? " acting" : ""}${motion ? ` motion-${motion}` : ""}${hit ? " hit" : ""}${healed ? " healed" : ""}`;
   return (
-    <div className={cls} style={style} data-unit={u.id}>
+    <button type="button" className={cls} style={style} data-unit={u.id} onClick={onInspect} aria-label={`Inspect ${u.name}`}>
       {aim && (motion === "shot" || motion === "cast") && <i key={`f${beat!.index}`} className={`fx fx-${motion}`} aria-hidden />}
       <div className="stand">
       {mark && <i key={beat!.index} className={`mark mark-${mark}`} aria-hidden />}
@@ -76,7 +76,7 @@ function Unit({ u, units, snap, beat, landed, speed, size, aim }: { u: UnitInfo;
         {snap.statuses.length > 0 && <div className="hud-st">{snap.statuses.map((st) => <span key={st.id} className={`st st-${st.category}`} title={st.name}>{st.name}</span>)}</div>}
       </div>
       {pops.length > 0 && <div className="pops" key={`p${beat!.index}`}>{pops.map((p, i) => <PopNumber key={i} pop={p} i={i} speed={speed} />)}</div>}
-    </div>
+    </button>
   );
 }
 
@@ -91,6 +91,8 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const [log, setLog] = useState(false);
+  const [inspect, setInspect] = useState<string | null>(null);
+  useEsc(!!inspect, () => setInspect(null));
   const [caption, setCaption] = useState<{ id: string; text: string } | null>(null);
   const showCaps = !!s.tutorial && !s.tutorial.seenCaptions;
   const caps = useMemo(() => (showCaps ? captionsFor(replay) : []), [replay, showCaps]);
@@ -166,8 +168,22 @@ export function Battle({ s, set, onDone }: { s: RunState; set: (s: RunState) => 
           const pos = fieldPos(side, r, c);
           return <span key={`${side}${r}${c}`} className={`tile ground${side === "defender" ? " foe" : ""}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}><span className="tile-floor" /></span>;
         })))}
-        {units.map((u) => <Unit key={u.id} u={u} units={units} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} aim={aimFor(u)} />)}
+        {units.map((u) => <Unit key={u.id} u={u} units={units} snap={snapOf(u.id)} beat={beat} landed={applied >= i} speed={speed} size={Math.round(112 * k)} aim={aimFor(u)} onInspect={() => setInspect(inspect === u.id ? null : u.id)} />)}
       </section>
+
+      {inspect && (() => {
+        const u = units.find((x) => x.id === inspect)!, sn = snapOf(inspect);
+        return (
+          <aside className="unit-card" aria-label={`${u.name} details`}>
+            <button className="x" onClick={() => setInspect(null)} aria-label="Close">×</button>
+            <h3>{u.name}</h3>
+            <p><Crest cls={u.cls} size={16} />{cap(u.cls)}{u.kind === "squad" && ` · ${sn.soldiers} soldiers`}</p>
+            <p>HP {sn.hp}/{sn.maxHp}{!sn.alive && " (down)"}</p>
+            {u.kind === "hero" && <p>PP <Pips n={sn.ppActive} max={u.ppActive} kind="active" /><Pips n={sn.ppPassive} max={u.ppPassive} kind="passive" /></p>}
+            <div className="hud-st">{sn.statuses.length ? sn.statuses.map((st) => <span key={st.id} className={`st st-${st.category}`}>{st.name}</span>) : <small>No statuses</small>}</div>
+          </aside>
+        );
+      })()}
 
       {banner && (
         <div className={`phase-banner${beat!.kind === "end" ? ` end ${replay.winner === "challenger" ? "won" : "lost"}` : ""}`} key={`b${beat!.index}`}>

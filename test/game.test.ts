@@ -10,7 +10,7 @@ import { Collector } from "../src/types";
 import { validateBattle } from "../src/validate/battle";
 import { bootPack } from "../game/logic/content";
 import { buildBattle } from "../game/logic/battle";
-import { autoField, kitOf, moveHero, pickLeader, poolHero, rollOrder, type PoolHero } from "../game/logic/party";
+import { autoField, kitOf, matchupPct, moveHero, pickLeader, poolHero, rollOrder, type PoolHero } from "../game/logic/party";
 import { buildReplay, motionOf, type Beat, type Pop, type UnitInfo } from "../game/logic/replay";
 import { afterResult, fight, fightBlocker, moveTo, poolIds, rerollStart, startRun, START_POOL, toggleField, toPrep, type RunState } from "../game/logic/run";
 import { resolveEnemies, STAGES } from "../game/logic/stages";
@@ -241,4 +241,11 @@ test("motionOf: attack, support and class motions", () => {
   assert.equal(motionOf(a, beat([{ kind: "text", unit: "a", text: "Up" }]), units), "shot");
   assert.equal(motionOf(a, beat([], "stunned"), units), "stun");
   assert.equal(motionOf(a, beat([], "action", "c"), units), null);
+});
+
+test("matchupPct reads the class rules: advantage up, reverse down, same class neutral", () => {
+  const p = pack.rules.class_advantage[0]!;
+  assert.ok(matchupPct(pack, p.attacker, p.defender) > 0);
+  assert.equal(matchupPct(pack, p.defender, p.attacker), pack.rules.matchup.disadvantage_damage_percent);
+  assert.equal(matchupPct(pack, p.attacker, p.attacker), 0);
 });

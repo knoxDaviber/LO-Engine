@@ -6,7 +6,7 @@ progress in `docs/roadmap.md`.
 ## Where things stand
 
 - **Git:** work is committed per queue item (see `git log`); the supervisor commits each reviewed, green item. Nothing is pushed by Claude.
-- **Checks at handover:** typecheck clean (root and editor), 435/435 tests pass, `npm run validate` 0 errors and 0 warnings,
+- **Checks at handover:** typecheck clean (root and editor), 436/436 tests pass, `npm run validate` 0 errors and 0 warnings,
   all five sims in `content/battles/` run with no `not implemented` lines.
 - **Node:** run `export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"` first (Node 24). `npm install` works on this machine.
 - **Editor:** `npm run editor` (port 5173, or `EDITOR_PORT=5180 npm run editor` when another local project holds 5173).
@@ -124,7 +124,7 @@ progress in `docs/roadmap.md`.
    - **Action animations: done 2026-11-04.** `motionOf` in `game/logic/replay.ts` picks melee / shot / cast / support / squad / stun per beat; the skill banner became a tag over the actor. Stun animation and reduced motion not seen in the browser.
    - **Reroll: done 2026-11-04.** Free and unlimited, starting pool only (`rerollStart`). Open call: limit rerolls, or allow them on recruits? Not browser-tested in tutorial mode.
    - **Art and music: done 2026-11-04 (designer assets).** `game/art/` (committed), `game/music/` (git-ignored: 16MB WAVs, a fresh clone is silent, drop in smaller .ogg/.mp3 with the same names), scene table in `game/src/scenes.ts`, `game/src/music.tsx`. `city2.wav` and `forest-calm.wav` unused. Stages do not set a `battlefield` terrain, so art is cosmetic: open call whether Saltmarsh should really be Swamp terrain (changes balance).
-   - **UI rating loop (in progress, scores in `docs/ui_rating.md`, 2 of 5 passes done):** rate the UI 1-10 on a set of categories a strategy RPG player would use (fans of Final Fantasy Tactics, Langrisser Mobile, Unicorn Overlord, Etrian Odyssey), e.g. readability of the board, tactics setup, battle feedback, information access, menu flow, art direction, onboarding. Iterate until every category is 10/10, but **stop after 5 passes for the designer's review**, even if not at 10. Judge from real screenshots at 1280x720 (the browser pane needs `resize_window`), and keep the score table per pass so the designer can see what changed. Rate honestly: don't raise a score without a visible change.
+   - **UI rating loop (in progress, scores in `docs/ui_rating.md`, 3 of 5 passes done):** rate the UI 1-10 on a set of categories a strategy RPG player would use (fans of Final Fantasy Tactics, Langrisser Mobile, Unicorn Overlord, Etrian Odyssey), e.g. readability of the board, tactics setup, battle feedback, information access, menu flow, art direction, onboarding. Iterate until every category is 10/10, but **stop after 5 passes for the designer's review**, even if not at 10. Judge from real screenshots at 1280x720 (the browser pane needs `resize_window`), and keep the score table per pass so the designer can see what changed. Rate honestly: don't raise a score without a visible change.
 
 **Open from the 2026-11-04 critique (designer to decide):** project CLAUDE.md ("the supervisor never writes code") conflicts with the global "make small changes directly"; should the supervisor edit small code itself? This file is 27KB and loads every session: trim it (the finished editor brief at the end can go)? Suggested: a single playable battle, which needs no meta loop, to test the tactics board before more balance work.
 

@@ -395,3 +395,15 @@ button:disabled { cursor: not-allowed; }
   .sprite-anim, .embers, .march-line { animation: none !important; }
   .pop { animation-duration: 1s !important; }
 }
+
+.facing { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0 8px; font-size: 12.5px; color: var(--ink-soft); }
+.facing li { display: inline-flex; align-items: center; gap: 4px; }
+.facing i { font-style: normal; font-weight: 700; }
+.facing .up { color: var(--good); } .facing .down { color: var(--foe); }
+button.unit { padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+button.unit:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+.unit-card { position: absolute; z-index: 5; top: 58px; left: 18px; width: 210px; padding: 10px 12px; background: rgba(12, 12, 28, 0.88); border: 1px solid var(--line-strong); border-radius: 6px; backdrop-filter: blur(6px); box-shadow: var(--shadow); }
+.unit-card .x { top: 4px; right: 4px; }
+.unit-card h3 { font: 700 16px/1.2 var(--display); color: var(--gold-hi); padding-right: 28px; }
+.unit-card p { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; color: var(--ink-soft); }
+.unit-card .hud-st { justify-content: flex-start; margin-top: 6px; gap: 3px; }

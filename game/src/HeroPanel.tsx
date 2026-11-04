@@ -6,7 +6,7 @@ import { equipmentStats, equipmentType } from "../../src/equipmentBase";
 import { leanedBase } from "../../src/race";
 import { STATS, type Skill, type Stat, type Tactic } from "../../src/schema";
 import type { RosterHero } from "../../src/schema/roster";
-import { moveTactic, setSlot, toggleTactic } from "../logic/party";
+import { matchupPct, moveTactic, setSlot, toggleTactic } from "../logic/party";
 import { setLeader, setSheet, toggleField, type RunState } from "../logic/run";
 import { COMMON_PRESETS } from "../logic/presets";
 import { currentStep, type TutEvent } from "../logic/tutorial";
@@ -129,6 +129,13 @@ function TacticsTab({ s, set, h, fire, picking, setPicking }: { s: RunState; set
   );
   return (
     <div className="panel-scroll">
+      <ul className="facing" aria-label="Facing">
+        {s.enemy!.heroes.map((e) => {
+          const ec = pack.byId.characters.get(e.char_id)!;
+          const pct = matchupPct(pack, pack.byId.characters.get(h.char_id)!.class, ec.class);
+          return <li key={e.char_id}><Crest cls={ec.class} size={16} />{ec.name}{pct !== 0 && <i className={pct > 0 ? "up" : "down"}>{pct > 0 ? "+" : ""}{pct}%</i>}</li>;
+        })}
+      </ul>
       <ol className="tactics" data-tut="tactics-list">
         {actives.map(({ t, i }, n) => (
           <li key={t.skill_id} className={`tactic${t.enabled ? "" : " off"}`}>

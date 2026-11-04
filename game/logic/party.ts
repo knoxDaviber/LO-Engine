@@ -178,3 +178,11 @@ export const toggleTactic = (sheet: Tactic[], index: number): Tactic[] => sheet.
 
 export const setSlot = (sheet: Tactic[], index: number, slot: "main" | "sub", value: Tactic["main"]): Tactic[] =>
   sheet.map((t, i) => (i === index ? { ...t, [slot]: value } : t));
+
+/** Damage percent change for `mine` hitting `theirs`, from rules.yaml: positive on advantage, negative on the losing side, 0 when neutral. */
+export function matchupPct(pack: Pack, mine: UnitClass, theirs: UnitClass): number {
+  const { class_advantage: pairs, matchup } = pack.rules;
+  const win = pairs.find((p) => p.attacker === mine && p.defender === theirs);
+  if (win) return win.damage_percent ?? matchup.advantage_damage_percent;
+  return pairs.some((p) => p.attacker === theirs && p.defender === mine) ? matchup.disadvantage_damage_percent : 0;
+}
